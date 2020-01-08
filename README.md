@@ -20,7 +20,7 @@ blender --background --python neuVid/addAnimation.py -- -ij examples/example1.js
 ```
 5. If desired, preview the animation by opening the blender file (`/tmp/example1Anim.blender`) in a normal (not background) Blender session.
 6. Make an directory for the rendered frames (`/tmp/framesFinal`).
-7. Run the script to render the animation with the internal Blender renderer.  This step takes the longest.
+7. Run the script to render the animation with the internal Blender renderer.  This step takes the longest, about 30-40 minutes on a modern desktop or laptop computer.
 ```
 blender --background --python neuVid/render.py -- -ib /tmp/example1Anim.blender -o /tmp/framesFinal
 ```
