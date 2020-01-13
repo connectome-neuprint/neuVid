@@ -1,3 +1,7 @@
+# A cheap-and-cheerful way to extract a camera target position from a
+# neuPrintExplorer URL, so that position can be used with a
+# centerCamera command.
+
 import sys
 
 if len(sys.argv) < 2:
