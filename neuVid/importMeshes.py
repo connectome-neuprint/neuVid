@@ -412,13 +412,14 @@ def addBoundObj(name, boundData):
 for groupName in groupToNeuronIds.keys():
     addBoundObj("neurons." + groupName, groupToBBox[groupName])
 
-for groupName in groupToRoiNames.keys():
-    roiNames = groupToRoiNames[groupName]
-    objs = [bpy.data.objects["Roi." + name] for name in roiNames]
-    bboxCenter, bboxMin, bboxMax = computeBbox(objs)
-    radius = computeBsphere(objs, bboxCenter)
-    data = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
-    addBoundObj("rois." + groupName, data)
+if "rois" in jsonData:
+    for groupName in groupToRoiNames.keys():
+        roiNames = groupToRoiNames[groupName]
+        objs = [bpy.data.objects["Roi." + name] for name in roiNames]
+        bboxCenter, bboxMin, bboxMax = computeBbox(objs)
+        radius = computeBsphere(objs, bboxCenter)
+        data = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
+        addBoundObj("rois." + groupName, data)
 
 # Some overall bounds, useful for placing lights.
 
@@ -450,11 +451,12 @@ else:
     allNeuronsData = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
 addBoundObj("neurons", allNeuronsData)
 
-allRois = [o for o in bpy.data.objects if o.name.startswith("Roi.")]
-bboxCenter, bboxMin, bboxMax = computeBbox(allRois)
-radius = computeBsphere(allRois, bboxCenter)
-allRoisData = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
-addBoundObj("rois", allRoisData)
+if "rois" in jsonData:
+    allRois = [o for o in bpy.data.objects if o.name.startswith("Roi.")]
+    bboxCenter, bboxMin, bboxMax = computeBbox(allRois)
+    radius = computeBsphere(allRois, bboxCenter)
+    allRoisData = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
+    addBoundObj("rois", allRoisData)
 
 print("Done")
 
