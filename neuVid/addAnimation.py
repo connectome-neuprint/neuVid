@@ -16,6 +16,7 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from utilsColors import colors
 from utilsJson import parseNeuronsIds, parseRoiNames, removeComments
 
 argv = sys.argv
@@ -250,24 +251,46 @@ def advanceTime(args):
         if isinstance(by, float):
             time += by
         else:
-            print("Error: command 'advanceTime': argument 'by' is not a number")
+            print("Error: advanceTime: argument 'by' is not a number")
     else:
-        print("Error: command 'advanceTime': missing argument 'by'")
+        print("Error: advanceTime: missing argument 'by'")
 
 def setValue(args):
-    if "alpha" in args:
-        alpha = args["alpha"]
-        if "meshes" in args:
-            meshes = args["meshes"]
+    # Makes an instantaneous change, so mostly useful for setting an initial value.
+    if "meshes" in args:
+        meshes = args["meshes"]
 
+        if "alpha" in args:
+            alpha = args["alpha"]
             print("{}: setValue meshes '{}' alpha {}".format(frame(), meshes, alpha))
+        elif "color" in args:
+            colorIndex = args["color"]
+            if colorIndex < 0 or colorIndex >= len(colors):
+                print("Error: setValue: color index {} must be between 0 and {}".format(colorIndex, len(colors) - 1))
+                return
+            color = colors[colorIndex]
+            print("{}: setValue meshes '{}' color {}: {}".format(frame(), meshes, colorIndex, color))
+        else:
+            print("Error: setValue: unsupported arguments {}".format(args))
+            return
 
-            objs = meshObjs(meshes)
-            for obj in objs:
-                matName = "Material." + obj.name
-                mat = obj.data.materials[matName]
+        objs = meshObjs(meshes)
+        for obj in objs:
+            matName = "Material." + obj.name
+            mat = obj.data.materials[matName]
+
+            if frame() != 1:
+                if "alpha" in args:
+                    mat.keyframe_insert("alpha", frame=frame()-1)
+                else:
+                    mat.keyframe_insert("diffuse_color", frame=frame()-1)
+
+            if "alpha" in args:
                 mat.alpha = alpha
                 mat.keyframe_insert("alpha", frame=frame())
+            else:
+                mat.diffuse_color = color[0:3]
+                mat.keyframe_insert("diffuse_color", frame=frame())
 
 def frameCamera(args):
     global time, lastCameraCenter

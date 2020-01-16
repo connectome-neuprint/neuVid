@@ -18,6 +18,7 @@ import sys
 timeStart = datetime.datetime.now()
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from utilsColors import colors
 from utilsJson import parseNeuronsIds, parseRoiNames, removeComments
 from utilsMeshes import fileToImportForRoi, fileToImportForNeuron
 
@@ -106,17 +107,6 @@ print("Done")
 #
 
 print("Assigning colors...")
-
-# A standard color-blind palette, with equalized luminance, adding another a blue.
-colors = [
-    (165,   54,     0,      255),
-    (179,   45,     181,    255),
-    (0,     114,    178,    255),
-    (144,   136,    39,     255),
-    (52,    142,    83,     255),
-    (5,     60,     255,    255)
-]
-colors = [(c[0]/255.0, c[1]/255.0, c[2]/255.0, c[3]/255.0) for c in colors]
 
 neuronToColorIndex = {}
 
@@ -394,6 +384,8 @@ for roi in rois:
     matLinks.new(powNode.outputs["Value"], alphaCombineNode.inputs[1])
 
     matLinks.new(alphaCombineNode.outputs["Value"], outputNode.inputs["Alpha"])
+
+print("Done")
 
 #
 

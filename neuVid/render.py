@@ -431,7 +431,7 @@ def addRestIntervals(collection):
     for obj in collection:
         if obj.animation_data:
             for fc in obj.animation_data.action.fcurves:
-                if fc.data_path.endswith(("location", "rotation_euler", "alpha")):
+                if fc.data_path.endswith(("location", "rotation_euler", "alpha", "diffuse_color")):
                     if (obj.name == "Orbiter" or obj.name.endswith(".Pivot")) and fc.data_path.endswith("location"):
                         continue
 
