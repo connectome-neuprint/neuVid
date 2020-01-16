@@ -8,11 +8,15 @@
 import argparse
 import bpy
 import datetime
+import json
 import math
 import mathutils
 import os
 import shutil
 import sys
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from utilsJson import removeComments
 
 timeStart = datetime.datetime.now()
 
@@ -24,6 +28,7 @@ else:
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--inputBlender", "-ib", dest="inputBlenderFile", help="path to the input .blend file")
+parser.add_argument("--inputJson", "-ij", dest="inputJsonFile", help="path to the JSON file describing the input")
 parser.add_argument("--frame-start", "-s", type=int, dest="start", help="first frame to render")
 parser.add_argument("--frame-end", "-e", type=int, dest="end", help="last frame to render")
 parser.add_argument("--frame-jump", "-j", type=int, dest="step", help="number of frames to step forward")
@@ -69,12 +74,25 @@ if not args.willComp:
     willComp = False
 print("Rendering for compositing: {}".format(willComp))
 
+print("Input JSON file: {}".format(args.inputJsonFile))
+
 bpy.ops.wm.open_mainfile(filepath=args.inputBlenderFile)
 
 useSeparateNeuronFiles = all(map(lambda x: not x.name.startswith("Neuron") or
     x.name.startswith("Neuron.proxy"), bpy.data.objects))
 
 useOctane = args.useOctane
+
+jsonLightPowerScale = 1.0
+jsonLightSizeScale = [1.0, 1.0, 1.0]
+if args.inputJsonFile:
+    jsonData = json.loads(removeComments(args.inputJsonFile))
+    if "lightPowerScale" in jsonData:
+        jsonLightPowerScale = jsonData["lightPowerScale"]
+        print("Using lightPowerScale: {}".format(jsonLightPowerScale))
+    if "lightSizeScale" in jsonData:
+        jsonLightSizeScale = jsonData["lightSizeScale"]
+        print("Using lightSizeScale: {}".format(jsonLightSizeScale))
 
 #
 
@@ -283,9 +301,11 @@ else:
                 if "sizeFactor" in spec:
                     sizeFactor = spec["sizeFactor"]
                     lampData.size *= sizeFactor
+                lampData.size *= jsonLightSizeScale
             elif not args.doRois:
                 lampData = bpy.data.lamps.new(name = "Lamp.Key", type = "SPOT")
                 lampData.energy = 1.5
+                lampData.energy *= jsonLightPowerScale[i]
                 lampData.falloff_type = "CONSTANT"
                 lampData.spot_size = 1.4
                 lampData.shadow_method = "BUFFER_SHADOW"
@@ -320,6 +340,7 @@ else:
                 # Emission power: lampEmit.inputs[1].default_value
                 lampEmit.inputs[1].default_value = 2400000
                 powerScale = (lampDistance / 425.1282)**2
+                powerScale *= jsonLightPowerScale[i]
                 lampEmit.inputs[1].default_value *= powerScale
 
                 print("lamp {} power {} after scaling by {}".format(i, lampEmit.inputs[1].default_value, powerScale))
