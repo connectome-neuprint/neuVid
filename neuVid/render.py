@@ -83,8 +83,8 @@ useSeparateNeuronFiles = all(map(lambda x: not x.name.startswith("Neuron") or
 
 useOctane = args.useOctane
 
-jsonLightPowerScale = 1.0
-jsonLightSizeScale = [1.0, 1.0, 1.0]
+jsonLightPowerScale = [1.0, 1.0, 1.0]
+jsonLightSizeScale = 1.0
 if args.inputJsonFile:
     jsonData = json.loads(removeComments(args.inputJsonFile))
     if "lightPowerScale" in jsonData:
@@ -99,7 +99,7 @@ if args.inputJsonFile:
 print("Rescaling/recentering to improve numerical precision...")
 
 def rescaleRecenter(obj, overallCenter, overallScale):
-    if obj.name.startswith("Neuron.") or obj.name.startswith("Roi."):
+    if obj.name.startswith("Neuron.") or obj.name.startswith("Roi.") or obj.name.startswith("Synapses."):
         # Meshes for neurons and ROIs have location at the origin and
         # world position in the vertex coordinates.
         for vert in obj.data.vertices:
@@ -158,6 +158,10 @@ print("Using overall center: {}".format(overallCenter))
 
 for obj in bpy.data.objects:
     rescaleRecenter(obj, overallCenter, overallScale)
+
+camera = bpy.data.cameras["Camera"]
+camera.clip_start *= overallScale
+camera.clip_end *= overallScale
 
 print("Done")
 

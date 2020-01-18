@@ -67,6 +67,26 @@ def fileToImportForRoi(source, roiName, parentForDownloadDir):
             dir += "/"
         return dir + roiName + ".obj"
 
+def fileToImportForSynapses(source, synapseSetName, parentForDownloadDir):
+    if source.startswith("http"):
+        # Assume buildSynapses.py has been run already.  It is not run directly here,
+        # for now, because it depends on neuprint-python, obtained from Conda, and
+        # making Blender work with Conda is a topic for future work.
+
+        dirName = "neuVidSynapseMeshes/"
+        downloadDir = parentForDownloadDir
+        if downloadDir[-1] != "/":
+            downloadDir += "/"
+        downloadDir += dirName
+
+        fileName = downloadDir + synapseSetName + ".obj"
+        return fileName
+    else:
+        dir = source
+        if dir[-1] != "/":
+            dir += "/"
+        return dir + synapseSetName + ".obj"
+
 def downloadMesh(source, key):
     url = source
     if url[-1] != "/":
@@ -85,6 +105,135 @@ def roiNameClean(roiName):
     # Another problem is that OS X treats filenames "aL" and "AL" as identical.
     roiClean = roiClean.replace("a", "aa")
     return roiClean
+
+# Returns a string with the OBJ mesh for an icoshedron of radius r centered at c.
+
+def icosohedron(c, r, i):
+    # A Blender icoshedron sphere, with "subdivisions 2", output to OBJ.
+    j = i * 42
+    s = "v {} {} {}\n".format(c[0] + r * 0.000000, c[1] + r * -1.000000, c[2] + r * 0.000000)
+    s += "v {} {} {}\n".format(c[0] + r * 0.723607, c[1] + r * -0.447220, c[2] + r * 0.525725)
+    s += "v {} {} {}\n".format(c[0] + r * -0.276388, c[1] + r * -0.447220, c[2] + r * 0.850649)
+    s += "v {} {} {}\n".format(c[0] + r * -0.894426, c[1] + r * -0.447216, c[2] + r * 0.000000)
+    s += "v {} {} {}\n".format(c[0] + r * -0.276388, c[1] + r * -0.447220, c[2] + r * -0.850649)
+    s += "v {} {} {}\n".format(c[0] + r * 0.723607, c[1] + r * -0.447220, c[2] + r * -0.525725)
+    s += "v {} {} {}\n".format(c[0] + r * 0.276388, c[1] + r * 0.447220, c[2] + r * 0.850649)
+    s += "v {} {} {}\n".format(c[0] + r * -0.723607, c[1] + r * 0.447220, c[2] + r * 0.525725)
+    s += "v {} {} {}\n".format(c[0] + r * -0.723607, c[1] + r * 0.447220, c[2] + r * -0.525725)
+    s += "v {} {} {}\n".format(c[0] + r * 0.276388, c[1] + r * 0.447220, c[2] + r * -0.850649)
+    s += "v {} {} {}\n".format(c[0] + r * 0.894426, c[1] + r * 0.447216, c[2] + r * 0.000000)
+    s += "v {} {} {}\n".format(c[0] + r * 0.000000, c[1] + r * 1.000000, c[2] + r * 0.000000)
+    s += "v {} {} {}\n".format(c[0] + r * -0.162456, c[1] + r * -0.850654, c[2] + r * 0.499995)
+    s += "v {} {} {}\n".format(c[0] + r * 0.425323, c[1] + r * -0.850654, c[2] + r * 0.309011)
+    s += "v {} {} {}\n".format(c[0] + r * 0.262869, c[1] + r * -0.525738, c[2] + r * 0.809012)
+    s += "v {} {} {}\n".format(c[0] + r * 0.850648, c[1] + r * -0.525736, c[2] + r * 0.000000)
+    s += "v {} {} {}\n".format(c[0] + r * 0.425323, c[1] + r * -0.850654, c[2] + r * -0.309011)
+    s += "v {} {} {}\n".format(c[0] + r * -0.525730, c[1] + r * -0.850652, c[2] + r * 0.000000)
+    s += "v {} {} {}\n".format(c[0] + r * -0.688189, c[1] + r * -0.525736, c[2] + r * 0.499997)
+    s += "v {} {} {}\n".format(c[0] + r * -0.162456, c[1] + r * -0.850654, c[2] + r * -0.499995)
+    s += "v {} {} {}\n".format(c[0] + r * -0.688189, c[1] + r * -0.525736, c[2] + r * -0.499997)
+    s += "v {} {} {}\n".format(c[0] + r * 0.262869, c[1] + r * -0.525738, c[2] + r * -0.809012)
+    s += "v {} {} {}\n".format(c[0] + r * 0.951058, c[1] + r * 0.000000, c[2] + r * 0.309013)
+    s += "v {} {} {}\n".format(c[0] + r * 0.951058, c[1] + r * 0.000000, c[2] + r * -0.309013)
+    s += "v {} {} {}\n".format(c[0] + r * 0.000000, c[1] + r * 0.000000, c[2] + r * 1.000000)
+    s += "v {} {} {}\n".format(c[0] + r * 0.587786, c[1] + r * 0.000000, c[2] + r * 0.809017)
+    s += "v {} {} {}\n".format(c[0] + r * -0.951058, c[1] + r * 0.000000, c[2] + r * 0.309013)
+    s += "v {} {} {}\n".format(c[0] + r * -0.587786, c[1] + r * 0.000000, c[2] + r * 0.809017)
+    s += "v {} {} {}\n".format(c[0] + r * -0.587786, c[1] + r * 0.000000, c[2] + r * -0.809017)
+    s += "v {} {} {}\n".format(c[0] + r * -0.951058, c[1] + r * 0.000000, c[2] + r * -0.309013)
+    s += "v {} {} {}\n".format(c[0] + r * 0.587786, c[1] + r * 0.000000, c[2] + r * -0.809017)
+    s += "v {} {} {}\n".format(c[0] + r * 0.000000, c[1] + r * 0.000000, c[2] + r * -1.000000)
+    s += "v {} {} {}\n".format(c[0] + r * 0.688189, c[1] + r * 0.525736, c[2] + r * 0.499997)
+    s += "v {} {} {}\n".format(c[0] + r * -0.262869, c[1] + r * 0.525738, c[2] + r * 0.809012)
+    s += "v {} {} {}\n".format(c[0] + r * -0.850648, c[1] + r * 0.525736, c[2] + r * 0.000000)
+    s += "v {} {} {}\n".format(c[0] + r * -0.262869, c[1] + r * 0.525738, c[2] + r * -0.809012)
+    s += "v {} {} {}\n".format(c[0] + r * 0.688189, c[1] + r * 0.525736, c[2] + r * -0.499997)
+    s += "v {} {} {}\n".format(c[0] + r * 0.162456, c[1] + r * 0.850654, c[2] + r * 0.499995)
+    s += "v {} {} {}\n".format(c[0] + r * 0.525730, c[1] + r * 0.850652, c[2] + r * 0.000000)
+    s += "v {} {} {}\n".format(c[0] + r * -0.425323, c[1] + r * 0.850654, c[2] + r * 0.309011)
+    s += "v {} {} {}\n".format(c[0] + r * -0.425323, c[1] + r * 0.850654, c[2] + r * -0.309011)
+    s += "v {} {} {}\n".format(c[0] + r * 0.162456, c[1] + r * 0.850654, c[2] + r * -0.499995)
+    s += "f {} {} {}\n".format(j + 1, j + 14, j + 13)
+    s += "f {} {} {}\n".format(j + 2, j + 14, j + 16)
+    s += "f {} {} {}\n".format(j + 1, j + 13, j + 18)
+    s += "f {} {} {}\n".format(j + 1, j + 18, j + 20)
+    s += "f {} {} {}\n".format(j + 1, j + 20, j + 17)
+    s += "f {} {} {}\n".format(j + 2, j + 16, j + 23)
+    s += "f {} {} {}\n".format(j + 3, j + 15, j + 25)
+    s += "f {} {} {}\n".format(j + 4, j + 19, j + 27)
+    s += "f {} {} {}\n".format(j + 5, j + 21, j + 29)
+    s += "f {} {} {}\n".format(j + 6, j + 22, j + 31)
+    s += "f {} {} {}\n".format(j + 2, j + 23, j + 26)
+    s += "f {} {} {}\n".format(j + 3, j + 25, j + 28)
+    s += "f {} {} {}\n".format(j + 4, j + 27, j + 30)
+    s += "f {} {} {}\n".format(j + 5, j + 29, j + 32)
+    s += "f {} {} {}\n".format(j + 6, j + 31, j + 24)
+    s += "f {} {} {}\n".format(j + 7, j + 33, j + 38)
+    s += "f {} {} {}\n".format(j + 8, j + 34, j + 40)
+    s += "f {} {} {}\n".format(j + 9, j + 35, j + 41)
+    s += "f {} {} {}\n".format(j + 10, j + 36, j + 42)
+    s += "f {} {} {}\n".format(j + 11, j + 37, j + 39)
+    s += "f {} {} {}\n".format(j + 39, j + 42, j + 12)
+    s += "f {} {} {}\n".format(j + 39, j + 37, j + 42)
+    s += "f {} {} {}\n".format(j + 37, j + 10, j + 42)
+    s += "f {} {} {}\n".format(j + 42, j + 41, j + 12)
+    s += "f {} {} {}\n".format(j + 42, j + 36, j + 41)
+    s += "f {} {} {}\n".format(j + 36, j + 9, j + 41)
+    s += "f {} {} {}\n".format(j + 41, j + 40, j + 12)
+    s += "f {} {} {}\n".format(j + 41, j + 35, j + 40)
+    s += "f {} {} {}\n".format(j + 35, j + 8, j + 40)
+    s += "f {} {} {}\n".format(j + 40, j + 38, j + 12)
+    s += "f {} {} {}\n".format(j + 40, j + 34, j + 38)
+    s += "f {} {} {}\n".format(j + 34, j + 7, j + 38)
+    s += "f {} {} {}\n".format(j + 38, j + 39, j + 12)
+    s += "f {} {} {}\n".format(j + 38, j + 33, j + 39)
+    s += "f {} {} {}\n".format(j + 33, j + 11, j + 39)
+    s += "f {} {} {}\n".format(j + 24, j + 37, j + 11)
+    s += "f {} {} {}\n".format(j + 24, j + 31, j + 37)
+    s += "f {} {} {}\n".format(j + 31, j + 10, j + 37)
+    s += "f {} {} {}\n".format(j + 32, j + 36, j + 10)
+    s += "f {} {} {}\n".format(j + 32, j + 29, j + 36)
+    s += "f {} {} {}\n".format(j + 29, j + 9, j + 36)
+    s += "f {} {} {}\n".format(j + 30, j + 35, j + 9)
+    s += "f {} {} {}\n".format(j + 30, j + 27, j + 35)
+    s += "f {} {} {}\n".format(j + 27, j + 8, j + 35)
+    s += "f {} {} {}\n".format(j + 28, j + 34, j + 8)
+    s += "f {} {} {}\n".format(j + 28, j + 25, j + 34)
+    s += "f {} {} {}\n".format(j + 25, j + 7, j + 34)
+    s += "f {} {} {}\n".format(j + 26, j + 33, j + 7)
+    s += "f {} {} {}\n".format(j + 26, j + 23, j + 33)
+    s += "f {} {} {}\n".format(j + 23, j + 11, j + 33)
+    s += "f {} {} {}\n".format(j + 31, j + 32, j + 10)
+    s += "f {} {} {}\n".format(j + 31, j + 22, j + 32)
+    s += "f {} {} {}\n".format(j + 22, j + 5, j + 32)
+    s += "f {} {} {}\n".format(j + 29, j + 30, j + 9)
+    s += "f {} {} {}\n".format(j + 29, j + 21, j + 30)
+    s += "f {} {} {}\n".format(j + 21, j + 4, j + 30)
+    s += "f {} {} {}\n".format(j + 27, j + 28, j + 8)
+    s += "f {} {} {}\n".format(j + 27, j + 19, j + 28)
+    s += "f {} {} {}\n".format(j + 19, j + 3, j + 28)
+    s += "f {} {} {}\n".format(j + 25, j + 26, j + 7)
+    s += "f {} {} {}\n".format(j + 25, j + 15, j + 26)
+    s += "f {} {} {}\n".format(j + 15, j + 2, j + 26)
+    s += "f {} {} {}\n".format(j + 23, j + 24, j + 11)
+    s += "f {} {} {}\n".format(j + 23, j + 16, j + 24)
+    s += "f {} {} {}\n".format(j + 16, j + 6, j + 24)
+    s += "f {} {} {}\n".format(j + 17, j + 22, j + 6)
+    s += "f {} {} {}\n".format(j + 17, j + 20, j + 22)
+    s += "f {} {} {}\n".format(j + 20, j + 5, j + 22)
+    s += "f {} {} {}\n".format(j + 20, j + 21, j + 5)
+    s += "f {} {} {}\n".format(j + 20, j + 18, j + 21)
+    s += "f {} {} {}\n".format(j + 18, j + 4, j + 21)
+    s += "f {} {} {}\n".format(j + 18, j + 19, j + 4)
+    s += "f {} {} {}\n".format(j + 18, j + 13, j + 19)
+    s += "f {} {} {}\n".format(j + 13, j + 3, j + 19)
+    s += "f {} {} {}\n".format(j + 16, j + 17, j + 6)
+    s += "f {} {} {}\n".format(j + 16, j + 14, j + 17)
+    s += "f {} {} {}\n".format(j + 14, j + 1, j + 17)
+    s += "f {} {} {}\n".format(j + 13, j + 15, j + 3)
+    s += "f {} {} {}\n".format(j + 13, j + 14, j + 15)
+    s += "f {} {} {}\n".format(j + 14, j + 2, j + 15)
+    return s
 
 # The following functions are copied from https://github.com/janelia-flyem/vol2mesh
 # (with Python 3.6 "f-strings" replaced by "format" calls).

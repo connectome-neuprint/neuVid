@@ -17,7 +17,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsColors import colors
-from utilsJson import parseNeuronsIds, parseRoiNames, removeComments
+from utilsJson import parseNeuronsIds, parseRoiNames, parseSynapsesSetNames, removeComments
 
 argv = sys.argv
 if "--" not in argv:
@@ -51,13 +51,17 @@ if "rois" in jsonData:
     jsonRois = jsonData["rois"]
     roiNames, groupToRoiNames = parseRoiNames(jsonRois)
 
+if "synapses" in jsonData:
+    jsonSynapses = jsonData["synapses"]
+    groupToSynapseSetNames = parseSynapsesSetNames(jsonSynapses)
+
 if not "animation" in jsonData:
     print("JSON contains no 'animation' key, whose value is lists of commands specifying the animation")
     quit()
 jsonAnim = jsonData["animation"]
 
 def meshObjs(name):
-    global groupToNeuronIds, groupToRoiNames, useSeparateNeuronFiles
+    global groupToNeuronIds, groupToRoiNames, groupToSynapseSetNames, useSeparateNeuronFiles
 
     # Support names of the form "A - B + C - D", meaning everything in A or C
     # that is not also in B or D.
@@ -93,6 +97,9 @@ def meshObjs(name):
                 elif type == "rois":
                     for roiName in groupToRoiNames[group]:
                         dest.add("Roi." + roiName)
+                elif type == "synapses":
+                    for synapseSetName in groupToSynapseSetNames[group]:
+                        dest.add("Synapses." + synapseSetName)
 
     if len(addObjNames) == 0:
         return None
@@ -493,7 +500,7 @@ def orbitCamera(args):
     constraint.keyframe_insert("influence", frame=endFrame)
 
 def centerCamera(args):
-    global time
+    global time, lastCameraCenter
     camera = bpy.data.objects["Camera"]
     duration = 1
     if "duration" in args:

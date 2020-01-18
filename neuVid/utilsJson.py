@@ -89,6 +89,17 @@ def parseRoiNames(jsonRois):
 
     return roiNames, groupToRoiNames
 
+def parseSynapsesSetNames(jsonSynapses):
+    groupToSynapseSetNames = {}
+    for key in jsonSynapses.keys():
+        if isinstance(jsonSynapses[key], dict):
+            groupToSynapseSetNames[key] = [key]
+        elif isinstance(jsonSynapses[key], list):
+            # TODO: Support lists of synapseSets, analogous to keys in
+            # "neurons" supporting lists of body IDs.
+            pass
+    return groupToSynapseSetNames
+
 def removeComments(file):
     output = ""
     with open(file) as f:

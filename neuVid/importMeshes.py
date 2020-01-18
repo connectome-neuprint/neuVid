@@ -20,7 +20,7 @@ timeStart = datetime.datetime.now()
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsColors import colors
 from utilsJson import parseNeuronsIds, parseRoiNames, removeComments
-from utilsMeshes import fileToImportForRoi, fileToImportForNeuron
+from utilsMeshes import fileToImportForRoi, fileToImportForNeuron, fileToImportForSynapses
 
 argv = sys.argv
 if "--" not in argv:
@@ -385,6 +385,79 @@ for roi in rois:
 
     matLinks.new(alphaCombineNode.outputs["Value"], outputNode.inputs["Alpha"])
 
+#
+
+print("Importing synapse meshes...")
+
+synapseSetToNeuron = {}
+if "synapses" in jsonData:
+    jsonSynapses = jsonData["synapses"]
+
+    source = "."
+    if "source" in jsonSynapses:
+        source = jsonSynapses["source"]
+
+    missingSynapseSetObjs = []
+    for synapseSetName, synapseSetSpec in jsonSynapses.items():
+        if synapseSetName == "source":
+            continue
+
+        if not "neuron" in synapseSetSpec:
+            print("Error: synapse set '{}' is missing 'neuron'\n".format(synapseSetName))
+            continue
+        neuron = synapseSetSpec["neuron"]
+
+        objPath = fileToImportForSynapses(source, synapseSetName, inputJsonDir)
+        if not os.path.isfile(objPath):
+            print("Skipping missing file {}".format(objPath))
+            missingSynapseSetObjs.append(synapseSetName)
+            continue
+
+        try:
+            # Follow the conventions of NeuTu/Neu3:
+            # positive X points right, positive Y points out, positive Z points down.
+            # Note that this is different from the convention in the first FlyEM movies:
+            # positive X pointed down, positive Y pointed right, positive Z pointed out,
+            # implemented with a call like the following:
+            # bpy.ops.import_scene.obj(filepath=objPath, axis_up="Y", axis_forward="X")
+            bpy.ops.import_scene.obj(filepath=objPath, axis_up="Z", axis_forward="Y")
+
+            obj = bpy.context.selected_objects[0]
+            obj.name = "Synapses." + synapseSetName
+
+            synapseSetToNeuron[obj.name] = neuron
+
+            print("Added object '{}'".format(obj.name))
+        except Exception as e:
+            print("Error: cannot import '{}': '{}'".format(objPath, str(e)))
+
+print("Done")
+
+print("Assigning synapse materials...")
+
+synapseSets = [o for o in bpy.data.objects.keys() if o.startswith("Synapses.")]
+for synapseSet in synapseSets:
+    obj = bpy.data.objects[synapseSet]
+
+    matName = "Material." + obj.name
+    mat = bpy.data.materials.new(name=matName)
+    obj.data.materials.append(mat)
+
+    mat.use_transparency = True
+    # Make that transparency appear in the interactive viewport rendering.
+    obj.show_transparent = True
+
+    # Give each synapse ball the color of its neuron body.
+    neuron = synapseSetToNeuron[obj.name]
+    neuronMatName = "Material.Neuron." + str(neuron)
+    neuronMat = bpy.data.materials[neuronMatName]
+    mat.diffuse_color = neuronMat.diffuse_color
+
+    # And then make it "glow" like it is emitting light, which really just gives it
+    # a brighter version of its neuron's color.
+    mat.emit = 1
+    mat.specular_intensity = 0
+
 print("Done")
 
 #
@@ -498,5 +571,23 @@ bpy.context.scene.render.pixel_aspect_y = 1
 bpy.ops.wm.save_as_mainfile(filepath=args.outputFile)
 
 timeEnd = datetime.datetime.now()
+print()
 print("Importing started at {}".format(timeStart))
 print("Importing ended at {}".format(timeEnd))
+
+if len(missingNeuronObjs) > 0:
+    print()
+    print("ERROR: could not find mesh .obj files for the following neurons:")
+    for x in missingNeuronObjs:
+        print(x)
+if len(missingRoiObjs) > 0:
+    print()
+    print("ERROR: could not find mesh .obj files for the following rois:")
+    for x in missingRoiObjs:
+        print(x)
+if len(missingSynapseSetObjs) > 0:
+    print()
+    print("ERROR: could not find mesh .obj files for the following synapses:")
+    for x in missingSynapseSetObjs:
+        print(x)
+    print("NOTE: run buildSynapses.py to generate synapse mesh .obj files")
