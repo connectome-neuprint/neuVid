@@ -18,7 +18,7 @@ import sys
 timeStart = datetime.datetime.now()
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from utilsColors import colors
+from utilsColors import colors, getColor
 from utilsJson import parseNeuronsIds, parseRoiNames, removeComments
 from utilsMeshes import fileToImportForRoi, fileToImportForNeuron, fileToImportForSynapses
 
@@ -150,6 +150,8 @@ print("Done")
 
 separateNeuronFiles = []
 missingNeuronObjs = []
+missingSynapseSetObjs = []
+
 for i in range(len(neuronSources)):
     if len(neuronSources) == 1:
         print("Importing {} neuron meshes".format(len(neuronIds[i])))
@@ -190,7 +192,7 @@ for i in range(len(neuronSources)):
             mat = bpy.data.materials.new(name=matName)
             obj.data.materials.append(mat)
 
-            color = colors[neuronToColorIndex[obj.name]]
+            color = getColor(neuronToColorIndex[obj.name], colors)
             mat.diffuse_color = color[0:3]
 
             mat.use_transparency = True
@@ -397,7 +399,6 @@ if "synapses" in jsonData:
     if "source" in jsonSynapses:
         source = jsonSynapses["source"]
 
-    missingSynapseSetObjs = []
     for synapseSetName, synapseSetSpec in jsonSynapses.items():
         if synapseSetName == "source":
             continue

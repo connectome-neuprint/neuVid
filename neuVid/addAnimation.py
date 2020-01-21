@@ -16,7 +16,7 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from utilsColors import colors
+from utilsColors import colors, getColor
 from utilsJson import parseNeuronsIds, parseRoiNames, parseSynapsesSetNames, removeComments
 
 argv = sys.argv
@@ -283,12 +283,9 @@ def setValue(args):
             alpha = args["alpha"]
             print("{}: setValue meshes '{}' alpha {}".format(frame(), meshes, alpha))
         elif "color" in args:
-            colorIndex = args["color"]
-            if colorIndex < 0 or colorIndex >= len(colors):
-                print("Error: setValue: color index {} must be between 0 and {}".format(colorIndex, len(colors) - 1))
-                return
-            color = colors[colorIndex]
-            print("{}: setValue meshes '{}' color {}: {}".format(frame(), meshes, colorIndex, color))
+            colorId = args["color"]
+            color = getColor(colorId, colors)
+            print("{}: setValue meshes '{}' color {}: {}".format(frame(), meshes, colorId, color))
         else:
             print("Error: setValue: unsupported arguments {}".format(args))
             return
