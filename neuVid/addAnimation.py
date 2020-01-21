@@ -229,7 +229,19 @@ def imagePlane(source, parented=False):
 
         bpy.ops.object.mode_set(mode="OBJECT")
 
-    return bpy.data.objects[name]
+        if img.source == "MOVIE":
+            duration = img.frame_duration
+            # Due to a bug in Blender, a movie image's frame_duration must be called twice
+            # to get the correct value.
+            duration = img.frame_duration
+            tex.image_user.frame_duration = duration
+
+            tex.image_user.frame_offset = 0
+            tex.image_user.use_auto_refresh = True
+
+            return bpy.data.objects[name], tex
+        else:
+            return bpy.data.objects[name], None
 
 def viewVector():
     global lastOrbitEndingAngle
@@ -409,7 +421,7 @@ def fade(args):
 
             print("{}, {}: fade, image '{}'".format(frame(), frame(time + duration), source))
 
-            plane = imagePlane(source)
+            plane, _ = imagePlane(source)
             plane.location = position
 
             bpy.context.scene.frame_set(frame())
@@ -560,7 +572,7 @@ def showPictureInPicture(args):
         rotationDuration = min(1.0, duration / 4.0)
         translationDuration = rotationDuration / 3.0
 
-        plane = imagePlane(source, True)
+        plane, tex = imagePlane(source, True)
         pivot = plane.parent
 
         print("{}, {}: showPictureInPicture, '{}'".format(frame(), frame(time + duration), source))
@@ -601,6 +613,9 @@ def showPictureInPicture(args):
         plane.keyframe_insert("rotation_euler", frame=frame(time + duration - rotationDuration))
         plane.rotation_euler = mathutils.Euler((math.radians(90), 0, 0), "XYZ")
         plane.keyframe_insert("rotation_euler", frame=frame(time + duration))
+
+        if tex:
+            tex.image_user.frame_start = frame(time + rotationDuration)
 
 outputFile = args.outputFile
 

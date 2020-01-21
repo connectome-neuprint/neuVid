@@ -482,8 +482,22 @@ def addRestIntervals(collection):
                         restIntervals.append((fStart, "s", id))
                         restIntervals.append((fEnd, "e", id))
 
+def addTextureRestIntervals():
+    global restIntervals, numCurves
+    for tex in bpy.data.textures:
+        if isinstance(tex, bpy.types.ImageTexture):
+            if tex.image.source == "MOVIE":
+                numCurves += 1
+                id = tex.name
+                iu = tex.image_user
+                restIntervals.append((1, "s", id))
+                restIntervals.append((iu.frame_start, "e", id))
+                restIntervals.append((iu.frame_start + iu.frame_duration, "s", id))
+                restIntervals.append((bpy.data.scenes["Scene"].frame_end, "e", id))
+
 addRestIntervals(bpy.data.objects)
 addRestIntervals(bpy.data.materials)
+addTextureRestIntervals()
 restIntervals.sort()
 
 restingCurves = set()
