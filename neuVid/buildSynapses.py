@@ -102,19 +102,19 @@ if synapseSource.startswith("http"):
             partner = synapseSetSpec["partner"]
 
             # Neo4j Cypher queries for neuprint-python.
-            
+
             if type == "pre":
                 query = "MATCH (a:Neuron{{bodyId:{}}})-[:Contains]->(ss:SynapseSet)-[:ConnectsTo]->(:SynapseSet)<-[:Contains]-(b{{bodyId:{}}}) " \
                         "WITH ss " \
                         "MATCH (ss)-[:Contains]->(s:Synapse) " \
                         "WHERE s.type = \"{}\" " \
-                        "RETURN s.location.x, s.location.y, s.location.z\n".format(body, partner)
+                        "RETURN s.location.x, s.location.y, s.location.z\n".format(body, partner, type)
             elif type == "post":
                 query = "MATCH (a:Neuron{{bodyId:{}}})-[:Contains]->(:SynapseSet)-[:ConnectsTo]->(ss:SynapseSet)<-[:Contains]-(b{{bodyId:{}}}) " \
                         "WITH ss " \
                         "MATCH (ss)-[:Contains]->(s:Synapse) " \
                         "WHERE s.type = \"{}\" " \
-                        "RETURN s.location.x, s.location.y, s.location.z\n".format(partner, body)
+                        "RETURN s.location.x, s.location.y, s.location.z\n".format(partner, body, type)
             else:
                 print("Error: synapse set '{}' unkown 'type' {}\n".format(synapseSetName, type))
         else:
@@ -131,7 +131,9 @@ if synapseSource.startswith("http"):
             query = query.replace("RETURN", "AND exists(`s.{}`) RETURN".format(roi))
 
         if query:
+            print("Querying '{}'...".format(synapseSetName))
             results = client.fetch_custom(query, dataset=dataset)
+            print("Done, with {} value(s)".format(len(results.values)))
             positions = []
             for x in results.values:
                 positions.append((x[0], x[1], x[2]))
