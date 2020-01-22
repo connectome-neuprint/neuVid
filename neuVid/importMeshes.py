@@ -558,6 +558,10 @@ bpy.context.scene.world.light_settings.use_environment_light = True
 #
 
 camera = bpy.data.cameras["Camera"]
+# Frustum clipping planes appropriate for FlyEM data, with 1 unit being 8 nm.
+# A lower clip_start causes Z-buffer artifacts with the Blender internal renderer.
+# A lower clip_end can make many neurons invisibile.
+camera.clip_start = 100
 camera.clip_end = 100000
 
 # HDTV 1080P
