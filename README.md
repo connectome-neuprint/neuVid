@@ -2,9 +2,9 @@
 
 ## Summary
 
-These Python scripts generate simple anatomical videos in [Blender](https://www.blender.org/), following the conventions common in neuroscience research on the *Drosophila* fruit fly.  The input is a JSON file giving a high-level description of anatomical elements (e.g., neurons, regions of interest, synapses) and how they are animated (e.g., the camera frames on some neurons, then those neurons fade out while the camera orbits around them).  Rendering of medium quality can be done relatively quickly using the Blender internal renderer, and high-quality renderings can be done more slowly with the [OTOY Octane path-tracing renderer](https://home.otoy.com/render/octane-render/) (which requires a commercial license).
+These Python scripts generate simple anatomical videos in [Blender](https://www.blender.org/), following the conventions common in neuroscience research on the *Drosophila* fruit fly.  The input is a JSON file giving a high-level description of anatomical elements (e.g., neurons, regions of interest, synapses) and how they are animated (e.g., the camera frames on some neurons, then those neurons fade out while the camera orbits around them).  Rendering of medium quality can be done relatively quickly using the Blender internal renderer, and high-quality renderings can be done more slowly with the [OTOY Octane path-tracing renderer](https://home.otoy.com/render/octane-render/) (which requires a commercial license).  Here is an example of a video scripted with neuVid and rendered with Octane (with titles added separately in iMovie):
 
-
+[![Watch the video](https://img.youtube.com/vi/nu0b_tjCGxQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=nu0b_tjCGxQ)
 
 ## Basic Usage
 Here is how to render the example video.  It assumes access to data on the internal network for the [HHMI Janelia Research Campus](http://www.janelia.org).
