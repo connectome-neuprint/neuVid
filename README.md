@@ -29,6 +29,37 @@ blender --background --python neuVid/render.py -- -ib /tmp/example1Anim.blender 
 blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
 ```
 
+## Usage with Synapses
+
+Synapse locations come from queries processed by the [`neuprint-python` module](https://github.com/connectome-neuprint/neuprint-python).  As mentioned on its project page, `neuprint-python` can be installed with either `conda` or `pip`.  Either approach has the unfortunate consequence that an extra script must be run outside of Blender before `importMeshes.py`, because Blender comes with its own version of Python.
+Here is how to render the second example video.
+
+1. To use Conda, first [install Miniconda](https://docs.conda.io/en/latest/miniconda.html).
+
+2. Create a new Conda environment.
+```
+conda create --name neuVid-example
+conda activate neuVid-example
+```
+
+3. Install `neuprint-python` from the `flyem-forge` channel.
+```
+conda install -c flyem-forge neuprint-python
+```
+
+4. Run the script to create query the synapses.  This stage creates a directory for the synapse meshes, `neuVidSynapseMeshes`, in the same directory as the JSON file.
+```
+python neuVid/buildSynapses.py -ij examples/example2.json
+```
+
+5. Now proceed with the normal steps, as described in the previous section.
+```
+blender --background --python neuVid/importMeshes.py -- -ij examples/example2.json -o /tmp/example2.blend
+blender --background --python neuVid/addAnimation.py -- -ij examples/example1.json -ib /tmp/example2.blend -o /tmp/example2Anim.blender
+blender --background --python neuVid/render.py -- -ib /tmp/example2Anim.blender -o /tmp/framesFinal
+blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
+```
+
 ## Tips
 
 These scripts avoid literal positions as much as possible (e.g., `frameCamera` sets the camera position implicitly so some objects fill the view).  Nevertheless, litera positions sometimes are unavoidable (e.g., when the camera view should be filled with just part of an object, with `centerCamera`).  One way to get the coordinates of a literal position is to use `neuPrintExplorer` (i.e., [https://neuprint.janelia.org/](https://neuprint.janelia.org/)): in the skeleton view, shift-click on a particular position on a neuron body sets the camera target to that position.  All we need, then, is a way to get that target position from `neuPrintExplorer`.

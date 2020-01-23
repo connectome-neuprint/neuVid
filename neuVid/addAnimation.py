@@ -436,6 +436,40 @@ def fade(args):
             mat.alpha = endingAlpha
             mat.keyframe_insert("alpha", frame=frame(time + duration))
 
+def pulse(args):
+    global time, colors
+    duration = 1
+    if "duration" in args:
+        duration = args["duration"]
+    if "meshes" in args:
+        meshes = args["meshes"]
+
+        colorId = "#ffffff"
+        if "toColor" in args:
+            colorId = args["toColor"]
+        pulseColor = getColor(colorId, colors)
+        print("{}, {}: pulse meshes '{}' to color {}: {}".format(frame(), frame(time + duration), meshes, colorId, pulseColor))
+
+        objs = meshObjs(meshes)
+        for obj in objs:
+            matName = "Material." + obj.name
+            mat = obj.data.materials[matName]
+            baseColor = mat.diffuse_color.copy()
+
+            deltaTime = 0.5
+            n = int(duration / deltaTime)
+            if n % 2 == 1:
+                n -= 1
+            if n <= 0:
+                return
+            mat.keyframe_insert("diffuse_color", frame=frame())
+            t = time + deltaTime
+            colors = [pulseColor, baseColor]
+            for i in range(n):
+                mat.diffuse_color = colors[i % 2]
+                mat.keyframe_insert("diffuse_color", frame=frame(t))
+                t += deltaTime
+
 def orbitCamera(args):
     # If arg "around" is "a.b" then orbiting will be around the location of
     # "Bounds.a.b".

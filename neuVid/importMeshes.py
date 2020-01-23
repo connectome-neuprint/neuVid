@@ -487,6 +487,17 @@ if "rois" in jsonData:
         data = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
         addBoundObj("rois." + groupName, data)
 
+if "synapses" in jsonData:
+    jsonSynapses = jsonData["synapses"]
+    for synapseSetName in jsonSynapses:
+        if synapseSetName == "source":
+            continue
+        objs = [bpy.data.objects["Synapses." + synapseSetName]]
+        bboxCenter, bboxMin, bboxMax = computeBbox(objs)
+        radius = computeBsphere(objs, bboxCenter)
+        data = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
+        addBoundObj("synapses." + synapseSetName, data)
+
 # Some overall bounds, useful for placing lights.
 
 def unionBounds(boundDataMap):
