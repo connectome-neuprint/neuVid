@@ -352,12 +352,23 @@ def frameCamera(args):
 
 def fade(args):
     global time
-    startingAlpha = 1
+    startingValue = 1
+    type = "alpha"
     if "startingAlpha" in args:
-        startingAlpha = args["startingAlpha"]
-    endingAlpha = 0
-    if "endingAlpha" in args:
-        endingAlpha = args["endingAlpha"]
+        startingValue = args["startingAlpha"]
+    elif "startingColor" in args:
+        colorId = args["startingColor"]
+        startingValue = getColor(colorId, colors)[0:3]
+        type = "diffuse_color"
+    endingValue = 0
+    if type == "alpha" and "endingAlpha" in args:
+        endingValue = args["endingAlpha"]
+    elif type == "diffuse_color" and "endingColor" in args:
+        colorId = args["endingColor"]
+        endingValue = getColor(colorId, colors)[0:3]
+    else:
+        print("Error: fade arguments {}".format(args))
+        return
     duration = 1
     if "duration" in args:
         duration = args["duration"]
@@ -376,8 +387,8 @@ def fade(args):
             deltaTime.append(duration / 3 / (2 * nStaggerSubgroup))
             deltaTime.append(duration / 3 / (len(objs) - 3 * nStaggerSubgroup))
 
-            print("{}, {}: fade, meshes '{}', alpha {} to {}".
-                format(frame(), frame(time + duration), meshes, startingAlpha, endingAlpha))
+            print("{}, {}: fade, meshes '{}', {} {} to {}".
+                format(frame(), frame(time + duration), meshes, type, startingValue, endingValue))
             print(" stagger: {} x {}, {} x {}, {} x {}".
                 format(nStaggerSubgroup, frame(deltaTime[0]),
                        2 * nStaggerSubgroup, frame(deltaTime[1]),
@@ -385,19 +396,25 @@ def fade(args):
 
         else:
             deltaTime.append(duration)
-            print("{}, {}: fade, meshes '{}', alpha {} to {}".format(frame(), frame(time + duration),
-                meshes, startingAlpha, endingAlpha))
+            print("{}, {}: fade, meshes '{}', {} {} to {}".format(frame(), frame(time + duration),
+                meshes, type, startingValue, endingValue))
 
         i = 0
         for obj in objs:
             matName = "Material." + obj.name
             mat = obj.data.materials[matName]
-            mat.alpha = startingAlpha
+            if type == "alpha":
+                mat.alpha = startingValue
+            else:
+                mat.diffuse_color = startingValue
             startingFrame = frame(startingTime)
-            mat.keyframe_insert("alpha", frame=startingFrame)
-            mat.alpha = endingAlpha
+            mat.keyframe_insert(type, frame=startingFrame)
+            if type == "alpha":
+                mat.alpha = endingValue
+            else:
+                mat.diffuse_color = endingValue
             endingFrame = max(frame(startingTime + deltaTime[0]), startingFrame + 1)
-            mat.keyframe_insert("alpha", frame=endingFrame)
+            mat.keyframe_insert(type, frame=endingFrame)
             i += 1
             if len(deltaTime) > 1 and (i == nStaggerSubgroup or i == 3 * nStaggerSubgroup):
                 deltaTime.pop(0)
