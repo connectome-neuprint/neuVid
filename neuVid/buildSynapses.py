@@ -128,7 +128,7 @@ if synapseSource.startswith("http"):
                 print("Error: synapse set '{}' unkown 'type' {}\n".format(synapseSetName, type))
 
         if roi:
-            query = query.replace("RETURN", "AND exists(`s.{}`) RETURN".format(roi))
+            query = query.replace("RETURN", "AND exists(s.`{}`) RETURN".format(roi))
 
         if query:
             print("Querying '{}'...".format(synapseSetName))
