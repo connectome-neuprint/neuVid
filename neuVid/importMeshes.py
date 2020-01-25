@@ -150,6 +150,7 @@ print("Done")
 
 separateNeuronFiles = []
 missingNeuronObjs = []
+missingRoiObjs = []
 missingSynapseSetObjs = []
 
 for i in range(len(neuronSources)):
@@ -271,7 +272,6 @@ if "rois" in jsonData:
                 for roiName in groupToRoiNames[groupName]:
                     roiExponents["Roi." + roiName] = groupToExponent[groupName]
 
-    missingRoiObjs = []
     for roiName in roiNames:
         objPath = fileToImportForRoi(source, roiName, inputJsonDir)
         if not os.path.isfile(objPath):
