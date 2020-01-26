@@ -97,7 +97,7 @@ def downloadMesh(source, key):
         r.raise_for_status()
         return r.content
     except requests.exceptions.RequestException as e:
-        print("Error: downloading '{}' from source URL '{}' failed: {}".format(roiName, source, str(e)))
+        print("Error: downloading '{}' from source URL '{}' failed: {}".format(key, source, str(e)))
         return None
 
 def roiNameClean(roiName):
