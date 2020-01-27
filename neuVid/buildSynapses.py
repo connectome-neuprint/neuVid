@@ -86,8 +86,12 @@ if synapseSource.startswith("http"):
         type = synapseSetSpec["type"]
 
         roi = None
+        complementRoi = False
         if "roi" in synapseSetSpec:
             roi = synapseSetSpec["roi"]
+            if roi.lower().startswith("not"):
+                complementRoi = True
+                roi = roi.split()[-1]
 
         radius = 40
         if "radius" in synapseSetSpec:
@@ -128,7 +132,10 @@ if synapseSource.startswith("http"):
                 print("Error: synapse set '{}' unkown 'type' {}\n".format(synapseSetName, type))
 
         if roi:
-            query = query.replace("RETURN", "AND exists(s.`{}`) RETURN".format(roi))
+            if complementRoi:
+                query = query.replace("RETURN", "AND NOT exists(s.`{}`) RETURN".format(roi))
+            else:
+                query = query.replace("RETURN", "AND exists(s.`{}`) RETURN".format(roi))
 
         if query:
             print("Querying '{}'...".format(synapseSetName))
