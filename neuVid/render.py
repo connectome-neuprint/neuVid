@@ -85,7 +85,7 @@ useOctane = args.useOctane
 
 jsonLightPowerScale = [1.0, 1.0, 1.0]
 jsonLightSizeScale = 1.0
-jsonLampColor = "default"
+jsonLightColor = "default"
 if args.inputJsonFile:
     jsonData = json.loads(removeComments(args.inputJsonFile))
     if "lightPowerScale" in jsonData:
@@ -94,9 +94,9 @@ if args.inputJsonFile:
     if "lightSizeScale" in jsonData:
         jsonLightSizeScale = jsonData["lightSizeScale"]
         print("Using lightSizeScale: {}".format(jsonLightSizeScale))
-    if "lampColor" in jsonData:
-        jsonLampColor = jsonData["lampColor"]
-        print("Using lampColor: {}".format(jsonLightSizeScale))
+    if "lightColor" in jsonData:
+        jsonLightColor = jsonData["lightColor"]
+        print("Using lightColor: {}".format(jsonLightColor))
 
 #
 
@@ -314,7 +314,7 @@ else:
                 lampData = bpy.data.lamps.new(name = "Lamp.Key", type = "SPOT")
                 lampData.energy = 1.5
                 lampData.energy *= jsonLightPowerScale[i]
-                if jsonLampColor != "uniform":
+                if jsonLightColor != "uniform":
                     lampData.color = spec["color"][0:3]
                 lampData.falloff_type = "CONSTANT"
                 lampData.spot_size = 1.4
