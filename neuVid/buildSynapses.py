@@ -111,13 +111,13 @@ if synapseSource.startswith("http"):
         boxToIncludeKeys = [["xmin", "ymin", "zmin"], ["xmax", "ymax", "zmax"]]
         limit = sys.float_info.max
         boxToInclude = [[-limit, -limit, -limit], [limit, limit, limit]]
-        if "includeOnly" in synapseSetSpec:
-            includeOnly = synapseSetSpec["includeOnly"]
+        if "includeWithin" in synapseSetSpec:
+            includeWithin = synapseSetSpec["includeWithin"]
             for i in range(len(boxToInclude)):
                 for j in range(len(boxToInclude[i])):
-                    jsonKey = matchingKey(boxToIncludeKeys[i][j], includeOnly)
+                    jsonKey = matchingKey(boxToIncludeKeys[i][j], includeWithin)
                     if jsonKey:
-                        x = includeOnly[jsonKey]
+                        x = includeWithin[jsonKey]
                         boxToInclude[i][j] = int(x)
 
         partner = None
@@ -172,7 +172,7 @@ if synapseSource.startswith("http"):
                         break
                 if include:
                     positions.append((x[0], x[1], x[2]))
-            print("Filtered out {} value(s)".format(numFiltered))
+            print("Then filtered out {} value(s)".format(numFiltered))
 
             dirName = "neuVidSynapseMeshes/"
             downloadDir = inputJsonDir
