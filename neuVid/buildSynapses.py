@@ -35,6 +35,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--inputJson", "-ij", dest="inputJsonFile", help="path to the JSON file describing the input")
 args = parser.parse_args()
 
+def matchingKey(key, json):
+    # Make our "xmin" match json "xmin", "xMin", "x-min", "minX", "minx", "min-x", etc.
+    for jsonKey in json:
+        jsonKey1 = jsonKey.replace("-", "").lower()
+        if key == jsonKey1 or key[1:] + key[0] == jsonKey1:
+            return jsonKey
+    return None
+
 if args.inputJsonFile == None:
     parser.print_help()
     quit()
@@ -100,6 +108,18 @@ if synapseSource.startswith("http"):
                 print("Skipping synapse set '{}' with negative radius {}".format(synapseSetName, radius))
                 continue
 
+        boxToIncludeKeys = [["xmin", "ymin", "zmin"], ["xmax", "ymax", "zmax"]]
+        limit = sys.float_info.max
+        boxToInclude = [[-limit, -limit, -limit], [limit, limit, limit]]
+        if "includeOnly" in synapseSetSpec:
+            includeOnly = synapseSetSpec["includeOnly"]
+            for i in range(len(boxToInclude)):
+                for j in range(len(boxToInclude[i])):
+                    jsonKey = matchingKey(boxToIncludeKeys[i][j], includeOnly)
+                    if jsonKey:
+                        x = includeOnly[jsonKey]
+                        boxToInclude[i][j] = int(x)
+
         partner = None
         query = None
         if "partner" in synapseSetSpec:
@@ -142,8 +162,17 @@ if synapseSource.startswith("http"):
             results = client.fetch_custom(query, dataset=dataset)
             print("Done, with {} value(s)".format(len(results.values)))
             positions = []
+            numFiltered = 0
             for x in results.values:
-                positions.append((x[0], x[1], x[2]))
+                include = True
+                for j in range(len(boxToInclude[0])):
+                    if x[j] < boxToInclude[0][j] or boxToInclude[1][j] < x[j]:
+                        include = False
+                        numFiltered += 1
+                        break
+                if include:
+                    positions.append((x[0], x[1], x[2]))
+            print("Filtered out {} value(s)".format(numFiltered))
 
             dirName = "neuVidSynapseMeshes/"
             downloadDir = inputJsonDir
