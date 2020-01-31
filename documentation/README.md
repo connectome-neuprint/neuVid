@@ -29,7 +29,7 @@ Here is a `neuVid` input file for the simplest video:
 }
 ```
 
-The video then would be generated using these steps, described in more detail in the [Basic Usage](README.md#basic-usage) documentation:
+The video then would be generated using these steps, described in more detail in the [Basic Usage](../README.md#basic-usage) documentation:
 
 ```
 blender --background --python neuVid/importMeshes.py -- -ij /tmp/simplest.json -o /tmp/simplest.blend
@@ -294,7 +294,7 @@ Synapse locations can be slightly inside the branches of neurons, which makes th
 
 Even with this fading, smaller synapse sets may be hard to notice, especially if they are colored gray.  The `pulse` command can help by gently (once per second) cycling from the current color to a highlighting color, which is white in this example.
 
-As described in more detail in the [Usage with Synapses](README.md#usage-with-synapses) documentation, animations with synapses require the running of an extra script, `buildSynapses.py`.  This script queries the synapse locations from the `neuPrint` server mentioned in the `source` URL.  The full set of steps to generate the animation are as follows:
+As described in more detail in the [Usage with Synapses](../README.md#usage-with-synapses) documentation, animations with synapses require the running of an extra script, `buildSynapses.py`.  This script queries the synapse locations from the `neuPrint` server mentioned in the `source` URL.  The full set of steps to generate the animation are as follows:
 
 ```
 python neuVid/buildSynapses.py -ij /tmp/synapses.json
