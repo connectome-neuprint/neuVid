@@ -267,13 +267,14 @@ else:
                 matName = "Material." + obj.name
                 if matName in bpy.data.materials:
                     mat = bpy.data.materials[matName]
-                    # To make an object transparent it is not sufficient to set just its material's alpha.
-                    # The material's specular_alpha must be set, too.  Using a driver to tie the specular_alpha
-                    # to the alpha seems difficult to do, so just copy the alpha animation.
-                    keyframes = mat.animation_data.action.fcurves.find(data_path="alpha").keyframe_points
-                    for i in range(len(keyframes)):
-                        mat.specular_alpha = keyframes[i].co[1]
-                        mat.keyframe_insert("specular_alpha", frame=keyframes[i].co[0])
+                    if mat.animation_data:
+                        # To make an object transparent it is not sufficient to set just its material's alpha.
+                        # The material's specular_alpha must be set, too.  Using a driver to tie the specular_alpha
+                        # to the alpha seems difficult to do, so just copy the alpha animation.
+                        keyframes = mat.animation_data.action.fcurves.find(data_path="alpha").keyframe_points
+                        for i in range(len(keyframes)):
+                            mat.specular_alpha = keyframes[i].co[1]
+                            mat.keyframe_insert("specular_alpha", frame=keyframes[i].co[0])
         print("Done")
 
     print("Adding lamps...")
