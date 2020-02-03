@@ -469,13 +469,17 @@ def addRestIntervals(collection):
 
                     numCurves += 1
                     id = obj.name + "." + fc.data_path + "." + str(fc.array_index)
-                    vStart = 0.0
-                    fStart = 0
+                    fStart = 1
+                    # The value for the first resting interval is not known until the first key,
+                    # with its value.
+                    vStart = None
                     fEnd = None
                     for key in fc.keyframe_points:
                         f = int(key.co[0])
                         v = key.co[1]
-                        if v == vStart:
+                        if (vStart == None or v == vStart) and f != fStart:
+                            # The first key define the value of the first resting interval.
+                            vStart = v
                             fEnd = f
                         else:
                             if fEnd:
