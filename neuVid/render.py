@@ -205,10 +205,12 @@ def addOctaneMaterial(obj, animMat=None):
         # it does not work to just add a link like the following:
         # matLinks.new(matNode.outputs["Alpha"], glossyNode.inputs[11])
         # Instead, it seems to be necessary to copy the keys.
-        keyframes = animMat.animation_data.action.fcurves.find(data_path="alpha").keyframe_points
-        for i in range(len(keyframes)):
-            glossyNode.inputs[11].default_value = keyframes[i].co[1]
-            glossyNode.inputs[11].keyframe_insert("default_value", frame=keyframes[i].co[0])
+        fcurvesAlpha = animMat.animation_data.action.fcurves.find(data_path="alpha")
+        if fcurvesAlpha:
+            keyframes = fcurvesAlpha.keyframe_points
+            for i in range(len(keyframes)):
+                glossyNode.inputs[11].default_value = keyframes[i].co[1]
+                glossyNode.inputs[11].keyframe_insert("default_value", frame=keyframes[i].co[0])
 
     # Roughness
     glossyNode.inputs[2].default_value = 0.0
@@ -268,13 +270,15 @@ else:
                 if matName in bpy.data.materials:
                     mat = bpy.data.materials[matName]
                     if mat.animation_data:
-                        # To make an object transparent it is not sufficient to set just its material's alpha.
-                        # The material's specular_alpha must be set, too.  Using a driver to tie the specular_alpha
-                        # to the alpha seems difficult to do, so just copy the alpha animation.
-                        keyframes = mat.animation_data.action.fcurves.find(data_path="alpha").keyframe_points
-                        for i in range(len(keyframes)):
-                            mat.specular_alpha = keyframes[i].co[1]
-                            mat.keyframe_insert("specular_alpha", frame=keyframes[i].co[0])
+                        fcurvesAlpha = mat.animation_data.action.fcurves.find(data_path="alpha")
+                        if fcurvesAlpha:
+                            # To make an object transparent it is not sufficient to set just its material's alpha.
+                            # The material's specular_alpha must be set, too.  Using a driver to tie the specular_alpha
+                            # to the alpha seems difficult to do, so just copy the alpha animation.
+                            keyframes = fcurvesAlpha.keyframe_points
+                            for i in range(len(keyframes)):
+                                mat.specular_alpha = keyframes[i].co[1]
+                                mat.keyframe_insert("specular_alpha", frame=keyframes[i].co[0])
         print("Done")
 
     print("Adding lamps...")
