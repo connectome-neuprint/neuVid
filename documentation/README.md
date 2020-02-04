@@ -38,6 +38,15 @@ blender --background --python neuVid/render.py -- -ib /tmp/simplestAnim.blend -o
 blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
 ```
 
+The `-o` and `-ib` arguments may be omitted with their values being inferred from `-ij /tmp/simplest.json`, allowing this more concise version:
+
+```
+blender --background --python neuVid/importMeshes.py -- -ij /tmp/simplest.json
+blender --background --python neuVid/addAnimation.py -- -ij /tmp/simplest.json
+blender --background --python neuVid/render.py -- -ij /tmp/simplest.json -o /tmp/framesFinal
+blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
+```
+
 It is easiest to edit a JSON file in a modern text editor that understands and visually highlights the JSON file format; a good candidate that works on most platforms is [`atom`](https://atom.io/).  By default, JSON does not allow comments.  In `neuVid`, comment lines starting with `#` or `//` are allowed, as they are stripped before further JSON processing.  The visually highlighting in `atom` does get confused by such comments, though.
 
 Be careful not to add a comma after the last item in a JSON array (e.g., use `[1, 2, 3]`, not `[1, 2, 3,]`).  This common mistake produces a somewhat cryptic error message (e.g., `json.decoder.JSONDecodeError: Expecting value: line 17 column 3 (char 495)` if there is an extra comma on line 16).
@@ -253,6 +262,27 @@ Each of the three `setValue` commands shows one of the ways of specifying colors
 
 Note that int the last `setValue` command, the `meshes` argument has the value `neurons.partners + neurons.more - neurons.special`.  The effect is to assign the `#ababab` color to all the neurons in `neurons.partners` and `neurons.more` except the neurons in `neurons.special`.  Any `meshes` argument can use set operations like these on names from the `neurons` and `rois` categories, but not from the `synapses` category.
 
+The `rois` category renders meshes as silhouettes, with mesh faces becoming more transparent as they come closer to facing the camera.  To control how quickly this transition to transparency occurs, the `rois` category has an optional key, `exponents`.  The default value is five, and a *higher* value makes a mesh transition to transparency *faster*.  Here is an example using assigning a value of eight to a group of ROIs that should be deemphasized:
+
+```json
+{
+  "rois" : {
+    "source" : "http://emdata4.int.janelia.org:8900/api/node/52a13/roisSmoothedDecimated",
+    "deemphasized" : [
+      "FB", "EB"
+    ],
+    "emphasized" : [
+      "NO"
+    ],
+    "exponents" : {
+      "deemphasized" : 8
+    }
+  }
+}
+```
+
+In the `exponents` object, the special key `*` refers to all ROIs not explicitly mentioned in other keys.  See the [Tips](#tips) documentation, below, for some ideas about how to use `exponents` and `alpha`.
+
 ## Synapses
 
 Synapses appear as little spheres, and are defined by names in the `synapses` category.  Here is a simple example:
@@ -332,7 +362,7 @@ The object for `anchorPSD` has two keys, but `neuVid` supports additional keys t
 - Input JSON arguments for `render.py`:
   - `fps`
   - `lightPowerScale`
-  - `lightSizeScale`Â
+  - `lightSizeScale`
   - `lightColor`
 - Rendering with Octane:
   - `--octane` argument
@@ -348,6 +378,20 @@ The object for `anchorPSD` has two keys, but `neuVid` supports additional keys t
 [![Watch the video](https://img.youtube.com/vi/PeyHKdmBpqY/maxresdefault.jpg)](https://www.youtube.com/watch?v=PeyHKdmBpqY)
 
 ## Tips
+
+### Using `exponents` and `alpha` for ROIs
+
+The visual appearance of ROIs is a matter of personal taste, but here are some ideas that have worked well in practice.
+
+Under normal circumstances, the `rois` category's `exponents` key is not needed, and an `alpha` of `0.05` looks reasonable for all ROIs:
+
+![Normal ROIs](roisNormal.png)
+
+To emphasize one ROI, give it an `alpha` of `0.2` and deemphasize all the other ROIs by giving them `exponents` values of `8`:
+
+![One emphasized ROI](roisOneEmphasized.png)
+
+To give all ROIs a lighter look, use the `*` key in `exponents` to give everything a value of `7` or `8`.
 
 ### Getting `position` values
 
