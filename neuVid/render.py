@@ -76,7 +76,16 @@ print("Rendering for compositing: {}".format(willComp))
 
 print("Input JSON file: {}".format(args.inputJsonFile))
 
-bpy.ops.wm.open_mainfile(filepath=args.inputBlenderFile)
+inputBlenderFile = args.inputBlenderFile
+if inputBlenderFile == None:
+    if args.inputJsonFile != None:
+        inputBlenderFile = os.path.splitext(args.inputJsonFile)[0] + "Anim.blend"
+    else:
+        parser.print_help()
+        quit()
+print("Using input Blender file: '{}'".format(inputBlenderFile))
+
+bpy.ops.wm.open_mainfile(filepath=inputBlenderFile)
 
 useSeparateNeuronFiles = all(map(lambda x: not x.name.startswith("Neuron") or
     x.name.startswith("Neuron.proxy"), bpy.data.objects))

@@ -41,6 +41,11 @@ if args.inputJsonFile == None:
     parser.print_help()
     quit()
 
+outputFile = args.outputFile
+if outputFile == None:
+    outputFile = os.path.splitext(args.inputJsonFile)[0] + ".blend"
+print("Using output Blender file: '{}'".format(outputFile))
+
 inputJsonDir = os.path.dirname(os.path.realpath(args.inputJsonFile))
 
 jsonData = json.loads(removeComments(args.inputJsonFile))
@@ -206,8 +211,8 @@ for i in range(len(neuronSources)):
             print("Error: cannot import '{}': '{}'".format(objPath, str(e)))
 
     if useSeparateNeuronFiles:
-        j = args.outputFile.rfind(".")
-        outputFile = args.outputFile[:j] + "_neurons_" + str(i) + args.outputFile[j:]
+        j = outputFile.rfind(".")
+        outputFile = outputFile[:j] + "_neurons_" + str(i) + outputFile[j:]
         separateNeuronFiles.append(outputFile)
         bpy.ops.wm.save_as_mainfile(filepath=outputFile)
 
@@ -584,7 +589,7 @@ bpy.context.scene.render.resolution_percentage = 100
 bpy.context.scene.render.pixel_aspect_x = 1
 bpy.context.scene.render.pixel_aspect_y = 1
 
-bpy.ops.wm.save_as_mainfile(filepath=args.outputFile)
+bpy.ops.wm.save_as_mainfile(filepath=outputFile)
 
 timeEnd = datetime.datetime.now()
 print()

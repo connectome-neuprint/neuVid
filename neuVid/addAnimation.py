@@ -31,9 +31,19 @@ parser.add_argument("--inputBlender", "-ib", dest="inputBlenderFile", help="path
 parser.add_argument("--output", "-o", dest="outputFile", help="path for the output .blend file")
 args = parser.parse_args(argv)
 
-if args.inputJsonFile == None or args.inputBlenderFile == None:
+if args.inputJsonFile == None:
     parser.print_help()
     quit()
+
+inputBlenderFile = args.inputBlenderFile
+if inputBlenderFile == None:
+    inputBlenderFile = os.path.splitext(args.inputJsonFile)[0] + ".blend"
+print("Using input Blender file: '{}'".format(inputBlenderFile))
+
+outputFile = args.outputFile
+if outputFile == None:
+    outputFile = os.path.splitext(args.inputJsonFile)[0] + "Anim.blend"
+print("Using output Blender file: '{}'".format(outputFile))
 
 jsonData = json.loads(removeComments(args.inputJsonFile))
 
@@ -665,9 +675,7 @@ def showPictureInPicture(args):
         if tex:
             tex.image_user.frame_start = frame(time + rotationDuration)
 
-outputFile = args.outputFile
-
-bpy.ops.wm.open_mainfile(filepath=args.inputBlenderFile)
+bpy.ops.wm.open_mainfile(filepath=inputBlenderFile)
 
 bpy.context.scene.render.fps = fps
 
