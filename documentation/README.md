@@ -262,7 +262,7 @@ Each of the three `setValue` commands shows one of the ways of specifying colors
 
 Note that int the last `setValue` command, the `meshes` argument has the value `neurons.partners + neurons.more - neurons.special`.  The effect is to assign the `#ababab` color to all the neurons in `neurons.partners` and `neurons.more` except the neurons in `neurons.special`.  Any `meshes` argument can use set operations like these on names from the `neurons` and `rois` categories, but not from the `synapses` category.
 
-The `rois` category renders meshes as silhouettes, with mesh faces becoming more transparent as they come closer to facing the camera.  To control how quickly this transition to transparency occurs, the `rois` category has an optional key, `exponents`.  The default value is five, and a *higher* value makes a mesh transition to transparency *faster*.  Here is an example using assigning a value of eight to a group of ROIs that should be deemphasized:
+The `rois` category renders meshes as silhouettes, with mesh faces becoming more transparent as they come closer to facing the camera.  To control how quickly this transition to transparency occurs, the `rois` category has an optional key, `exponents`.  The default value is five, and a *higher* value makes a mesh transition to transparency *faster*.  Here is an example assigning a value of eight to a group of ROIs that should be deemphasized:
 
 ```json
 {
@@ -328,9 +328,9 @@ As described in more detail in the [Usage with Synapses](../README.md#usage-with
 
 ```
 python neuVid/buildSynapses.py -ij /tmp/synapses.json
-blender --background --python neuVid/importMeshes.py -- -ij /tmp/synapses.json -o /tmp/synapses.blend
-blender --background --python neuVid/addAnimation.py -- -ij /tmp/synapses.json -ib /tmp/synapses.blend -o /tmp/synapsesAnim.blend
-blender --background --python neuVid/render.py -- -ib /tmp/synapsesAnim.blend -o /tmp/framesFinal
+blender --background --python neuVid/importMeshes.py -- -ij /tmp/synapses.json
+blender --background --python neuVid/addAnimation.py -- -ij /tmp/synapses.json
+blender --background --python neuVid/render.py -- -ij /tmp/synapses.json -o /tmp/framesFinal
 blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
 ```
 
