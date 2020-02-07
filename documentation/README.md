@@ -66,9 +66,17 @@ This implicit behavior can be changed with optional arguments to `orbitCamera`, 
 
 When the input file is edited, some `neuVid` scripts need to be rerun, but which scripts depends on which sections were changed.  Edits to the definitions section require rerunning the `importMeshes.py` script and then the `addAnimation.py` script.  (If synapses are changed, then the `buildSynapses.py` script must be run before `importMeshes.py`; see the [Synapses](#synapses) documentation.)  Edits to the animation section require rerunning only the `addAnimation.py` script.
 
+## Previewing
+
+For videos more complex than the simplest one, it is useful to see a preview before taking the time to render all the frames.  The simplest way to do so is to run the interactive Blender application and load the file produced by `addAnimation.py`. Press the "Play Animation" button by the timeline to see a low-quality rendering of the animation at near-realtime rates.
+
+While that approach is a good way to verify many parts of an animation, the rendering does not represent transparency or silhouette shading well.  To preview the real rendering, another approach is to render only every `n` frames (e.g., `n` of 24 would render on frame per second of final animation, for the default 24 frames per second).  The `render.py` script supports this approach with the `-j n` (or `--frame-jump n`) argument.
+
+To render only a single frame, `f`, use `render.py`'s `-s f -e f` (or `--frame-start f --frame-end f`) arguments.
+
 ## Categories
 
-The `neurons` key is one example of a *category*.  Names associated with data, like `anchor`, are defined within a category, and the category determines how that data will be rendered by Blender.  
+The `neurons` key in the simplest video is one example of a *category*.  Names associated with data, like `anchor`, are defined within a category, and the category determines how that data will be rendered by Blender.  
 
 There are four categories in `neuVid`, each with its own key in the definitions section:
 
@@ -448,6 +456,7 @@ Required arguments:
 
 Optional arguments:
 - `duration` (default: 1)
+- `stagger`
 
 ### `frameCamera`
 
