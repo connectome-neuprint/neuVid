@@ -155,6 +155,23 @@ def bounds(name):
 
     return bboxCenter, bboxMin, bboxMax, maxRadius
 
+def updateCameraClip(camName):
+    cam = bpy.data.cameras[camName]
+    camObj = bpy.data.objects[camName]
+
+    camLoc1 = camObj.location
+    # When the camera has a parent (e.g., for orbiting), the following is better.
+    # But the previous is still needed if scene.frame_set(t) was not called.
+    camLoc2 = camObj.matrix_world.translation
+
+    bnd = bpy.data.objects["Bound.neurons"]
+    ctr = bnd.location
+    d = max((camLoc1 - ctr).magnitude, (camLoc2 - ctr).magnitude)
+    d += bnd["Radius"]
+    if d > cam.clip_end:
+        cam.clip_end = d
+        print("Updating '{}' clip_end to {}".format(camName, cam.clip_end))
+
 #
 
 time = 0.0
@@ -357,6 +374,7 @@ def frameCamera(args):
         eye = lastCameraCenter + dist * viewVector()
         camera.location = eye
         camera.keyframe_insert("location", frame=frame(time + duration))
+        updateCameraClip(camera.name)
     else:
         print("Error: frameCamera: unknown bound object '{}'".format(boundName))
 
@@ -569,6 +587,8 @@ def orbitCamera(args):
     constraint.influence = 0
     constraint.keyframe_insert("influence", frame=endFrame)
 
+    updateCameraClip(camera.name)
+
 def centerCamera(args):
     global time, lastCameraCenter
     camera = bpy.data.objects["Camera"]
@@ -609,6 +629,7 @@ def centerCamera(args):
             # Positive Y points out.
             camera.location = center + dist * viewVector()
             camera.keyframe_insert("location", frame=frame(time + duration))
+            updateCameraClip(camera.name)
 
             lastCameraCenter = center
 
