@@ -35,6 +35,17 @@ parser.add_argument("--pad", "-p", type=int, dest="padding", help="pad with this
 
 args = parser.parse_args(argv)
 
+if args.inputDir == None:
+    parser.print_help()
+    quit()
+
+outputDir = args.outputDir
+if outputDir == None:
+    outputDir = args.inputDir
+if outputDir[:-1] != "/":
+    outputDir += "/"
+print("Using output directory: '{}'".format(outputDir))
+
 seqEd = bpy.context.scene.sequence_editor_create()
 
 inputDir = args.inputDir
@@ -84,9 +95,6 @@ bpy.context.scene.render.pixel_aspect_y = 1
 bpy.context.scene.render.image_settings.file_format = "AVI_JPEG"
 bpy.context.scene.render.fps = 24
 
-outputDir = args.outputDir
-if outputDir[:-1] != "/":
-    outputDir += "/"
 bpy.context.scene.render.filepath = outputDir
 
 bpy.ops.render.render(animation=True)
