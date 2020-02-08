@@ -94,12 +94,14 @@ if synapseSource.startswith("http"):
         type = synapseSetSpec["type"]
 
         roi = None
-        complementRoi = False
         if "roi" in synapseSetSpec:
             roi = synapseSetSpec["roi"]
-            if roi.lower().startswith("not"):
-                complementRoi = True
-                roi = roi.split()[-1]
+            roi1 = roi.split()
+            # TODO: add support for grouping parantheses to the support for boolean operators.
+            roi2 = ["exists(s.`{}`)".format(x) if x.lower() not in ["and", "or", "not"] \
+                    else x.upper() for x in roi1]
+            roi3 = " ".join(roi2)
+            roi = "({})".format(roi3)
 
         radius = 40
         if "radius" in synapseSetSpec:
@@ -152,10 +154,7 @@ if synapseSource.startswith("http"):
                 print("Error: synapse set '{}' unkown 'type' {}\n".format(synapseSetName, type))
 
         if roi:
-            if complementRoi:
-                query = query.replace("RETURN", "AND NOT exists(s.`{}`) RETURN".format(roi))
-            else:
-                query = query.replace("RETURN", "AND exists(s.`{}`) RETURN".format(roi))
+            query = query.replace("RETURN", "AND {} RETURN".format(roi))
 
         if query:
             print("Querying '{}'...".format(synapseSetName))
