@@ -347,7 +347,7 @@ The object for `anchorPSD` has two keys, but `neuVid` supports additional keys t
 - The `type` value can be `pre` for pre-synaptic sites (T-bars) or `post` for post-synaptic sites (PSDs), or omitted for both.  For `pre`, use `setValue` `color` `yellow` to match the coloring of NeuTu.
 - If `radius` specifies a number then the rendered sphere for each synapse has that radius.
 - If `partner` specifies the identifier for another neuron, then synapses are limited to those shared with that neuron.
-- If `roi` specifies the name of an ROI, then synapses are limited to those in that ROI.  If `not` precedes that name (e.g., `"roi" : "not aL(R)"`) then all synapses outside that ROI are included.
+- If `roi` specifies the name of an ROI, then synapses are limited to those in that ROI.  Boolean operators are supported (e.g., `"roi" : "not EB and not FB"` for only the synapses outside of both `EB` and `FB`) but not grouping parentheses.
 - The `includeWithin` key can specify a bounding-box object to put spatial limits on the synapses.  This object can have any combination of `xMin`, `xMax`, `yMin`, `yMax`, `zMin` or `zMax` as keys (e.g., `"includeOnly" : { zMax : 19000 }` omits any synapse with `z` coordinates larger than 19,000).
 
 ## Grayscale Images
