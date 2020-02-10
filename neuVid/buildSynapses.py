@@ -64,7 +64,6 @@ if not "source" in jsonSynapses:
     print("JSON 'synapses' contains no 'source' key")
     quit()
 synapseSource = jsonSynapses["source"]
-
 if synapseSource.startswith("http"):
     i1 = synapseSource.find("://")
     i2 = synapseSource.find("/?dataset=")
@@ -76,7 +75,7 @@ if synapseSource.startswith("http"):
         dataset = synapseSource[i2 + len("/?dataset="):]
         dataset = dataset.replace("%3A", ":")
 
-    client = neuprint.Client(server)
+    client = neuprint.Client(server, dataset=dataset)
     client.fetch_version()
 
     for synapseSetName, synapseSetSpec in jsonSynapses.items():
@@ -158,7 +157,7 @@ if synapseSource.startswith("http"):
 
         if query:
             print("Querying '{}'...".format(synapseSetName))
-            results = client.fetch_custom(query, dataset=dataset)
+            results = client.fetch_custom(query)
             print("Done, with {} value(s)".format(len(results.values)))
             positions = []
             numFiltered = 0
