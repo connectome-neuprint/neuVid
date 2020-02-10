@@ -108,6 +108,7 @@ if "source" in jsonNeurons:
 neuronIds, groupToNeuronIds, groupToMeshesSourceIndex, useSeparateNeuronFiles = parseNeuronsIds(jsonNeurons, args.limit)
 
 print("Done")
+print("Using separate .blend files for neurons: {}".format(useSeparateNeuronFiles))
 
 #
 

@@ -10,6 +10,9 @@ def parseNeuronsIds(jsonNeurons, limit=0):
     # for mesh files; using an array supports mutiples resolutions of meshes.
     groupToMeshesSourceIndex = {}
 
+    # True indicates that each group's body IDs are not only loaded from separate files,
+    # but that each group should have its own .blend file, to be loaded only when that
+    # groups is visible and being rendered, to support bigger sets of neurons.
     useSeparateNeuronFiles = False
 
     # Needed only for the case of entries that are dictionaries.
@@ -42,7 +45,11 @@ def parseNeuronsIds(jsonNeurons, limit=0):
         #               "idsSource" : "./bodyIDsDir",
         #               "LALEtc" : { "ids" : [ "LAL", "CRE" ], "sourceIndex" : 1 } }
         elif isinstance(value, dict):
-            useSeparateNeuronFiles = True
+            # Check whether the JSON indicates that each group should have its own
+            # .blend file.
+            if "separate" in jsonNeurons and jsonNeurons["separate"]:
+                useSeparateNeuronFiles = True
+
             jsonDict = value
             groupToNeuronIds[key] = []
             iMeshesPath = 0
