@@ -407,7 +407,7 @@ def fade(args):
         startingTime = time
         deltaTime = []
         stagger = False
-        nStaggerSubgroup = min(5, len(objs) / 6)
+        nStaggerSubgroup = min(5, int(len(objs) / 6))
         if "stagger" in args:
             stagger = args["stagger"]
         if stagger:
