@@ -87,25 +87,26 @@ meshesSourceIndexToBBox = {}
 
 print("Parsing neuron IDs...")
 
-if not "neurons" in jsonData:
-    print("JSON contains no 'neurons' key, whose value is lists of neuron meshes to load")
-    quit()
-jsonNeurons = jsonData["neurons"]
+neuronSources = []
+groupToNeuronIds = {}
+useSeparateNeuronFiles = False
 
-neuronSources = ["."]
-if "source" in jsonNeurons:
-    source = jsonNeurons["source"]
-    if isinstance(source, str):
-        neuronSources = [source]
-    else:
-        neuronSources = source
+if "neurons" in jsonData:
+    jsonNeurons = jsonData["neurons"]
 
-# If "useSeparateNeuronFiles" is set, it means the JSON specification does not list explicit
-# neuron body IDs, but instead lists files containing neuron body IDs.  It also means that
-# each of those files will generate a separate Blender file, and only one of these files will be
-# appended at a time, to manage complexity.
+    if "source" in jsonNeurons:
+        source = jsonNeurons["source"]
+        if isinstance(source, str):
+            neuronSources = [source]
+        else:
+            neuronSources = source
 
-neuronIds, groupToNeuronIds, groupToMeshesSourceIndex, useSeparateNeuronFiles = parseNeuronsIds(jsonNeurons, args.limit)
+    # If "useSeparateNeuronFiles" is set, it means the JSON specification does not list explicit
+    # neuron body IDs, but instead lists files containing neuron body IDs.  It also means that
+    # each of those files will generate a separate Blender file, and only one of these files will be
+    # appended at a time, to manage complexity.
+
+    neuronIds, groupToNeuronIds, groupToMeshesSourceIndex, useSeparateNeuronFiles = parseNeuronsIds(jsonNeurons, args.limit)
 
 print("Done")
 print("Using separate .blend files for neurons: {}".format(useSeparateNeuronFiles))

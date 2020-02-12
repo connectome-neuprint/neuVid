@@ -51,11 +51,9 @@ if jsonData == None:
     print("Loading JSON file {} failed".format(args.inputJsonFile))
     quit()
 
-if not "neurons" in jsonData:
-    print("JSON contains no 'neurons' key, whose value is lists of neuron meshes to load")
-    quit()
-jsonNeurons = jsonData["neurons"]
-neuronIds, groupToNeuronIds, groupToMeshesSourceIndex, useSeparateNeuronFiles = parseNeuronsIds(jsonNeurons)
+if "neurons" in jsonData:
+    jsonNeurons = jsonData["neurons"]
+    neuronIds, groupToNeuronIds, groupToMeshesSourceIndex, useSeparateNeuronFiles = parseNeuronsIds(jsonNeurons)
 
 if "rois" in jsonData:
     jsonRois = jsonData["rois"]
