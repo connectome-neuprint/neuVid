@@ -165,13 +165,14 @@ for i in range(len(neuronSources)):
     else:
         print("Importing {} neuron meshes for index {}".format(len(neuronIds[i]), i))
 
-    for obj in bpy.data.objects:
-        if obj.name != "Camera":
-            matName = "Material." + obj.name
-            if matName in bpy.data.materials:
-                mat = bpy.data.materials[matName]
-                bpy.data.materials.remove(mat, True)
-            bpy.data.objects.remove(obj, True)
+    if useSeparateNeuronFiles or i == 0:
+        for obj in bpy.data.objects:
+            if obj.name != "Camera":
+                matName = "Material." + obj.name
+                if matName in bpy.data.materials:
+                    mat = bpy.data.materials[matName]
+                    bpy.data.materials.remove(mat, True)
+                bpy.data.objects.remove(obj, True)
 
     for neuronId in neuronIds[i]:
         objPath = fileToImportForNeuron(neuronSources[i], neuronId, inputJsonDir)
