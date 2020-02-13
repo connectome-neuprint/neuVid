@@ -90,6 +90,8 @@ bpy.ops.wm.open_mainfile(filepath=inputBlenderFile)
 useSeparateNeuronFiles = all(map(lambda x: not x.name.startswith("Neuron") or
     x.name.startswith("Neuron.proxy"), bpy.data.objects))
 
+hasSynapses = any(map(lambda x: x.name.startswith("Synapses."), bpy.data.objects))
+
 useOctane = args.useOctane
 
 jsonLightPowerScale = [1.0, 1.0, 1.0]
@@ -251,19 +253,14 @@ else:
     if useOctane:
         print("Adding Octane materials...")
         for obj in bpy.data.objects:
-            if obj.name.startswith("Roi.") or obj.name.startswith("ImagePlane."):
-                if useOctane:
-                    matName = "Material." + obj.name
-                    if matName in bpy.data.materials:
-                        mat = bpy.data.materials[matName]
-                        bpy.data.materials.remove(mat, True)
-                    bpy.data.objects.remove(obj, True)
-                else:
-                    obj.hide = True
-                    obj.hide_render = True
+            if obj.name.startswith("Roi.") or obj.name.startswith("ImagePlane.") or obj.name.startswith("Synapses."):
+                matName = "Material." + obj.name
+                if matName in bpy.data.materials:
+                    mat = bpy.data.materials[matName]
+                    bpy.data.materials.remove(mat, True)
+                bpy.data.objects.remove(obj, True)
             elif obj.name.startswith("Neuron.") and not useSeparateNeuronFiles:
-                if useOctane:
-                    addOctaneMaterial(obj)
+                addOctaneMaterial(obj)
         print("Done")
     else:
         bpy.data.scenes["Scene"].render.use_shadows = True
@@ -290,6 +287,7 @@ else:
                                 mat.keyframe_insert("specular_alpha", frame=keyframes[i].co[0])
         print("Done")
 
+if not args.doRois or hasSynapses:
     print("Adding lamps...")
 
     lampSpecs = [
@@ -324,7 +322,7 @@ else:
                     sizeFactor = spec["sizeFactor"]
                     lampData.size *= sizeFactor
                 lampData.size *= jsonLightSizeScale
-            elif not args.doRois:
+            else:
                 lampData = bpy.data.lamps.new(name = "Lamp.Key", type = "SPOT")
                 lampData.energy = 1.5
                 lampData.energy *= jsonLightPowerScale[i]
