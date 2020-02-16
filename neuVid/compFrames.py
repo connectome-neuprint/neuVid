@@ -100,7 +100,10 @@ outputNode.format.file_format = "PNG"
 treeLinks.new(overNode.outputs[0], outputNode.inputs[0])
 
 missing = []
-for roi in roisToInput:
+for i in range(len(roisToInput)):
+    print("{} of {}, {:.2}%".format(i, len(roisToInput), 100 * i / len(roisToInput)))
+
+    roi = roisToInput[i]
     roiPath = inputROIDir + roi + ".exr"
     pngPath = outputDir + roi + ".png"
     neuronPath = inputNeuronsDir + roi + ".exr"
