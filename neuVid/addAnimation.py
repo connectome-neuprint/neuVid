@@ -173,6 +173,7 @@ def updateCameraClip(camName):
 #
 
 time = 0.0
+tentativeEndTime = time
 
 fps = 24.0
 if "fps" in jsonData:
@@ -289,11 +290,12 @@ def keysAtFrame(obj, dataPath, frame):
 #
 
 def advanceTime(args):
-    global time
+    global time, tentativeEndTime
     if "by" in args:
         by = args["by"]
         if isinstance(by, float):
             time += by
+            tentativeEndTime = time
         else:
             print("Error: advanceTime: argument 'by' is not a number")
     else:
@@ -334,11 +336,12 @@ def setValue(args):
                 mat.keyframe_insert("diffuse_color", frame=frame())
 
 def frameCamera(args):
-    global time, lastCameraCenter
+    global time, tentativeEndTime, lastCameraCenter
     camera = bpy.data.objects["Camera"]
     duration = 0
     if "duration" in args:
         duration = args["duration"]
+        tentativeEndTime = max(time + duration, tentativeEndTime)
     if "bound" in args:
         bboxCenter, bboxMin, bboxMax, radius = bounds(args["bound"])
 
@@ -377,7 +380,7 @@ def frameCamera(args):
         print("Error: frameCamera: unknown bound object '{}'".format(boundName))
 
 def fade(args):
-    global time
+    global time, tentativeEndTime
     startingValue = 1
     type = "alpha"
     if "startingAlpha" in args:
@@ -398,6 +401,7 @@ def fade(args):
     duration = 1
     if "duration" in args:
         duration = args["duration"]
+        tentativeEndTime = max(time + duration, tentativeEndTime)
     if "meshes" in args:
         meshes = args["meshes"]
         objs = meshObjs(meshes)
@@ -480,10 +484,11 @@ def fade(args):
             mat.keyframe_insert("alpha", frame=frame(time + duration))
 
 def pulse(args):
-    global time, colors
+    global time, tentativeEndTime, colors
     duration = 1
     if "duration" in args:
         duration = args["duration"]
+        tentativeEndTime = max(time + duration, tentativeEndTime)
     if "meshes" in args:
         meshes = args["meshes"]
 
@@ -516,11 +521,12 @@ def pulse(args):
 def orbitCamera(args):
     # If arg "around" is "a.b" then orbiting will be around the location of
     # "Bounds.a.b".
-    global time, lastCameraCenter, lastOrbitEndingAngle
+    global time, tentativeEndTime, lastCameraCenter, lastOrbitEndingAngle
     camera = bpy.data.objects["Camera"]
     duration = 1
     if "duration" in args:
         duration = args["duration"]
+        tentativeEndTime = max(time + duration, tentativeEndTime)
     startFrame = frame(time)
     endFrame = frame(time + duration)
     center = lastCameraCenter
@@ -588,11 +594,12 @@ def orbitCamera(args):
     updateCameraClip(camera.name)
 
 def centerCamera(args):
-    global time, lastCameraCenter
+    global time, tentativeEndTime, lastCameraCenter
     camera = bpy.data.objects["Camera"]
     duration = 1
     if "duration" in args:
         duration = args["duration"]
+        tentativeEndTime = max(time + duration, tentativeEndTime)
     if "position" in args:
         position = None
         if isinstance(args["position"], list):
@@ -632,10 +639,11 @@ def centerCamera(args):
             lastCameraCenter = center
 
 def showPictureInPicture(args):
-    global time
+    global time, tentativeEndTime
     duration = 3
     if "duration" in args:
         duration = args["duration"]
+        tentativeEndTime = max(time + duration, tentativeEndTime)
     image = args["image"]
     imageSteps = args["image"].split(".")
     json = jsonData
@@ -714,6 +722,9 @@ for step in jsonAnim:
         print("Skipping unrecognized animation command '{}'".format(cmdName))
 
 bpy.context.scene.frame_set(1)
+
+if time < tentativeEndTime:
+    time = tentativeEndTime
 bpy.context.scene.frame_end = frame()
 
 # Make the 3D view look through the movie camera when the .blend file is loaded.
