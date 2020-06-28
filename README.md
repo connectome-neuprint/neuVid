@@ -7,7 +7,7 @@ These Python scripts generate simple anatomical videos in [Blender](https://www.
 [![Watch the video](https://img.youtube.com/vi/nu0b_tjCGxQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=nu0b_tjCGxQ)
 
 ## Basic Usage
-Here is how to render the example video.  It assumes access to data on the internal network for the [HHMI Janelia Research Campus](http://www.janelia.org).
+Here is how to render the example video:
 1. Install Blender.  Currently, these scripts assume [Blender 2.79](https://download.blender.org/release/Blender2.79/).
 2. Open a terminal shell, and change the current directory to the root of a `neuVid` repository.
 3. Run the script to download meshes and create the basic Blender file without animation (in `/tmp`, for simplicity).  This stage creates two directories for downloaded mesh files, `neuVidNeuronMeshes` and `neuVidRoiMeshes`, in the same directory as the JSON file.

@@ -20,7 +20,7 @@ Here is a `neuVid` input file for the simplest video:
     "anchor" : [
       508689623
     ],
-    "source" : "http://emdata4.int.janelia.org:8900/api/node/52a13/segmentation_meshes"
+    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes"
   },
   "animation" : [
     [ "frameCamera", { "bound" : "neurons.anchor" } ],
@@ -57,7 +57,7 @@ The top-level JSON object in the input file has two major sections.
 
 The `neurons` key starts the *definitions section*.  This section associates *names* with data that will be imported as polygonal meshes that Blender can render.  The `neurons` key's value is an object, and its `anchor` key is an example of a name.  The `anchor` name is associated with that key's value, an array containing the identifier number `508689623`.  Any use of the name `neurons.anchor` thus refers to the neuron with that identifier.
 
-Implicitly, all the named neurons are rendered as meshes.  Where these meshes come from is described by the `neuron` object's `source` key.  In this case, its value states that the meshes come from a [DVID server](http://emdata4.int.janelia.org:8900), specifically, its `segmentation_meshes` data instance.
+Implicitly, all the named neurons are rendered as meshes.  Where these meshes come from is described by the `neuron` object's `source` key.  In this case, its value states that the meshes come from a [DVID server](https://hemibrain-dvid2.janelia.org), specifically, its `segmentation_meshes` data instance.
 
 The first explicit use of the `neurons.anchor` name occurs in the other major section, the *animation section*.  In the top-level object, the `animation` key's value is an array of *commands* that describe the animation that Blender will render.  The first command, `frameCamera`, tells Blender how to position the camera: the bounding box for `neurons.anchor` should mostly fill the camera frame, with the camera looking at the fly's brain face on.  Note that this useful camera composition is specified symbolically, without the use of absolute coordinates.  Minimizing the need for absolute coordinates is one of the guiding principles of `neuVid`.
 
@@ -95,10 +95,10 @@ Here is an example that adds the `rois` category to the previous example with `n
     "anchor" : [
       508689623
     ],
-    "source" : "http://emdata4.int.janelia.org:8900/api/node/52a13/segmentation_meshes"
+    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes"
   },
   "rois" : {
-    "source" : "http://emdata4.int.janelia.org:8900/api/node/52a13/roisSmoothedDecimated",
+    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/roisSmoothedDecimated",
     "step1" : [
       "MB(R)", "LAL(R)"
     ]
@@ -111,7 +111,7 @@ Here is an example that adds the `rois` category to the previous example with `n
 }
 ```
 
-The `rois` category in this example defines a name, `rois.step1` that is associated with *two* ROIs.  The `source` key specifies that the meshes for these ROIs are loaded from [another data instance of the DVID server](http://emdata4.int.janelia.org:8900), `roisSmoothedDecimated`.  The actual ROI names should follow the standards of DVID as presented by the [`neuPrintExplorer`](https://neuprint.janelia.org/?dataset=hemibrain:v1.0) user interface (e.g., `aL(R)`, `b'L(R)`, `EB`, etc.).  Note that the order of keys in an object is irrelevant, and the `rois` category has the `source` key first.
+The `rois` category in this example defines a name, `rois.step1` that is associated with *two* ROIs.  The `source` key specifies that the meshes for these ROIs are loaded from [another data instance of the DVID server](https://hemibrain-dvid2.janelia.org), `roisSmoothedDecimated`.  The actual ROI names should follow the standards of DVID as presented by the [`neuPrintExplorer`](https://neuprint.janelia.org/?dataset=hemibrain:v1.0) user interface (e.g., `aL(R)`, `b'L(R)`, `EB`, etc.).  Note that the order of keys in an object is irrelevant, and the `rois` category has the `source` key first.
 
 Note also that the same name can be reused in different categories (e.g., `rois.step1` could have been `rois.anchor` without conflicting with `neurons.anchor`), and the names in the categories need not match.
 
@@ -125,7 +125,7 @@ Both `source` values are DVID URLs in this example.  Using such a URL, `neuVid` 
     "anchor" : [
       508689623
     ],
-    "source" : "http://emdata4.int.janelia.org:8900/api/node/52a13/segmentation_meshes"
+    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes"
   },
   "rois" : {
     "source" : "/tmp/localMeshDirectory/",
@@ -148,7 +148,7 @@ The simplest video uses the `orbitCamera` command with a `duration` argument to 
 ```json
 {
   "rois" : {
-    "source" : "http://emdata4.int.janelia.org:8900/api/node/52a13/roisSmoothedDecimated",
+    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/roisSmoothedDecimated",
     "step1" : [
       "MB(R)"
     ],
@@ -160,7 +160,7 @@ The simplest video uses the `orbitCamera` command with a `duration` argument to 
     "anchor" : [
       508689623
     ],
-    "source" : "http://emdata4.int.janelia.org:8900/api/node/52a13/segmentation_meshes"
+    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes"
   },
   "animation" : [
     [ "frameCamera", { "bound" : "rois.step1" } ],
@@ -197,7 +197,7 @@ To vary the alpha, use the `fade` command.  It takes a `duration` argument so th
 ```json
 {
   "neurons" : {
-    "source" : "http://emdata4.int.janelia.org:8900/api/node/52a13/segmentation_meshes",
+    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes",
     "anchor" : [
       508689623
     ],
@@ -237,7 +237,7 @@ It is possible to override the automatic assignment of colors to neuron meshes. 
 ```json
 {
   "neurons" : {
-    "source" : "http://emdata4.int.janelia.org:8900/api/node/52a13/segmentation_meshes",
+    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes",
     "main" : [
       508689623
     ],
@@ -275,7 +275,7 @@ The `rois` category renders meshes as silhouettes, with mesh faces becoming more
 ```json
 {
   "rois" : {
-    "source" : "http://emdata4.int.janelia.org:8900/api/node/52a13/roisSmoothedDecimated",
+    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/roisSmoothedDecimated",
     "deemphasized" : [
       "FB", "EB"
     ],
@@ -298,7 +298,7 @@ Synapses appear as little spheres, and are defined by names in the `synapses` ca
 ```json
 {
   "neurons" : {
-    "source" : "http://emdata4.int.janelia.org:8900/api/node/52a13/segmentation_meshes",
+    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes",
     "anchor" : [
       508689623
     ]
