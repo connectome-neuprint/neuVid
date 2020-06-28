@@ -626,6 +626,7 @@ def hideRenderTrueAtFrame(f, hideRenderTrueFrames):
         elif f < hrtf[0] and hrtfPrev:
             return hrtfPrev[1]
         hrtfPrev = hrtf
+    return [];
 
 hideRenderTrueFrames = []
 
