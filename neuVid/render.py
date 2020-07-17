@@ -119,6 +119,13 @@ def rescaleRecenter(obj, overallCenter, overallScale):
         # world position in the vertex coordinates.
         for vert in obj.data.vertices:
             vert.co = (vert.co - overallCenter) * overallScale
+        if obj.animation_data:
+            for fc in obj.animation_data.action.fcurves:
+                if fc.data_path.endswith("location"):
+                    for key in fc.keyframe_points:
+                        key.co[1] = key.co[1] * overallScale
+                    fc.update()
+
     elif obj.name.startswith("Bound."):
         obj.location = (obj.location - overallCenter) * overallScale
         obj["Min"] = (mathutils.Vector(obj["Min"]) - overallCenter) * overallScale
