@@ -389,12 +389,20 @@ def fade(args):
         colorId = args["startingColor"]
         startingValue = getColor(colorId, colors)[0:3]
         type = "diffuse_color"
+    elif "startingLocation" in args:
+        startingValue = args["startingLocation"]
+        type = "location"
+
     endingValue = 0
     if type == "alpha" and "endingAlpha" in args:
         endingValue = args["endingAlpha"]
     elif type == "diffuse_color" and "endingColor" in args:
         colorId = args["endingColor"]
         endingValue = getColor(colorId, colors)[0:3]
+    elif "endingLocation" in args:
+        endingValue = args["endingLocation"]
+        type = "location"
+
     else:
         print("Error: fade arguments {}".format(args))
         return
@@ -435,16 +443,28 @@ def fade(args):
             mat = obj.data.materials[matName]
             if type == "alpha":
                 mat.alpha = startingValue
+            elif type == "location":
+                obj.location = startingValue
+
             else:
                 mat.diffuse_color = startingValue
             startingFrame = frame(startingTime)
-            mat.keyframe_insert(type, frame=startingFrame)
+            if type == "location":
+                obj.keyframe_insert(type, frame=startingFrame)
+            else:
+            	mat.keyframe_insert(type, frame=startingFrame)
             if type == "alpha":
                 mat.alpha = endingValue
+            elif type == "location":
+                obj.location = endingValue
+
             else:
                 mat.diffuse_color = endingValue
             endingFrame = max(frame(startingTime + deltaTime[0]), startingFrame + 1)
-            mat.keyframe_insert(type, frame=endingFrame)
+            if type == "location":
+                obj.keyframe_insert(type, frame=endingFrame)
+            else:
+            	mat.keyframe_insert(type, frame=endingFrame)
             i += 1
             if len(deltaTime) > 1 and (i == nStaggerSubgroup or i == 3 * nStaggerSubgroup):
                 deltaTime.pop(0)
