@@ -342,6 +342,11 @@ def frameCamera(args):
     if "duration" in args:
         duration = args["duration"]
         tentativeEndTime = max(time + duration, tentativeEndTime)
+
+    scale = 1.0
+    if "scale" in args:
+        scale = args["scale"]
+
     if "bound" in args:
         bboxCenter, bboxMin, bboxMax, radius = bounds(args["bound"])
 
@@ -355,7 +360,10 @@ def frameCamera(args):
         if startFrame > 1 and len(keysAtFrame(camera, "location", startFrame)) > 0:
             startFrame += 1
 
-        print("{}, {}: frameCamera, '{}'".format(startFrame, frame(time + duration), args["bound"]))
+        if scale == 1.0:
+            print("{}, {}: frameCamera, '{}'".format(startFrame, frame(time + duration), args["bound"]))
+        else:
+            print("{}, {}: frameCamera, '{}', scale {}".format(startFrame, frame(time + duration), args["bound"], scale))
 
         camera.keyframe_insert("location", frame=startFrame)
 
@@ -371,6 +379,8 @@ def frameCamera(args):
         angle = 2.0 * math.atan(math.tan(angle / 2.0) * aspectRatio)
 
         dist = radius / math.sin(angle / 2.0)
+        dist *= scale
+
         # Positive Y points out.
         eye = lastCameraCenter + dist * viewVector()
         camera.location = eye
