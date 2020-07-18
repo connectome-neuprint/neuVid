@@ -835,7 +835,16 @@ def addSamplesPerInterval(renderIntervals, fadingIntervals, dollyIntervals):
     # Both of those changes have priority over the normal sampling rate.
     renderIntervals4 = combineRenderIntervals(renderIntervals3, renderIntervals2)
 
-    return renderIntervals4
+    # Then clip renderIntervals4 so there is nothing before the start of
+    # renderIntervals or after its end.
+    start = renderIntervals[0][0]
+    end = renderIntervals[-1][1]
+    renderIntervals5 = []
+    for ri in renderIntervals4:
+        if start <= ri[0] and ri[1] <= end:
+            renderIntervals5.append(ri)
+
+    return renderIntervals5
 
 def separateNeuronFilesHideRender(obj, hideRenderTrue):
     matName = "Material." + obj.name
