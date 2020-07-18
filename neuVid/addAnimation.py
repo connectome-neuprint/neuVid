@@ -731,6 +731,7 @@ def showPictureInPicture(args):
 
         if tex:
             tex.image_user.frame_start = frame(time + rotationDuration)
+            print("  frame_start {}, frame_duration {}".format(tex.image_user.frame_start, tex.image_user.frame_duration))
 
 bpy.ops.wm.open_mainfile(filepath=inputBlenderFile)
 
