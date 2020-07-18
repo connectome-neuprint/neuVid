@@ -109,6 +109,13 @@ if synapseSource.startswith("http"):
                 print("Skipping synapse set '{}' with negative radius {}".format(synapseSetName, radius))
                 continue
 
+        weight = 1
+        if "weight" in synapseSetSpec:
+            weight = synapseSetSpec["weight"]
+            if weight < 0:
+                print("Skipping synapse set '{}' with negative weight {}".format(synapseSetName, weight))
+                continue
+
         boxToIncludeKeys = [["xmin", "ymin", "zmin"], ["xmax", "ymax", "zmax"]]
         limit = sys.float_info.max
         boxToInclude = [[-limit, -limit, -limit], [limit, limit, limit]]
@@ -125,6 +132,9 @@ if synapseSource.startswith("http"):
         query = None
         if "partner" in synapseSetSpec:
             partner = synapseSetSpec["partner"]
+
+            if "weight" in synapseSetSpec:
+                print("Note: synapse set '{}' weight {} ignored".format(synapseSetName, weight))
 
             # Neo4j Cypher queries for neuprint-python.
 
@@ -143,12 +153,27 @@ if synapseSource.startswith("http"):
             else:
                 print("Error: synapse set '{}' unkown 'type' {}\n".format(synapseSetName, type))
         else:
-            if type == "pre" or type == "post":
-                query = "MATCH (a:Neuron{{bodyId:{}}})-[:Contains]->(ss :SynapseSet) "\
-                        "WITH ss " \
+            if "weight" not in synapseSetSpec:
+                print("Synapse set '{}' default weight {}".format(synapseSetName, weight))
+
+            if type == "pre":
+                query = "MATCH (a:Neuron{{bodyId:{}}})-[:Contains]->(ss:SynapseSet)-[:ConnectsTo]->(SynapseSet)<-[:Contains]-(b) " \
+                        "WITH ss, b " \
                         "MATCH (ss)-[:Contains]->(s:Synapse) " \
                         "WHERE s.type = \"{}\" " \
-                        "RETURN s.location.x, s.location.y, s.location.z\n".format(body, type)
+                        "WITH b, count(s) as cnt, collect([s.location.x, s.location.y, s.location.z]) AS ses " \
+                        "WHERE cnt >= {} " \
+                        "UNWIND ses AS sesu " \
+                        "RETURN sesu[0], sesu[1], sesu[2]\n".format(body, type, weight)
+            elif type == "post":
+                query = "MATCH (a)-[:Contains]->(SynapseSet)-[:ConnectsTo]->(ss:SynapseSet)<-[:Contains]-(b:Neuron{{bodyId:{}}}) " \
+                        "WITH ss, a " \
+                        "MATCH (ss)-[:Contains]->(s:Synapse) " \
+                        "WHERE s.type = \"{}\" " \
+                        "WITH a, count(s) as cnt, collect([s.location.x, s.location.y, s.location.z]) AS ses " \
+                        "WHERE cnt >= {} " \
+                        "UNWIND ses AS sesu " \
+                        "RETURN sesu[0], sesu[1], sesu[2]\n".format(body, type, weight)
             else:
                 print("Error: synapse set '{}' unkown 'type' {}\n".format(synapseSetName, type))
 
