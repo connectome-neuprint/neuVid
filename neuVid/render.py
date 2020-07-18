@@ -551,6 +551,10 @@ if fStartRendering < bpy.data.scenes["Scene"].frame_end:
     fEndRendering = bpy.data.scenes["Scene"].frame_end
     renderIntervals.append((fStartRendering, fEndRendering))
 
+# If there is no animation, add an interval anyway, or nothing will render.
+if len(renderIntervals) == 0:
+    renderIntervals.append((1, 1))
+
 fStartOverall = bpy.data.scenes["Scene"].frame_start
 if args.start != None:
     fStartOverall = args.start
