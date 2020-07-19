@@ -96,6 +96,7 @@ useOctane = args.useOctane
 
 jsonLightPowerScale = [1.0, 1.0, 1.0]
 jsonLightSizeScale = 1.0
+jsonLightDistanceScale = 1.0
 jsonLightColor = "default"
 if args.inputJsonFile:
     jsonData = json.loads(removeComments(args.inputJsonFile))
@@ -105,6 +106,9 @@ if args.inputJsonFile:
     if "lightSizeScale" in jsonData:
         jsonLightSizeScale = jsonData["lightSizeScale"]
         print("Using lightSizeScale: {}".format(jsonLightSizeScale))
+    if "lightDistanceScale" in jsonData:
+        jsonLightDistanceScale = jsonData["lightDistanceScale"]
+        print("Using lightDistanceScale: {}".format(jsonLightDistanceScale))
     if "lightColor" in jsonData:
         jsonLightColor = jsonData["lightColor"]
         print("Using lightColor: {}".format(jsonLightColor))
@@ -347,6 +351,7 @@ if not args.doRois or hasSynapses:
             direction = mathutils.Vector(spec["direction"])
             direction.normalize()
             lampDistance = neuronsBoundRadius * 2.5
+            lampDistance *= jsonLightDistanceScale
             lamp.location = direction * lampDistance
 
             lampTrackTo = lamp.constraints.new(type="TRACK_TO")
@@ -637,7 +642,7 @@ def hideRenderTrueAtFrame(f, hideRenderTrueFrames):
         elif f < hrtf[0] and hrtfPrev:
             return hrtfPrev[1]
         hrtfPrev = hrtf
-    return [];
+    return []
 
 hideRenderTrueFrames = []
 
