@@ -90,8 +90,6 @@ bpy.ops.wm.open_mainfile(filepath=inputBlenderFile)
 useSeparateNeuronFiles = all(map(lambda x: not x.name.startswith("Neuron") or
     x.name.startswith("Neuron.proxy"), bpy.data.objects))
 
-hasSynapses = any(map(lambda x: x.name.startswith("Synapses."), bpy.data.objects))
-
 useOctane = args.useOctane
 
 jsonLightPowerScale = [1.0, 1.0, 1.0]
@@ -298,161 +296,160 @@ else:
                                 mat.keyframe_insert("specular_alpha", frame=keyframes[i].co[0])
         print("Done")
 
-if not args.doRois or hasSynapses:
-    print("Adding lamps...")
+print("Adding lamps...")
 
-    lampSpecs = [
-        {
-            "direction": (-0.892, 0.3, 0.9),
-            "color": (0.8, 0.8, 0.8, 1.0)
-        },
-        {
-            "direction": (0.588, 0.46, 0.248),
-            "color": (0.498, 0.5, 0.6, 1.0)
-        },
-        {
-            "direction": (0.216, -0.392, -0.216),
-            "color": (0.798, 0.838, 1.0, 1.0)
-        }
-    ]
+lampSpecs = [
+    {
+        "direction": (-0.892, 0.3, 0.9),
+        "color": (0.8, 0.8, 0.8, 1.0)
+    },
+    {
+        "direction": (0.588, 0.46, 0.248),
+        "color": (0.498, 0.5, 0.6, 1.0)
+    },
+    {
+        "direction": (0.216, -0.392, -0.216),
+        "color": (0.798, 0.838, 1.0, 1.0)
+    }
+]
 
-    lamps = []
+lamps = []
 
-    if not args.onlyAmbient:
-        neuronsBound = bpy.data.objects["Bound.neurons"]
-        neuronsBoundRadius = neuronsBound["Radius"]
-        for i in range(len(lampSpecs)):
-            spec = lampSpecs[i]
-            lampName = "Lamp." + str(i)
-            if useOctane:
-                lampData = bpy.data.lamps.new(name=lampName, type="AREA")
-                lampData.use_nodes = True
+if not args.onlyAmbient:
+    neuronsBound = bpy.data.objects["Bound.neurons"]
+    neuronsBoundRadius = neuronsBound["Radius"]
+    for i in range(len(lampSpecs)):
+        spec = lampSpecs[i]
+        lampName = "Lamp." + str(i)
+        if useOctane:
+            lampData = bpy.data.lamps.new(name=lampName, type="AREA")
+            lampData.use_nodes = True
 
-                lampData.size = neuronsBoundRadius
-                if "sizeFactor" in spec:
-                    sizeFactor = spec["sizeFactor"]
-                    lampData.size *= sizeFactor
-                lampData.size *= jsonLightSizeScale
-            else:
-                lampData = bpy.data.lamps.new(name = "Lamp.Key", type = "SPOT")
-                lampData.energy = 1.5
-                lampData.energy *= jsonLightPowerScale[i]
-                if jsonLightColor != "uniform":
-                    lampData.color = spec["color"][0:3]
-                lampData.falloff_type = "CONSTANT"
-                lampData.spot_size = 1.4
-                lampData.shadow_method = "BUFFER_SHADOW"
-                lampData.use_auto_clip_start = True
-                lampData.use_auto_clip_end = True
-            lamp = bpy.data.objects.new(name=lampName, object_data=lampData)
-            bpy.context.scene.objects.link(lamp)
-            lamps.append(lamp)
+            lampData.size = neuronsBoundRadius
+            if "sizeFactor" in spec:
+                sizeFactor = spec["sizeFactor"]
+                lampData.size *= sizeFactor
+            lampData.size *= jsonLightSizeScale
+        else:
+            lampData = bpy.data.lamps.new(name = "Lamp.Key", type = "SPOT")
+            lampData.energy = 1.5
+            lampData.energy *= jsonLightPowerScale[i]
+            if jsonLightColor != "uniform":
+                lampData.color = spec["color"][0:3]
+            lampData.falloff_type = "CONSTANT"
+            lampData.spot_size = 1.4
+            lampData.shadow_method = "BUFFER_SHADOW"
+            lampData.use_auto_clip_start = True
+            lampData.use_auto_clip_end = True
+        lamp = bpy.data.objects.new(name=lampName, object_data=lampData)
+        bpy.context.scene.objects.link(lamp)
+        lamps.append(lamp)
 
-            direction = mathutils.Vector(spec["direction"])
-            direction.normalize()
-            lampDistance = neuronsBoundRadius * 2.5
-            lampDistance *= jsonLightDistanceScale
-            lamp.location = direction * lampDistance
+        direction = mathutils.Vector(spec["direction"])
+        direction.normalize()
+        lampDistance = neuronsBoundRadius * 2.5
+        lampDistance *= jsonLightDistanceScale
+        lamp.location = direction * lampDistance
 
-            lampTrackTo = lamp.constraints.new(type="TRACK_TO")
-            lampTrackTo.target = neuronsBound
-            lampTrackTo.track_axis = "TRACK_NEGATIVE_Z"
-            lampTrackTo.up_axis = "UP_X"
+        lampTrackTo = lamp.constraints.new(type="TRACK_TO")
+        lampTrackTo.target = neuronsBound
+        lampTrackTo.track_axis = "TRACK_NEGATIVE_Z"
+        lampTrackTo.up_axis = "UP_X"
 
-            if useOctane:
-                lampLamp = bpy.data.lamps[lampData.name]
-                lampNodes = lampLamp.node_tree.nodes
-                lampLinks = lampLamp.node_tree.links
-                lampDiffuse = lampNodes.new("ShaderNodeOctDiffuseMat")
-                # Diffuse color is inputs[0]
-                lampDiffuse.inputs[0].default_value = spec["color"]
-                lampEmit = lampNodes.new("ShaderNodeOctBlackBodyEmission")
-                # Connect the emitter's "OutTex" output to the material's "Emission" input.
-                lampLinks.new(lampEmit.outputs[0], lampDiffuse.inputs[10])
+        if useOctane:
+            lampLamp = bpy.data.lamps[lampData.name]
+            lampNodes = lampLamp.node_tree.nodes
+            lampLinks = lampLamp.node_tree.links
+            lampDiffuse = lampNodes.new("ShaderNodeOctDiffuseMat")
+            # Diffuse color is inputs[0]
+            lampDiffuse.inputs[0].default_value = spec["color"]
+            lampEmit = lampNodes.new("ShaderNodeOctBlackBodyEmission")
+            # Connect the emitter's "OutTex" output to the material's "Emission" input.
+            lampLinks.new(lampEmit.outputs[0], lampDiffuse.inputs[10])
 
-                # Power 2400000 works well for lamp distance 425 with the "visual-E-PG-new" data, so scale relative to it.
-                # Emission power: lampEmit.inputs[1].default_value
-                lampEmit.inputs[1].default_value = 2400000
-                powerScale = (lampDistance / 425.1282)**2
-                powerScale *= jsonLightPowerScale[i]
-                lampEmit.inputs[1].default_value *= powerScale
+            # Power 2400000 works well for lamp distance 425 with the "visual-E-PG-new" data, so scale relative to it.
+            # Emission power: lampEmit.inputs[1].default_value
+            lampEmit.inputs[1].default_value = 2400000
+            powerScale = (lampDistance / 425.1282)**2
+            powerScale *= jsonLightPowerScale[i]
+            lampEmit.inputs[1].default_value *= powerScale
 
-                print("lamp {} power {} after scaling by {}".format(i, lampEmit.inputs[1].default_value, powerScale))
+            print("lamp {} power {} after scaling by {}".format(i, lampEmit.inputs[1].default_value, powerScale))
 
-                if "powerFactor" in spec:
-                    powerFactor = spec["powerFactor"]
-                    lampEmit.inputs[1].default_value *= powerFactor
-                lampOutput = lampNodes["Lamp Output"]
-                lampLinks.new(lampDiffuse.outputs[0], lampOutput.inputs[0])
+            if "powerFactor" in spec:
+                powerFactor = spec["powerFactor"]
+                lampEmit.inputs[1].default_value *= powerFactor
+            lampOutput = lampNodes["Lamp Output"]
+            lampLinks.new(lampDiffuse.outputs[0], lampOutput.inputs[0])
 
-        # Put the lights in the correct orientation for the "standard" view,
-        # with positive X right, positive Y out, positive Z down.
-        lampRotator = bpy.data.objects.new("Lamps", None)
-        bpy.context.scene.objects.link(lampRotator)
-        lampRotator.location = neuronsBound.location
-        for lamp in lamps:
-            lamp.parent = lampRotator
-        lampRotator.rotation_euler = mathutils.Euler((0, math.radians(180), 0), "XYZ")
+    # Put the lights in the correct orientation for the "standard" view,
+    # with positive X right, positive Y out, positive Z down.
+    lampRotator = bpy.data.objects.new("Lamps", None)
+    bpy.context.scene.objects.link(lampRotator)
+    lampRotator.location = neuronsBound.location
+    for lamp in lamps:
+        lamp.parent = lampRotator
+    lampRotator.rotation_euler = mathutils.Euler((0, math.radians(180), 0), "XYZ")
 
-        print("Done")
+    print("Done")
 
-    # Environment and ambient light
-    if useOctane:
-        # Environment texture, i.e., background color
-        ambient = 0.0
-        if args.onlyAmbient:
-            ambient = 0.25
+# Environment and ambient light
+if useOctane:
+    # Environment texture, i.e., background color
+    ambient = 0.0
+    if args.onlyAmbient:
+        ambient = 0.25
 
-        texEnv = bpy.data.textures.new("Texture.Env", type="IMAGE")
-        texEnv.use_nodes = True
-        texEnvNodes = texEnv.node_tree.nodes
-        texEnvLinks = texEnv.node_tree.links
-        texEnvOut = texEnvNodes["Output"]
-        texEnvRGB = texEnvNodes.new("ShaderNodeOctRGBSpectrumTex")
-        texEnvRGB.inputs[0].default_value = (ambient, ambient, ambient, 1)
-        texEnvLinks.new(texEnvRGB.outputs[0], texEnvOut.inputs[0])
-        bpy.context.scene.world.octane.env_texture_ptr = texEnv
-    else:
-        # Rendering background color
-        bpy.data.worlds["World"].horizon_color = (0, 0, 0)
+    texEnv = bpy.data.textures.new("Texture.Env", type="IMAGE")
+    texEnv.use_nodes = True
+    texEnvNodes = texEnv.node_tree.nodes
+    texEnvLinks = texEnv.node_tree.links
+    texEnvOut = texEnvNodes["Output"]
+    texEnvRGB = texEnvNodes.new("ShaderNodeOctRGBSpectrumTex")
+    texEnvRGB.inputs[0].default_value = (ambient, ambient, ambient, 1)
+    texEnvLinks.new(texEnvRGB.outputs[0], texEnvOut.inputs[0])
+    bpy.context.scene.world.octane.env_texture_ptr = texEnv
+else:
+    # Rendering background color
+    bpy.data.worlds["World"].horizon_color = (0, 0, 0)
 
-    if useOctane:
-        # Seems to causes some errors?
-        #bpy.ops.wm.addon_enable(module="octane")
+if useOctane:
+    # Seems to causes some errors?
+    #bpy.ops.wm.addon_enable(module="octane")
 
-        # Switch to the Octane renderer after creating the materials above,
-        # to avoid getting a default Octane material that deletes the standard
-        # material with its animated alpha.
-        bpy.context.scene.render.engine = "octane"
-        # Path tracing
-        bpy.context.scene.octane.kernel_type = "2"
+    # Switch to the Octane renderer after creating the materials above,
+    # to avoid getting a default Octane material that deletes the standard
+    # material with its animated alpha.
+    bpy.context.scene.render.engine = "octane"
+    # Path tracing
+    bpy.context.scene.octane.kernel_type = "2"
 
-        # "Render" tab, "Animation mode" "Camera only"
-        # This setting does give some speedup on animated frames after the
-        # initial frame, and gives correct results even if there is animation on
-        # the opacity in the objects' materials.
-        bpy.context.scene.octane.anim_mode = "2"
+    # "Render" tab, "Animation mode" "Camera only"
+    # This setting does give some speedup on animated frames after the
+    # initial frame, and gives correct results even if there is animation on
+    # the opacity in the objects' materials.
+    bpy.context.scene.octane.anim_mode = "2"
 
-        # Switch from the sky environment to a solid texture.
-        bpy.context.scene.world.octane.env_type = "0"
+    # Switch from the sky environment to a solid texture.
+    bpy.context.scene.world.octane.env_type = "0"
 
-        if args.denoise:
-            # Turn on the AI denoiser.
-            bpy.context.scene.camera.data.octane.enable_denoising = True
-            bpy.context.scene.camera.data.octane.denoise_on_completion = True
+    if args.denoise:
+        # Turn on the AI denoiser.
+        bpy.context.scene.camera.data.octane.enable_denoising = True
+        bpy.context.scene.camera.data.octane.denoise_on_completion = True
 
-            # Eliminate flickering during animation, at least in theory.
-            bpy.context.scene.octane.static_noise = True
+        # Eliminate flickering during animation, at least in theory.
+        bpy.context.scene.octane.static_noise = True
 
-            # Denoising requires turning on the "Octane Camera Imager (Render Mode)"
-            bpy.context.scene.octane.hdr_tonemap_render_enable = True
+        # Denoising requires turning on the "Octane Camera Imager (Render Mode)"
+        bpy.context.scene.octane.hdr_tonemap_render_enable = True
 
-            # The denoised result will be in a special beauty pass, called "OctDenoiserBeauty".
-            bpy.context.scene.octane.use_passes = True
-            bpy.context.scene.render.layers["RenderLayer"].use_pass_denoise_beauty = True
+        # The denoised result will be in a special beauty pass, called "OctDenoiserBeauty".
+        bpy.context.scene.octane.use_passes = True
+        bpy.context.scene.render.layers["RenderLayer"].use_pass_denoise_beauty = True
 
-        bpy.context.scene.octane.filter_size *= args.filterSizeFactor
-        print("Using filter size: {}".format(bpy.context.scene.octane.filter_size))
+    bpy.context.scene.octane.filter_size *= args.filterSizeFactor
+    print("Using filter size: {}".format(bpy.context.scene.octane.filter_size))
 
 
 if willComp:
@@ -571,9 +568,6 @@ if args.end != None:
 if args.step != None:
     bpy.context.scene.frame_step = args.step
 
-# TODO: There is a problem if fStartOverall is bewteen render intervals:
-# we need to render one frame at the end of the preceding render interval,
-# then copy.
 renderIntervalsClipped = []
 for ri in renderIntervals:
     fStart = int(ri[0])
@@ -589,6 +583,12 @@ for ri in renderIntervals:
         fEnd = fEndOverall
 
     renderIntervalsClipped.append((fStart, fEnd))
+
+# TODO: There is a problem if fStartOverall is bewteen render intervals:
+# we need to render one frame at the end of the preceding render interval,
+# then copy.  The following is only a partial fix.
+if len(renderIntervalsClipped) == 0:
+    renderIntervalsClipped.append((fStartOverall, fEndOverall))
 
 def findHideRenderFrames(materials):
     hideRenderAtFrame = {}
