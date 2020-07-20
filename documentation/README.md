@@ -371,7 +371,10 @@ The object for `anchorPSD` has two keys, but `neuVid` supports additional keys t
   - `fps`
   - `lightPowerScale`
   - `lightSizeScale`
+  - `lightDistanceScale`
   - `lightColor`
+  - `useShadows`
+  - `useSpecular`
 - Rendering with Octane:
   - `--octane` argument
   - `--roi` argument

@@ -96,6 +96,8 @@ jsonLightPowerScale = [1.0, 1.0, 1.0]
 jsonLightSizeScale = 1.0
 jsonLightDistanceScale = 1.0
 jsonLightColor = "default"
+jsonUseShadows = True
+jsonUseSpecular = True
 if args.inputJsonFile:
     jsonData = json.loads(removeComments(args.inputJsonFile))
     if "lightPowerScale" in jsonData:
@@ -110,6 +112,12 @@ if args.inputJsonFile:
     if "lightColor" in jsonData:
         jsonLightColor = jsonData["lightColor"]
         print("Using lightColor: {}".format(jsonLightColor))
+    if "useShadows" in jsonData:
+        jsonUseShadows = jsonData["useShadows"]
+        print("Using shadows: {}".format(jsonUseShadows))
+    if "useSpecular" in jsonData:
+        jsonUseSpecular = jsonData["useSpecular"]
+        print("Using specular: {}".format(jsonUseShadows))
 
 #
 
@@ -272,7 +280,7 @@ else:
                 addOctaneMaterial(obj)
         print("Done")
     else:
-        bpy.data.scenes["Scene"].render.use_shadows = True
+        bpy.data.scenes["Scene"].render.use_shadows = jsonUseShadows
         bpy.data.scenes["Scene"].render.use_textures = True
         bpy.data.scenes["Scene"].render.use_sss = False
         bpy.data.scenes["Scene"].render.use_raytrace = False
@@ -284,6 +292,10 @@ else:
                 matName = "Material." + obj.name
                 if matName in bpy.data.materials:
                     mat = bpy.data.materials[matName]
+
+                    if not jsonUseSpecular:
+                        mat.specular_intensity = 0
+
                     if mat.animation_data:
                         fcurvesAlpha = mat.animation_data.action.fcurves.find(data_path="alpha")
                         if fcurvesAlpha:
