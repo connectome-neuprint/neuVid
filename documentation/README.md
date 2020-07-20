@@ -20,7 +20,7 @@ Here is a `neuVid` input file for the simplest video:
     "anchor" : [
       508689623
     ],
-    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes"
+    "source" : "https://hemibrain-dvid.janelia.org/api/node/52a13/segmentation_meshes"
   },
   "animation" : [
     [ "frameCamera", { "bound" : "neurons.anchor" } ],
@@ -57,7 +57,7 @@ The top-level JSON object in the input file has two major sections.
 
 The `neurons` key starts the *definitions section*.  This section associates *names* with data that will be imported as polygonal meshes that Blender can render.  The `neurons` key's value is an object, and its `anchor` key is an example of a name.  The `anchor` name is associated with that key's value, an array containing the identifier number `508689623`.  Any use of the name `neurons.anchor` thus refers to the neuron with that identifier.
 
-Implicitly, all the named neurons are rendered as meshes.  Where these meshes come from is described by the `neuron` object's `source` key.  In this case, its value states that the meshes come from a [DVID server](https://hemibrain-dvid2.janelia.org), specifically, its `segmentation_meshes` data instance.
+Implicitly, all the named neurons are rendered as meshes.  Where these meshes come from is described by the `neuron` object's `source` key.  In this case, its value states that the meshes come from a [DVID server](https://hemibrain-dvid.janelia.org), specifically, its `segmentation_meshes` data instance.
 
 The first explicit use of the `neurons.anchor` name occurs in the other major section, the *animation section*.  In the top-level object, the `animation` key's value is an array of *commands* that describe the animation that Blender will render.  The first command, `frameCamera`, tells Blender how to position the camera: the bounding box for `neurons.anchor` should mostly fill the camera frame, with the camera looking at the fly's brain face on.  Note that this useful camera composition is specified symbolically, without the use of absolute coordinates.  Minimizing the need for absolute coordinates is one of the guiding principles of `neuVid`.
 
@@ -95,10 +95,10 @@ Here is an example that adds the `rois` category to the previous example with `n
     "anchor" : [
       508689623
     ],
-    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes"
+    "source" : "https://hemibrain-dvid.janelia.org/api/node/52a13/segmentation_meshes"
   },
   "rois" : {
-    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/roisSmoothedDecimated",
+    "source" : "https://hemibrain-dvid.janelia.org/api/node/52a13/roisSmoothedDecimated",
     "step1" : [
       "MB(R)", "LAL(R)"
     ]
@@ -111,7 +111,7 @@ Here is an example that adds the `rois` category to the previous example with `n
 }
 ```
 
-The `rois` category in this example defines a name, `rois.step1` that is associated with *two* ROIs.  The `source` key specifies that the meshes for these ROIs are loaded from [another data instance of the DVID server](https://hemibrain-dvid2.janelia.org), `roisSmoothedDecimated`.  The actual ROI names should follow the standards of DVID as presented by the [`neuPrintExplorer`](https://neuprint.janelia.org/?dataset=hemibrain:v1.0) user interface (e.g., `aL(R)`, `b'L(R)`, `EB`, etc.).  Note that the order of keys in an object is irrelevant, and the `rois` category has the `source` key first.
+The `rois` category in this example defines a name, `rois.step1` that is associated with *two* ROIs.  The `source` key specifies that the meshes for these ROIs are loaded from [another data instance of the DVID server](https://hemibrain-dvid.janelia.org), `roisSmoothedDecimated`.  The actual ROI names should follow the standards of DVID as presented by the [`neuPrintExplorer`](https://neuprint.janelia.org/?dataset=hemibrain%3Av1.0.1) user interface (e.g., `aL(R)`, `b'L(R)`, `EB`, etc.).  Note that the order of keys in an object is irrelevant, and the `rois` category has the `source` key first.
 
 Note also that the same name can be reused in different categories (e.g., `rois.step1` could have been `rois.anchor` without conflicting with `neurons.anchor`), and the names in the categories need not match.
 
@@ -125,7 +125,7 @@ Both `source` values are DVID URLs in this example.  Using such a URL, `neuVid` 
     "anchor" : [
       508689623
     ],
-    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes"
+    "source" : "https://hemibrain-dvid.janelia.org/api/node/52a13/segmentation_meshes"
   },
   "rois" : {
     "source" : "/tmp/localMeshDirectory/",
@@ -148,7 +148,7 @@ The simplest video uses the `orbitCamera` command with a `duration` argument to 
 ```json
 {
   "rois" : {
-    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/roisSmoothedDecimated",
+    "source" : "https://hemibrain-dvid.janelia.org/api/node/52a13/roisSmoothedDecimated",
     "step1" : [
       "MB(R)"
     ],
@@ -160,7 +160,7 @@ The simplest video uses the `orbitCamera` command with a `duration` argument to 
     "anchor" : [
       508689623
     ],
-    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes"
+    "source" : "https://hemibrain-dvid.janelia.org/api/node/52a13/segmentation_meshes"
   },
   "animation" : [
     [ "frameCamera", { "bound" : "rois.step1" } ],
@@ -197,7 +197,7 @@ To vary the alpha, use the `fade` command.  It takes a `duration` argument so th
 ```json
 {
   "neurons" : {
-    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes",
+    "source" : "https://hemibrain-dvid.janelia.org/api/node/52a13/segmentation_meshes",
     "anchor" : [
       508689623
     ],
@@ -237,7 +237,7 @@ It is possible to override the automatic assignment of colors to neuron meshes. 
 ```json
 {
   "neurons" : {
-    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes",
+    "source" : "https://hemibrain-dvid.janelia.org/api/node/52a13/segmentation_meshes",
     "main" : [
       508689623
     ],
@@ -275,7 +275,7 @@ The `rois` category renders meshes as silhouettes, with mesh faces becoming more
 ```json
 {
   "rois" : {
-    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/roisSmoothedDecimated",
+    "source" : "https://hemibrain-dvid.janelia.org/api/node/52a13/roisSmoothedDecimated",
     "deemphasized" : [
       "FB", "EB"
     ],
@@ -298,13 +298,13 @@ Synapses appear as little spheres, and are defined by names in the `synapses` ca
 ```json
 {
   "neurons" : {
-    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes",
+    "source" : "https://hemibrain-dvid.janelia.org/api/node/52a13/segmentation_meshes",
     "anchor" : [
       508689623
     ]
   },
   "synapses" : {
-    "source" : "https://neuprint.janelia.org/?dataset=hemibrain:v1.0",
+    "source" : "https://neuprint.janelia.org/?dataset=hemibrain:v1.0.1",
     "anchorPSD" : {
       "neuron" : 508689623,
       "type" : "post"
@@ -324,7 +324,7 @@ Synapses appear as little spheres, and are defined by names in the `synapses` ca
 }
 ```
 
-In the `synapses` category, the `source` key must be a [`neuPrintExplorer`](https://neuprint.janelia.org/?dataset=hemibrain:v1.0) URL.  Each other key defines the name for a synapse set.  In this example, the `synapses.anchorPSD` name refers to to synapses from the neuron `508689623`, and the `type` key being `post` limits these synapses to the post-synaptic sites (PSDs).
+In the `synapses` category, the `source` key must be a [`neuPrintExplorer`](https://neuprint.janelia.org/?dataset=hemibrain%3Av1.0.1) URL.  Each other key defines the name for a synapse set.  In this example, the `synapses.anchorPSD` name refers to to synapses from the neuron `508689623`, and the `type` key being `post` limits these synapses to the post-synaptic sites (PSDs).
 
 PSDs have a gray color in the [`NeuTu` proofreading system](https://github.com/janelia-flyem/NeuTu), so the `setValue` command changes the meshes for `synapses.anchorPSD` to have a similar color.
 
@@ -403,7 +403,7 @@ To give all ROIs a lighter look, use the `*` key in `exponents` to give everythi
 
 ### Getting `position` values
 
-The `neuVid` input avoids literal positions as much as possible (e.g., `frameCamera` sets the camera position implicitly so some objects fill the view).  Nevertheless, literal positions sometimes are unavoidable (e.g., when the camera view should be filled with just part of an object, with `centerCamera`).  One way to get the coordinates of a literal position is to use [`neuPrintExplorer`](https://neuprint.janelia.org/?dataset=hemibrain:v1.0): in the skeleton view, shift-click on a particular position on a neuron body sets the camera target to that position.  All that is needed, then, is a way to get that target position from `neuPrintExplorer`.
+The `neuVid` input avoids literal positions as much as possible (e.g., `frameCamera` sets the camera position implicitly so some objects fill the view).  Nevertheless, literal positions sometimes are unavoidable (e.g., when the camera view should be filled with just part of an object, with `centerCamera`).  One way to get the coordinates of a literal position is to use [`neuPrintExplorer`](https://neuprint.janelia.org/?dataset=hemibrain%3Av1.0.1): in the skeleton view, shift-click on a particular position on a neuron body sets the camera target to that position.  All that is needed, then, is a way to get that target position from `neuPrintExplorer`.
 
 For better or worse, `neuPrintExplorer`'s current user interface does not present that target position.  The best work-around for now is to get the target position from the URL `neuPrintExplorer` creates for the skeleton view.  Doing so requires a few particular steps, to force the URL to be updated accordingly:
 
@@ -416,7 +416,7 @@ For better or worse, `neuPrintExplorer`'s current user interface does not presen
 This switching of tabs makes the `neuPrintExplorer` URL contain a "coordinates" section near the end, with the camera position and target.
 7. In a terminal shell run the script to parse that URL and extract the target.  Note: with most shells, the URL must be enclosed in single quotes(') to avoid problems due to the special characters in the URL.
 ```
-python neuVid/parseTarget.py 'https://neuprint-test.janelia.org/results?dataset...%5D%5Bcoordinates%5D=31501.69753529602%2C63202.63782931245%2C23355.220703777315%2C22390.66247762118%2C24011.276508917697%2C31327.48613433571&tab=2&ftab='
+python neuVid/parseTarget.py 'https://neuprint.janelia.org/results?dataset...%5D%5Bcoordinates%5D=31501.69753529602%2C63202.63782931245%2C23355.220703777315%2C22390.66247762118%2C24011.276508917697%2C31327.48613433571&tab=2&ftab='
 ```
 9. The camera target position will be printed to the shell, in a form that can be used directly with, say, `centerCamera`.
 ```

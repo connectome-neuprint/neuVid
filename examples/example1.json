@@ -1,12 +1,12 @@
 {
   "rois" : {
-    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/roisSmoothedDecimated",
+    "source" : "https://hemibrain-dvid.janelia.org/api/node/52a13/roisSmoothedDecimated",
     "main" : [
       "aL(R)"
     ]
   },
   "neurons" : {
-    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes",
+    "source" : "https://hemibrain-dvid.janelia.org/api/node/52a13/segmentation_meshes",
     "body1" : [
       1162063500
     ],
