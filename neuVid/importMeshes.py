@@ -322,6 +322,20 @@ for roi in rois:
     # Make that transparency appear in the interactive viewport rendering.
     obj.show_transparent = True
 
+
+    exp = 5
+    if roi in roiExponents:
+        exp = roiExponents[roi]
+
+    # A negative exponent gives simple surface shading instead of the silhouette.
+    if exp < 0:
+        mat.use_shadows = False
+        mat.use_cast_shadows = False
+        mat.use_transparent_shadows = False
+        mat.specular_intensity = 0
+        mat.alpha = 0.5
+        continue
+
     # Do not apply lighting to the ROI; just use the silhouette calculation.
     mat.use_shadeless = True
     # Do not involve the ROI in any aspect of shadows.
@@ -371,9 +385,6 @@ for roi in rois:
     powNode.name = "pow"
     powNode.operation = "POWER"
     matLinks.new(negNode.outputs["Value"], powNode.inputs[0])
-    exp = 5
-    if roi in roiExponents:
-        exp = roiExponents[roi]
     powNode.inputs[1].default_value = exp
 
     # Multiply in the animated alpha from the non-node material, above.
