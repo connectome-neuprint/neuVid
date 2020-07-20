@@ -1,12 +1,12 @@
 {
   "rois" : {
-    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/roisSmoothedDecimated",
+    "source" : "https://hemibrain-dvid.janelia.org/api/node/52a13/roisSmoothedDecimated",
     "main" : [
       "SMP(R)"
     ]
   },
   "neurons" : {
-    "source" : "https://hemibrain-dvid2.janelia.org/api/node/52a13/segmentation_meshes",
+    "source" : "https://hemibrain-dvid.janelia.org/api/node/52a13/segmentation_meshes",
     "main" : [
       298599672
     ],
@@ -18,7 +18,7 @@
     ]
   },
   "synapses" : {
-    "source" : "https://neuprint-test.janelia.org/?dataset=hemibrain%3Av1.0",
+    "source" : "https://neuprint.janelia.org/?dataset=hemibrain:v1.0.1",
     "inputs" : {
       "neuron" : 298599672,
       "partner": 514816333,
