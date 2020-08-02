@@ -47,6 +47,8 @@ parser.set_defaults(filterSizeFactor=1.0)
 parser.add_argument("--filter", "-f", type=float, dest="filterSizeFactor", help="filter size factor")
 parser.set_defaults(onlyAmbient=False)
 parser.add_argument("--ambient", "-amb", dest="onlyAmbient", action="store_true", help="use only ambient lighting")
+parser.set_defaults(white=False)
+parser.add_argument("--white", "-w", dest="white", action="store_true", help="use a white background")
 parser.set_defaults(debug=False)
 parser.add_argument("--debug", "-d", dest="debug", action="store_true", help="debug")
 
@@ -118,6 +120,9 @@ if args.inputJsonFile:
     if "useSpecular" in jsonData:
         jsonUseSpecular = jsonData["useSpecular"]
         print("Using specular: {}".format(jsonUseShadows))
+
+if args.white and not useOctane:
+    print("Using white background")
 
 #
 
@@ -423,7 +428,8 @@ if useOctane:
     bpy.context.scene.world.octane.env_texture_ptr = texEnv
 else:
     # Rendering background color
-    bpy.data.worlds["World"].horizon_color = (0, 0, 0)
+    background = (1, 1, 1) if args.white else (0, 0, 0)
+    bpy.data.worlds["World"].horizon_color = background
 
 if useOctane:
     # Seems to causes some errors?
