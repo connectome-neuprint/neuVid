@@ -47,7 +47,7 @@ conda activate neuVid-example
 conda install -c flyem-forge neuprint-python
 ```
 
-4. In a web browser, visit [`https://neuprint.janelia.org/?dataset=hemibrain:v1.0`](https://neuprint.janelia.org/?dataset=hemibrain:v1.0) and log on.  Click on the second button on the top right, and choose the "Account" menu item to show the "Account" page.
+4. In a web browser, visit [`https://neuprint.janelia.org/?dataset=hemibrain:v1.0.1`](https://neuprint.janelia.org/?dataset=hemibrain:v1.0.1) and log on.  Click on the second button on the top right, and choose the "Account" menu item to show the "Account" page.
 
 5. Copy the three-or-so-line-long string from the "Auth Token:" section and use it to set the `NEUPRINT_APPLICATION_CREDENTIALS` environment variable in the shell where `neuVid` is to be run.  For a `bash` shell, use a command like the following:
 ```
@@ -65,3 +65,8 @@ blender --background --python neuVid/importMeshes.py -- -ij examples/example2.js
 blender --background --python neuVid/addAnimation.py -- -ij examples/example2.json -ib /tmp/example2.blend -o /tmp/example2Anim.blend
 blender --background --python neuVid/render.py -- -ib /tmp/example2Anim.blend -o /tmp/framesFinal
 blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
+
+## History
+
+These scripts come from a collaboration at [HHMI's Janelia Research Campus](https://www.janelia.org/) between the [FlyEM project](https://www.janelia.org/project-team/flyem) and the [Scientific Computing Software group](https://www.janelia.org/support-team/scientific-computing-software).
+The first use was for the [hemibrain connectome release](https://www.janelia.org/project-team/flyem/hemibrain) in January, 2020.
