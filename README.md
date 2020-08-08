@@ -65,6 +65,7 @@ blender --background --python neuVid/importMeshes.py -- -ij examples/example2.js
 blender --background --python neuVid/addAnimation.py -- -ij examples/example2.json -ib /tmp/example2.blend -o /tmp/example2Anim.blend
 blender --background --python neuVid/render.py -- -ib /tmp/example2Anim.blend -o /tmp/framesFinal
 blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
+```
 
 ## History
 
