@@ -25,7 +25,7 @@ def parseNeuronsIds(jsonNeurons, limit=0):
     for key in jsonNeurons.keys():
         # A key for a group name has a value that is just a list of body IDs.
         # E.g., "step4" here:
-        # "neurons" : { "path-meshes" : "./meshesDir", "step4" : [ 819828986, 5813050767, 1169898618 ] }
+        # "neurons" : { "source" : "./meshesDir", "step4" : [ 819828986, 5813050767, 1169898618 ] }
         value = jsonNeurons[key]
         if isinstance(value, list) and all(map(lambda x: isinstance(x, int), value)):
             jsonList = value
@@ -41,7 +41,7 @@ def parseNeuronsIds(jsonNeurons, limit=0):
         # A key for a group name has a value that is a dictionary, with information
         # about how to load the body IDs from a file.
         # E.g., "LALEtc" here:
-        # "neurons" : { "path-meshes" : [ "./meshesDirRes0", "./meshesDirRes1" ],
+        # "neurons" : { "source" : [ "./meshesDirRes0", "./meshesDirRes1" ],
         #               "idsSource" : "./bodyIDsDir",
         #               "LALEtc" : { "ids" : [ "LAL", "CRE" ], "sourceIndex" : 1 } }
         elif isinstance(value, dict):
