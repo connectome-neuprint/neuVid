@@ -295,7 +295,7 @@ def advanceTime(args):
         by = args["by"]
         if isinstance(by, float):
             time += by
-            tentativeEndTime = time
+            tentativeEndTime = max(time, tentativeEndTime)
         else:
             print("Error: advanceTime: argument 'by' is not a number")
     else:
