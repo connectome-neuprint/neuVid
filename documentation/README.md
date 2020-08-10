@@ -188,6 +188,8 @@ Note also the use of *two* `advanceTime` commands, one with `duration` `2.0` and
 
 The next command is a third `frameCamera`.  It specifies that the framing should be on the bounds of `rois.step1 + rois.step2`.  The effect is to make the camera frame on the union of the two bounds.  No set operators other than `+` are supported for the `bound` argument, but the next section discusses a more powerful case for other arguments of other commands.
 
+A variety of interesting animations are possible by combining commands like `frameCamera`, `orbitCamera`, and `advanceTime`, but not all combinations are supported.  It does not work to "nest" a `frameCamera` command in the middle of the duration of an `orbitCamera` command, for example.  A solution is to break the longer-duration `orbitCamera` into two shorter-duration commands, with the `frameCamera` in between them.
+
 ## Transparency and Color
 
 The transparency of a mesh is controlled by the *alpha* value on the mesh's material.  The [Catetories](#categories) documentation showed how the `setValue` command can specify an alpha for a mesh for the duration of a video.
