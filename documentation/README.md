@@ -486,6 +486,7 @@ Required arguments:
 Optional arguments:
 - `toColor` (default: #ffffff)
 - `duration` (default: 1)
+- `rate` (default: 1)
 
 ### `setValue`
 
