@@ -519,6 +519,9 @@ def pulse(args):
     if "duration" in args:
         duration = args["duration"]
         tentativeEndTime = max(time + duration, tentativeEndTime)
+    rate = 1
+    if "rate" in args:
+        rate = args["rate"]
     if "meshes" in args:
         meshes = args["meshes"]
 
@@ -534,7 +537,7 @@ def pulse(args):
             mat = obj.data.materials[matName]
             baseColor = mat.diffuse_color.copy()
 
-            deltaTime = 0.5
+            deltaTime = 1 / (rate + 1)
             n = int(duration / deltaTime)
             if n % 2 == 1:
                 n -= 1
