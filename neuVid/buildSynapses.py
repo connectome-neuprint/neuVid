@@ -152,6 +152,9 @@ if synapseSource.startswith("http"):
                         "RETURN s.location.x, s.location.y, s.location.z\n".format(partner, body, type)
             else:
                 print("Error: synapse set '{}' unkown 'type' {}\n".format(synapseSetName, type))
+            if roi:
+                query = query.replace("RETURN", "AND {} RETURN".format(roi))
+
         else:
             if "weight" not in synapseSetSpec:
                 print("Synapse set '{}' default weight {}".format(synapseSetName, weight))
@@ -165,6 +168,8 @@ if synapseSource.startswith("http"):
                         "WHERE cnt >= {} " \
                         "UNWIND ses AS sesu " \
                         "RETURN sesu[0], sesu[1], sesu[2]\n".format(body, type, weight)
+                if roi:
+                    query = query.replace("WITH b", "AND {} WITH b".format(roi))
             elif type == "post":
                 query = "MATCH (a)-[:Contains]->(SynapseSet)-[:ConnectsTo]->(ss:SynapseSet)<-[:Contains]-(b:Neuron{{bodyId:{}}}) " \
                         "WITH ss, a " \
@@ -174,11 +179,10 @@ if synapseSource.startswith("http"):
                         "WHERE cnt >= {} " \
                         "UNWIND ses AS sesu " \
                         "RETURN sesu[0], sesu[1], sesu[2]\n".format(body, type, weight)
+                if roi:
+                    query = query.replace("WITH a", "AND {} WITH a".format(roi))
             else:
                 print("Error: synapse set '{}' unkown 'type' {}\n".format(synapseSetName, type))
-
-        if roi:
-            query = query.replace("RETURN", "AND {} RETURN".format(roi))
 
         if query:
             print("Querying '{}'...".format(synapseSetName))
