@@ -50,6 +50,11 @@ parser.add_argument("--ambient", "-amb", dest="onlyAmbient", action="store_true"
 parser.set_defaults(white=False)
 parser.add_argument("--white", "-w", dest="white", action="store_true", help="use a white background")
 parser.set_defaults(debug=False)
+parser.set_defaults(resX=1920)
+parser.add_argument("--resX", "-rx", type=int, dest="resX", help="output image X resolution (width)")
+parser.set_defaults(resY=1080)
+parser.add_argument("--resY", "-ry", type=int, dest="resY", help="output image Y resolution (height)")
+
 parser.add_argument("--debug", "-d", dest="debug", action="store_true", help="debug")
 
 args = parser.parse_args(argv)
@@ -88,6 +93,9 @@ if inputBlenderFile == None:
 print("Using input Blender file: '{}'".format(inputBlenderFile))
 
 bpy.ops.wm.open_mainfile(filepath=inputBlenderFile)
+
+print("Using output width: {} px".format(args.resX))
+print("Using output height: {} px".format(args.resY))
 
 useSeparateNeuronFiles = all(map(lambda x: not x.name.startswith("Neuron") or
     x.name.startswith("Neuron.proxy"), bpy.data.objects))
@@ -967,6 +975,9 @@ def render(renderIntervalsClipped, hideRenderTrueFrames, justPrint=False):
                             shutil.copy(src, dst)
                             numFramesCopied += 1
     return numFramesCopied
+
+bpy.context.scene.render.resolution_x = args.resX
+bpy.context.scene.render.resolution_y = args.resY
 
 bpy.context.scene.render.filepath = output
 
