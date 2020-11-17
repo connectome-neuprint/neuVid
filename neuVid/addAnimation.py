@@ -537,7 +537,7 @@ def pulse(args):
             mat = obj.data.materials[matName]
             baseColor = mat.diffuse_color.copy()
 
-            deltaTime = 1 / (rate + 1)
+            deltaTime = 1 / (2 * rate)
             n = int(duration / deltaTime)
             if n % 2 == 1:
                 n -= 1
