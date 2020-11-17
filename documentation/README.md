@@ -475,6 +475,7 @@ Optional arguments:
 
 Optional arguments:
 - `around` (default: the last camera target)
+- `axis` (default: `z`)
 - `endingRelativeAngle` (default: -360)
 - `duration` (default: 1)
 

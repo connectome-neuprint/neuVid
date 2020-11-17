@@ -269,13 +269,6 @@ def imagePlane(source, parented=False):
         else:
             return bpy.data.objects[name], None
 
-def viewVector():
-    global lastOrbitEndingAngle
-    v = mathutils.Vector((0, 1, 0))
-    e = mathutils.Euler((0, 0, lastOrbitEndingAngle))
-    v.rotate(e)
-    return v
-
 def keysAtFrame(obj, dataPath, frame):
     result = []
     if obj.animation_data:
@@ -335,6 +328,10 @@ def setValue(args):
                 mat.diffuse_color = color[0:3]
                 mat.keyframe_insert("diffuse_color", frame=frame())
 
+def bboxAxisForViewVector(v):
+    # TODO: Pick the axis with maximal projection?
+    return 2
+
 def frameCamera(args):
     global time, tentativeEndTime, lastCameraCenter
     camera = bpy.data.objects["Camera"]
@@ -368,8 +365,9 @@ def frameCamera(args):
         camera.keyframe_insert("location", frame=startFrame)
 
         # Heuristic for tightening radius?  Works pretty well, for -Z up.
-        zBound = bboxMax[2] - bboxCenter[2]
-        radius = radius * (2/3) + zBound * (1/3)
+        i = bboxAxisForViewVector(lastViewVector)
+        b = bboxMax[i] - bboxCenter[i]
+        radius = radius * (2/3) + b * (1/3)
 
         lastCameraCenter = bboxCenter
 
@@ -382,7 +380,7 @@ def frameCamera(args):
         dist *= scale
 
         # Positive Y points out.
-        eye = lastCameraCenter + dist * viewVector()
+        eye = lastCameraCenter + dist * lastViewVector
         camera.location = eye
         camera.keyframe_insert("location", frame=frame(time + duration))
         updateCameraClip(camera.name)
@@ -551,6 +549,15 @@ def pulse(args):
                 mat.keyframe_insert("diffuse_color", frame=frame(t))
                 t += deltaTime
 
+def orbitAxis(args):
+    axis = "z"
+    if "axis" in args:
+        axis = args["axis"].lower()
+    try:
+        return {"x" : 0, "y": 1, "z" :2}[axis]
+    except:
+        return None
+
 def orbitCamera(args):
     # If arg "around" is "a.b" then orbiting will be around the location of
     # "Bounds.a.b".
@@ -571,22 +578,37 @@ def orbitCamera(args):
             bound = bpy.data.objects[boundName]
             center = bound.location
 
-    startingAngle = lastOrbitEndingAngle
+    # Mostly for debugging.
+    axis = orbitAxis(args)
+    if axis == None:
+        exit("Unrecognized axis in '{}'".format(args));
+
+    startingAngle = lastOrbitEndingAngle[axis]
+    startingEuler = mathutils.Euler((0, 0, 0), "XYZ")
+    startingEuler[axis] = startingAngle
+
     endingAngle = math.radians(-360)
     if "endingRelativeAngle" in args:
         endingRelativeAngle = math.radians(args["endingRelativeAngle"])
         endingAngle = startingAngle + endingRelativeAngle
-        lastOrbitEndingAngle = endingAngle
+        lastOrbitEndingAngle[axis] = endingAngle
+        lastViewVectorEuler = mathutils.Euler((0, 0, 0), "XYZ")
+        lastViewVectorEuler[axis] = endingRelativeAngle
+        lastViewVector.rotate(lastViewVectorEuler)
+    endingEuler = mathutils.Euler((0, 0, 0), "XYZ")
+    endingEuler[axis] = endingAngle
 
-    print("{}, {}: orbitCamera, angle {} - {}".format(startFrame, endFrame, startingAngle, endingAngle))
+    printAxis = ["x", "y", "z"][axis]
+    printStartingAngle = math.degrees(startingAngle)
+    printEndingAngle = math.degrees(endingAngle)
+    print("{}, {}: orbitCamera, axis {}, angle {:.2f} - {:.2f}".format(startFrame, endFrame, printAxis, printStartingAngle, printEndingAngle))
 
     orbiterName = "Orbiter.{}-{}".format(startFrame, endFrame)
     orbiter = bpy.data.objects.new(orbiterName, None)
     bpy.context.scene.objects.link(orbiter)
 
     orbiter.location = center
-
-    orbiter.rotation_euler = mathutils.Euler((0, 0, startingAngle), "XYZ")
+    orbiter.rotation_euler = startingEuler
     orbiter.keyframe_insert("rotation_euler", frame=startFrame)
 
     constraint = camera.constraints.new(type="CHILD_OF")
@@ -604,8 +626,7 @@ def orbitCamera(args):
     constraint.influence = 1
     constraint.keyframe_insert("influence", frame=startFrame)
 
-    # Rotate around Z, since positive Z points down.
-    orbiter.rotation_euler = mathutils.Euler((0, 0, endingAngle), "XYZ")
+    orbiter.rotation_euler = endingEuler
     orbiter.keyframe_insert("rotation_euler", frame=endFrame)
 
     constraint.influence = 1
@@ -649,8 +670,7 @@ def centerCamera(args):
 
         if position:
             center = mathutils.Vector(position)
-            # Positive Y points out.
-            dist = (camera.location - center)[1]
+            dist = (camera.location - center).magnitude
 
             fraction = 1
             if "fraction" in args:
@@ -665,7 +685,7 @@ def centerCamera(args):
 
             camera.keyframe_insert("location", frame=startFrame)
             # Positive Y points out.
-            camera.location = center + dist * viewVector()
+            camera.location = center + dist * lastViewVector
             camera.keyframe_insert("location", frame=frame(time + duration))
             updateCameraClip(camera.name)
 
@@ -741,7 +761,8 @@ bpy.ops.wm.open_mainfile(filepath=inputBlenderFile)
 bpy.context.scene.render.fps = fps
 
 lastCameraCenter = mathutils.Vector(bpy.data.objects["Bound.neurons"].location)
-lastOrbitEndingAngle = 0
+lastOrbitEndingAngle = [0, 0, 0]
+lastViewVector = mathutils.Vector((0, 1, 0))
 
 camera = bpy.data.objects["Camera"]
 camera.rotation_euler = mathutils.Euler((math.radians(-90), 0, 0), "XYZ")
