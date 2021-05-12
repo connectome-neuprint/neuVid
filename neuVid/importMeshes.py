@@ -475,7 +475,7 @@ for synapseSet in synapseSets:
 
     # And then make it "glow" like it is emitting light, which really just gives it
     # a brighter version of its neuron's color.
-    mat.emit = 1
+    mat.emit = 0.5
     mat.specular_intensity = 0
 
 print("Done")
