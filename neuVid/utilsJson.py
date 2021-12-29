@@ -60,23 +60,27 @@ def parseNeuronsIds(jsonNeurons, limit=0):
             groupToMeshesSourceIndex[key] = iMeshesPath
 
             if "ids" in jsonDict:
-                idsFileNameList = jsonDict["ids"]
-                if isinstance(idsFileNameList, str):
-                    idsFileNameList = [idsFileNameList]
-                for idsFileName in idsFileNameList:
-                    idsFile = idsPath + idsFileName
-                    try:
-                        with open(idsFile) as f:
-                            i = 0
-                            for line in f:
-                                id = line[0:-1]
-                                neuronIds[iMeshesPath].add(str(id))
-                                groupToNeuronIds[key].append(str(id))
-                                i += 1
-                                if i == limit:
-                                    break
-                    except Exception as e:
-                        print("Error: cannot read neuron IDs file '{}': '{}'".format(idsFile, str(e)))
+                idsItemList = jsonDict["ids"]
+                if isinstance(idsItemList, str):
+                    idsItemList = [idsItemList]
+                for idsItem in idsItemList:
+                    if isinstance(idsItem, int):
+                        neuronIds[iMeshesPath].add(str(idsItem))
+                        groupToNeuronIds[key].append(str(idsItem))
+                    else:
+                        idsFile = idsPath + idsItem
+                        try:
+                            with open(idsFile) as f:
+                                i = 0
+                                for line in f:
+                                    id = line[0:-1]
+                                    neuronIds[iMeshesPath].add(str(id))
+                                    groupToNeuronIds[key].append(str(id))
+                                    i += 1
+                                    if i == limit:
+                                        break
+                        except Exception as e:
+                            print("Error: cannot read neuron IDs file '{}': '{}'".format(idsFile, str(e)))
 
     return neuronIds, groupToNeuronIds, groupToMeshesSourceIndex, useSeparateNeuronFiles
 
