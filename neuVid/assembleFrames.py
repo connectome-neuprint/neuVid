@@ -33,6 +33,8 @@ parser.add_argument("--stretch", "-s", type=int, dest="stretch", help="stretch f
 parser.set_defaults(padding=0)
 parser.add_argument("--pad", "-p", type=int, dest="padding", help="pad with this many copies of the last frame")
 
+parser.add_argument("--frame-jump", "-j", type=int, dest="step", help="number of frames to step forward")
+
 args = parser.parse_args(argv)
 
 if args.inputDir == None:
@@ -79,6 +81,9 @@ if args.stretch > 1 or args.padding > 0:
 
     pngs.sort()
     inputDir = tmp
+
+if args.step != None:
+    bpy.context.scene.frame_step = args.step
 
 seq = seqEd.sequences.new_image(name="assemble", filepath=os.path.join(inputDir, pngs[0]), channel=1, frame_start=1)
 for png in pngs[1:]:
