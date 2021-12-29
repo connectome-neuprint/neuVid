@@ -100,6 +100,8 @@ print("Using output height: {} px".format(args.resY))
 useSeparateNeuronFiles = all(map(lambda x: not x.name.startswith("Neuron") or
     x.name.startswith("Neuron.proxy"), bpy.data.objects))
 
+hasSynapses = any(map(lambda x: x.name.startswith("Synapses."), bpy.data.objects))
+
 useOctane = args.useOctane
 
 jsonLightPowerScale = [1.0, 1.0, 1.0]
@@ -354,7 +356,9 @@ if not args.onlyAmbient:
     for i in range(len(lampSpecs)):
         spec = lampSpecs[i]
         lampName = "Lamp." + str(i)
-        if useOctane:
+
+        # Use area lights for Octane, and for Octane-compatible ROIs, but not for synapses.
+        if useOctane and not (args.doRois and hasSynapses):
             lampData = bpy.data.lamps.new(name=lampName, type="AREA")
             lampData.use_nodes = True
 
