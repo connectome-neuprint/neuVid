@@ -108,6 +108,8 @@ jsonLightDistanceScale = 1.0
 jsonLightColor = "default"
 jsonUseShadows = True
 jsonUseSpecular = True
+jsonLightRotationZ = 0.0
+
 if args.inputJsonFile:
     jsonData = json.loads(removeComments(args.inputJsonFile))
     if "lightPowerScale" in jsonData:
@@ -128,6 +130,9 @@ if args.inputJsonFile:
     if "useSpecular" in jsonData:
         jsonUseSpecular = jsonData["useSpecular"]
         print("Using specular: {}".format(jsonUseShadows))
+    if "lightRotationZ" in jsonData:
+        jsonLightRotationZ = jsonData["lightRotationZ"]
+        print("Using lightRotationZ: {}".format(jsonLightRotationZ))
 
 if args.white and not useOctane:
     print("Using white background")
@@ -341,6 +346,9 @@ lampSpecs = [
 lamps = []
 
 if not args.onlyAmbient:
+    lightRotationZ = math.radians(jsonLightRotationZ)
+    lightRotationE = mathutils.Euler((0.0, 0.0, lightRotationZ))
+
     neuronsBound = bpy.data.objects["Bound.neurons"]
     neuronsBoundRadius = neuronsBound["Radius"]
     for i in range(len(lampSpecs)):
@@ -371,7 +379,9 @@ if not args.onlyAmbient:
         lamps.append(lamp)
 
         direction = mathutils.Vector(spec["direction"])
+        direction.rotate(lightRotationE)
         direction.normalize()
+
         lampDistance = neuronsBoundRadius * 2.5
         lampDistance *= jsonLightDistanceScale
         lamp.location = direction * lampDistance
