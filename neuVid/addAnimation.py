@@ -193,6 +193,12 @@ def imagePlane(source, parented=False):
         img = bpy.data.images.load(source)
         tex.image = img
 
+        # The following settings improve the sharpness of the image somewhat.
+        tex.use_interpolation = False
+        tex.use_mipmap = False
+        tex.filter_type = "BOX"
+        tex.filter_size = 0.1
+
         mat = bpy.data.materials.new("Material." + name)
         mat.alpha = 0.0
 
