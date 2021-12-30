@@ -9,6 +9,7 @@
 import argparse
 import bmesh
 import bpy
+import collections
 import json
 import math
 import mathutils
@@ -72,10 +73,11 @@ def meshObjs(name):
     global groupToNeuronIds, groupToRoiNames, groupToSynapseSetNames, useSeparateNeuronFiles
 
     # Support names of the form "A - B + C - D", meaning everything in A or C
-    # that is not also in B or D.
+    # that is not also in B or D.  Use `OrderedDict` to preserve the order of items
+    # as much as possible (e.g., the order of E in "E - F" or even simply "E").
 
-    addObjNames = set()
-    subObjNames = set()
+    addObjNames = collections.OrderedDict()
+    subObjNames = collections.OrderedDict()
     sub = False
     for x in name.split():
         if x == "+":
@@ -95,25 +97,25 @@ def meshObjs(name):
                         # For now, at least, support only the simplest case when using
                         # one or more separate files of neuron IDs.
                         if len(name.split()) == 1:
-                            dest.add("Neuron.proxy." + group)
+                            dest["Neuron.proxy." + group] = None
                         else:
                             print("Error: mesh expressions with '+'/'-' already not supported for separate neuron files")
                             return None
                     else:
                         for neuronId in groupToNeuronIds[group]:
-                            dest.add("Neuron." + neuronId)
+                            dest["Neuron." + neuronId] = None
                 elif type == "rois":
                     for roiName in groupToRoiNames[group]:
-                        dest.add("Roi." + roiName)
+                        dest["Roi." + roiName] = None
                 elif type == "synapses":
                     for synapseSetName in groupToSynapseSetNames[group]:
-                        dest.add("Synapses." + synapseSetName)
+                        dest["Synapses." + synapseSetName] = None
 
     if len(addObjNames) == 0:
         return None
 
     result = []
-    for objName in addObjNames:
+    for objName in addObjNames.keys():
         if not objName in subObjNames:
             result.append(bpy.data.objects[objName])
     return result
