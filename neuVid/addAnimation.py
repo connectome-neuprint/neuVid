@@ -454,21 +454,35 @@ def fade(args):
         startingTime = time
         deltaTime = []
         stagger = False
-        nStaggerSubgroup = min(5, int(len(objs) / 6))
+        if len(objs) >= 6:
+            nStaggerSubgroup = min(5, round(len(objs) / 6))
+        else:
+            nStaggerSubgroup = len(objs)
+
         if "stagger" in args:
             stagger = args["stagger"]
         if stagger:
-            deltaTime.append(duration / 3 / nStaggerSubgroup)
-            deltaTime.append(duration / 3 / (2 * nStaggerSubgroup))
-            deltaTime.append(duration / 3 / (len(objs) - 3 * nStaggerSubgroup))
+            if len(objs) >= 6:
+                n0 = nStaggerSubgroup
+                n1 = 2 * n0
+                n2 = len(objs) - (n0 + n1)
+                if n1 > n2 / 2:
+                    n1 -= 1
+                    n2 = len(objs) - (n0 + n1)
+                deltaTime.append(duration / 3 / n0)
+                deltaTime.append(duration / 3 / n1)
+                deltaTime.append(duration / 3 / n2)
+            else:
+                deltaTime.append(duration / nStaggerSubgroup)
 
             print("{}, {}: fade, meshes '{}', {} {} to {}".
                 format(frame(), frame(time + duration), meshes, type, startingValue, endingValue))
-            print(" stagger: {} x {}, {} x {}, {} x {}".
-                format(nStaggerSubgroup, frame(deltaTime[0]),
-                       2 * nStaggerSubgroup, frame(deltaTime[1]),
-                       len(objs) - 3 * nStaggerSubgroup, frame(deltaTime[2])))
-
+            if len(deltaTime) > 1:
+                print(" stagger: {} x {}, {} x {}, {} x {}".
+                    format(n0, frame(deltaTime[0]), n1, frame(deltaTime[1]), n2, frame(deltaTime[2])))
+            else:
+                print(" stagger: {} x {}".
+                    format(nStaggerSubgroup, frame(deltaTime[0])))
         else:
             deltaTime.append(duration)
             print("{}, {}: fade, meshes '{}', {} {} to {}".format(frame(), frame(time + duration),
