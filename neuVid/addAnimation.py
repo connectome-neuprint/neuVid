@@ -10,6 +10,7 @@ import argparse
 import bmesh
 import bpy
 import collections
+import colorsys
 import json
 import math
 import mathutils
@@ -313,12 +314,28 @@ def setValue(args):
         elif "color" in args:
             colorId = args["color"]
             color = getColor(colorId, colors)
-            print("{}: setValue meshes '{}' color {}: {}".format(frame(), meshes, colorId, color))
+
+            staggerFrac = 0
+            if "stagger" in args:
+                staggerFrac = args["stagger"]
+
+            colorFormatted = [round(c, 2) for c in color]
+            print("{}: setValue meshes '{}' color {}: {}, staggerFrac {}".format(frame(), meshes, colorId, colorFormatted, staggerFrac))
+
+            if staggerFrac:
+                # "Stagger" here means to assign the meshes variations on the basic color.
+                colorHSV0 = colorsys.rgb_to_hsv(color[0], color[1], color[2])
+                colorHSV = (colorHSV0[0], colorHSV0[1] * (1 - staggerFrac), colorHSV0[2] * (1 - staggerFrac))
         else:
             print("Error: setValue: unsupported arguments {}".format(args))
             return
 
         objs = meshObjs(meshes)
+
+        if "color" in args and staggerFrac:
+            deltaS = (colorHSV0[1] - colorHSV[1]) / (len(objs) - 1)
+            deltaV = (colorHSV0[2] - colorHSV[2]) / (len(objs) - 1)
+
         for obj in objs:
             matName = "Material." + obj.name
             mat = obj.data.materials[matName]
@@ -333,6 +350,10 @@ def setValue(args):
                 mat.alpha = alpha
                 mat.keyframe_insert("alpha", frame=frame())
             else:
+                if staggerFrac:
+                    color = colorsys.hsv_to_rgb(colorHSV[0], colorHSV[1], colorHSV[2])
+                    colorHSV = (colorHSV[0], colorHSV[1] + deltaS, colorHSV[2] + deltaV)
+
                 mat.diffuse_color = color[0:3]
                 mat.keyframe_insert("diffuse_color", frame=frame())
 
