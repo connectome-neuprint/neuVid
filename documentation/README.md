@@ -68,9 +68,9 @@ When the input file is edited, some `neuVid` scripts need to be rerun, but which
 
 ## Previewing
 
-For videos more complex than the simplest one, it is useful to see a preview before taking the time to render all the frames.  The simplest way to do so is to run the interactive Blender application and load the file produced by `addAnimation.py`. Press the "Play Animation" button by the timeline to see a low-quality rendering of the animation at near-realtime rates.
+For videos more complex than the simplest one, it is useful to see a preview before taking the time to render all the frames.  The simplest way to do so is to run the interactive Blender application and load the file produced by `addAnimation.py`. Press the "Play Animation" button by the timeline to see a lower-quality rendering of the animation at near-realtime rates.  (Note that with Blender 2.79, this interactive rendering of silhouette shading and transparency is rather bad, but the situation is significantly better for Blender 2.80 and later.)
 
-While that approach is a good way to verify many parts of an animation, the rendering does not represent transparency or silhouette shading well.  To preview the real rendering, another approach is to render only every `n` frames (e.g., `n` of 24 would render on frame per second of final animation, for the default 24 frames per second).  The `render.py` script supports this approach with the `-j n` (or `--frame-jump n`) argument.
+To preview the real rendering, another approach is to render only every `n` frames (e.g., `n` of 24 would render on frame per second of final animation, for the default 24 frames per second).  The `render.py` script supports this approach with the `-j n` (or `--frame-jump n`) argument.
 
 To render only a single frame, `f`, use `render.py`'s `-s f -e f` (or `--frame-start f --frame-end f`) arguments.
 

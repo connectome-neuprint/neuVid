@@ -19,6 +19,8 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsColors import colors, getColor
+from utilsGeneral import newObject
+from utilsMaterials import getMaterialValue, insertMaterialKeyframe, newShadelessImageMaterial, setMaterialValue
 from utilsJson import parseNeuronsIds, parseRoiNames, parseSynapsesSetNames, removeComments
 
 argv = sys.argv
@@ -178,9 +180,9 @@ def updateCameraClip(camName):
 time = 0.0
 tentativeEndTime = time
 
-fps = 24.0
+fps = 24
 if "fps" in jsonData:
-    fps = jsonData["fps"]
+    fps = round(jsonData["fps"])
 print("Using fps: {}".format(fps))
 
 def frame(t = None):
@@ -192,37 +194,17 @@ def frame(t = None):
 def imagePlane(source, parented=False):
     name = "ImagePlane." + os.path.basename(source)
     if not name in bpy.data.objects:
-        tex = bpy.data.textures.new("Texture." + name, type="IMAGE")
-        img = bpy.data.images.load(source)
-        tex.image = img
-
-        # The following settings improve the sharpness of the image somewhat.
-        tex.use_interpolation = False
-        tex.use_mipmap = False
-        tex.filter_type = "BOX"
-        tex.filter_size = 0.1
-
-        mat = bpy.data.materials.new("Material." + name)
-        mat.alpha = 0.0
-
-        mtex = mat.texture_slots.add()
-        mtex.texture = tex
-        mtex.mapping = "FLAT"
-        mtex.texture_coords = "UV"
+        mat = newShadelessImageMaterial("Material." + name, source)
+        setMaterialValue(mat, "alpha", 0)
 
         bpy.ops.mesh.primitive_plane_add()
         plane = bpy.context.active_object
         plane.name = name
 
-        mat.use_transparency = True
-        # Make the object appear transparent in the interactive viewport rendering.
-        plane.show_transparent = True
-
         constrained = plane
         if parented:
             pivotName = plane.name + ".Pivot"
-            pivot = bpy.data.objects.new(pivotName, None)
-            bpy.context.scene.objects.link(pivot)
+            pivot = newObject(pivotName)
             plane.parent = pivot
             constrained = pivot
 
@@ -237,46 +219,31 @@ def imagePlane(source, parented=False):
         bm = bmesh.from_edit_mesh(me)
 
         uv_layer = bm.loops.layers.uv.verify()
-        bm.faces.layers.tex.verify()
+        if bpy.app.version < (2, 80, 0):
+            bm.faces.layers.tex.verify()
 
         for f in bm.faces:
             for l in f.loops:
                 luv = l[uv_layer]
                 v = l.vert.co
                 luv.uv = (1.0 - (v[0] + 1.0)/2.0, 1.0 - (v[1] + 1.0)/2.0)
-
         bmesh.update_edit_mesh(me)
 
         plane.data.materials.append(mat)
 
-        # These last two steps are necessary to make the texture appear when
-        # viewport shading mode is "Texture" (it will appear for "Material" without them)
-        plane.data.uv_textures.new()
-        # TODO: Why is data[0] not there?
-        #plane.data.uv_textures[0].data[0].image = img
+        if bpy.app.version < (2, 80, 0):
+            # Make the object appear transparent in the interactive viewport rendering.
+            plane.show_transparent = True
 
-        # Do not apply lighting to the image plane.
-        mat.use_shadeless = True
-        # Do not involve the image plane in any aspect of shadows.
-        mat.use_shadows = False
-        mat.use_cast_shadows = False
-        mat.use_transparent_shadows = False
+            # These last two steps are necessary to make the texture appear when
+            # viewport shading mode is "Texture" (it will appear for "Material" without them)
+            plane.data.uv_textures.new()
+            # TODO: Why is data[0] not there?
+            #plane.data.uv_textures[0].data[0].image = img
 
         bpy.ops.object.mode_set(mode="OBJECT")
 
-        if img.source == "MOVIE":
-            duration = img.frame_duration
-            # Due to a bug in Blender, a movie image's frame_duration must be called twice
-            # to get the correct value.
-            duration = img.frame_duration
-            tex.image_user.frame_duration = duration
-
-            tex.image_user.frame_offset = 0
-            tex.image_user.use_auto_refresh = True
-
-            return bpy.data.objects[name], tex
-        else:
-            return bpy.data.objects[name], None
+        return plane
 
 def keysAtFrame(obj, dataPath, frame):
     result = []
@@ -342,20 +309,20 @@ def setValue(args):
 
             if frame() != 1:
                 if "alpha" in args:
-                    mat.keyframe_insert("alpha", frame=frame()-1)
+                    insertMaterialKeyframe(mat, "alpha", frame=frame()-1)
                 else:
-                    mat.keyframe_insert("diffuse_color", frame=frame()-1)
+                    insertMaterialKeyframe(mat, "diffuse_color", frame=frame()-1)
 
             if "alpha" in args:
-                mat.alpha = alpha
-                mat.keyframe_insert("alpha", frame=frame())
+                setMaterialValue(mat, "alpha", alpha)
+                insertMaterialKeyframe(mat, "alpha", frame())
             else:
                 if staggerFrac:
                     color = colorsys.hsv_to_rgb(colorHSV[0], colorHSV[1], colorHSV[2])
                     colorHSV = (colorHSV[0], colorHSV[1] + deltaS, colorHSV[2] + deltaV)
 
-                mat.diffuse_color = color[0:3]
-                mat.keyframe_insert("diffuse_color", frame=frame())
+                setMaterialValue(mat, "diffuse_color", color)
+                insertMaterialKeyframe(mat, "diffuse_color", frame=frame())
 
 def bboxAxisForViewVector(v):
     # TODO: Pick the axis with maximal projection?
@@ -414,7 +381,7 @@ def frameCamera(args):
         camera.keyframe_insert("location", frame=frame(time + duration))
         updateCameraClip(camera.name)
     else:
-        print("Error: frameCamera: unknown bound object '{}'".format(boundName))
+        print("Error: frameCamera: unknown bound object '{}'".format(args["bound"]))
 
 def fade(args):
     global time, tentativeEndTime
@@ -493,29 +460,29 @@ def fade(args):
             matName = "Material." + obj.name
             mat = obj.data.materials[matName]
             if type == "alpha":
-                mat.alpha = startingValue
+                setMaterialValue(mat, "alpha", startingValue)
             elif type == "location":
                 obj.location = startingValue
 
             else:
-                mat.diffuse_color = startingValue
+                setMaterialValue(mat, "diffuse_color", startingValue)
             startingFrame = frame(startingTime)
             if type == "location":
                 obj.keyframe_insert(type, frame=startingFrame)
             else:
-            	mat.keyframe_insert(type, frame=startingFrame)
+                insertMaterialKeyframe(mat, type, startingFrame)
             if type == "alpha":
-                mat.alpha = endingValue
+                setMaterialValue(mat, "alpha", endingValue)
             elif type == "location":
                 obj.location = endingValue
 
             else:
-                mat.diffuse_color = endingValue
+                setMaterialValue(mat, "diffuse_color", endingValue)
             endingFrame = max(frame(startingTime + deltaTime[0]), startingFrame + 1)
             if type == "location":
                 obj.keyframe_insert(type, frame=endingFrame)
             else:
-            	mat.keyframe_insert(type, frame=endingFrame)
+                insertMaterialKeyframe(mat, type, endingFrame)
             i += 1
             if len(deltaTime) > 1 and (i == nStaggerSubgroup or i == 3 * nStaggerSubgroup):
                 deltaTime.pop(0)
@@ -536,7 +503,7 @@ def fade(args):
 
             print("{}, {}: fade, image '{}'".format(frame(), frame(time + duration), source))
 
-            plane, _ = imagePlane(source)
+            plane = imagePlane(source)
             plane.location = position
 
             bpy.context.scene.frame_set(frame())
@@ -549,10 +516,10 @@ def fade(args):
 
             matName = "Material." + plane.name
             mat = plane.data.materials[matName]
-            mat.alpha = startingAlpha
-            mat.keyframe_insert("alpha", frame=frame())
-            mat.alpha = endingAlpha
-            mat.keyframe_insert("alpha", frame=frame(time + duration))
+            setMaterialValue(mat, "alpha", startingAlpha)
+            insertMaterialKeyframe(mat, "alpha", frame())
+            setMaterialValue(mat, "alpha", endingAlpha)
+            insertMaterialKeyframe(mat, "alpha", frame(time + duration))
 
 def pulse(args):
     global time, tentativeEndTime, colors
@@ -576,7 +543,7 @@ def pulse(args):
         for obj in objs:
             matName = "Material." + obj.name
             mat = obj.data.materials[matName]
-            baseColor = mat.diffuse_color.copy()
+            baseColor = tuple(getMaterialValue(mat, "diffuse_color"))
 
             deltaTime = 1 / (2 * rate)
             n = int(duration / deltaTime)
@@ -584,12 +551,12 @@ def pulse(args):
                 n -= 1
             if n <= 0:
                 return
-            mat.keyframe_insert("diffuse_color", frame=frame())
+            insertMaterialKeyframe(mat, "diffuse_color", frame())
             t = time + deltaTime
             colors = [pulseColor, baseColor]
             for i in range(n):
-                mat.diffuse_color = colors[i % 2]
-                mat.keyframe_insert("diffuse_color", frame=frame(t))
+                setMaterialValue(mat, "diffuse_color", colors[i % 2])
+                insertMaterialKeyframe(mat, "diffuse_color", frame(t))
                 t += deltaTime
 
 def orbitAxis(args):
@@ -647,8 +614,7 @@ def orbitCamera(args):
     print("{}, {}: orbitCamera, axis {}, angle {:.2f} - {:.2f}".format(startFrame, endFrame, printAxis, printStartingAngle, printEndingAngle))
 
     orbiterName = "Orbiter.{}-{}".format(startFrame, endFrame)
-    orbiter = bpy.data.objects.new(orbiterName, None)
-    bpy.context.scene.objects.link(orbiter)
+    orbiter = newObject(orbiterName)
 
     orbiter.location = center
     orbiter.rotation_euler = startingEuler
@@ -753,7 +719,7 @@ def showPictureInPicture(args):
         rotationDuration = min(1.0, duration / 4.0)
         translationDuration = rotationDuration / 3.0
 
-        plane, tex = imagePlane(source, True)
+        plane = imagePlane(source, True)
         pivot = plane.parent
 
         print("{}, {}: showPictureInPicture, '{}'".format(frame(), frame(time + duration), source))
@@ -779,13 +745,13 @@ def showPictureInPicture(args):
 
         matName = "Material." + plane.name
         mat = plane.data.materials[matName]
-        mat.alpha = 0.0
-        mat.keyframe_insert("alpha", frame=frame() - 1)
-        mat.alpha = 1.0
-        mat.keyframe_insert("alpha", frame=frame())
-        mat.keyframe_insert("alpha", frame=frame(time + duration))
-        mat.alpha = 0.0
-        mat.keyframe_insert("alpha", frame=frame(time + duration) + 1)
+        setMaterialValue(mat, "alpha", 0)
+        insertMaterialKeyframe(mat, "alpha", frame() - 1)
+        setMaterialValue(mat, "alpha", 1)
+        insertMaterialKeyframe(mat, "alpha", frame())
+        insertMaterialKeyframe(mat, "alpha", frame(time + duration))
+        setMaterialValue(mat, "alpha", 0)
+        insertMaterialKeyframe(mat, "alpha", frame(time + duration) + 1)
 
         plane.rotation_euler = mathutils.Euler((math.radians(90), 0, 0), "XYZ")
         plane.keyframe_insert("rotation_euler", frame=frame())
@@ -795,8 +761,13 @@ def showPictureInPicture(args):
         plane.rotation_euler = mathutils.Euler((math.radians(90), 0, 0), "XYZ")
         plane.keyframe_insert("rotation_euler", frame=frame(time + duration))
 
+        if bpy.app.version < (2, 80, 0):
+            tex = bpy.data.textures["Texture." + plane.name]
+        else:
+            tex = mat.node_tree.nodes["texImage"]
         if tex:
             tex.image_user.frame_start = frame(time + rotationDuration)
+
             print("  frame_start {}, frame_duration {}".format(tex.image_user.frame_start, tex.image_user.frame_duration))
 
 bpy.ops.wm.open_mainfile(filepath=inputBlenderFile)
@@ -830,8 +801,25 @@ bpy.context.scene.frame_end = frame()
 area = next(area for area in bpy.context.screen.areas if area.type == "VIEW_3D")
 area.spaces[0].region_3d.view_perspective = "CAMERA"
 
-area.spaces[0].show_relationship_lines = False
-area.spaces[0].show_floor = False
+if bpy.app.version < (2, 80, 0):
+    area.spaces[0].show_relationship_lines = False
+    area.spaces[0].show_floor = False
+else:
+    # Use more samples in the viewport (static interactive preview) display, to improve silhouettes.
+    bpy.data.scenes["Scene"].eevee.taa_samples = 64
+    # Turn off denoising in the viewport, as it makes the silhouettes almost invisible during animation preview.
+    bpy.data.scenes["Scene"].eevee.use_taa_reprojection = False
+
+    for a in bpy.context.screen.areas:
+        if a.type == 'VIEW_3D':
+            # Make materials, like silhouettes, visible in the viewport.
+            a.spaces[0].shading.type = "MATERIAL"
+            # Hide some distracting editor tools.
+            a.spaces[0].overlay.show_relationship_lines = False
+            a.spaces[0].overlay.show_floor = False
+            a.spaces[0].overlay.show_axis_x = False
+            a.spaces[0].overlay.show_axis_y = False
+            a.spaces[0].overlay.show_axis_z = False    
 
 # Make sure ImagePlane is not selected, which seems to prevent it from being rendered transparently.
 #bpy.context.scene.objects.active = None
