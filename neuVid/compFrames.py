@@ -1,6 +1,7 @@
 # Composites into single frames the pairs of frames rendered separately:
 # neurons rendered with Octane;
-# ROIs and other unlit content rendered with the internal Blender renderer.
+# ROIs and other unlit content rendered with the default Blender renderer
+# (Eevee for Blender 2.80 and later).
 # The input frames should be OpenEXR format with a depth channel, and the
 # output frames will be PNG format.
 
@@ -79,6 +80,29 @@ for node in tree.nodes:
 roiImageNode = tree.nodes.new(type="CompositorNodeImage")
 neuronImageNode = tree.nodes.new(type="CompositorNodeImage")
 
+if bpy.app.version >= (2, 80, 0):
+    # To get depth for depth compositing (z-combine), either the "Z" pass or "Mist" pass
+    # could be used, but "Mist" has multiple samples and thus less aliasing.  But to
+    # get either pass, the transparency mode must be alpha hashed ("HASHED").
+    # This hashed sampling averages in the z (depth) values from behind, and thus
+    # skews the final z value.  Skewed z values do not work well for depth compositing.
+    # To approximate the true z from the skewed z, z', assume that what behind is the
+    # view frustum's far clipping plane, with zFar = 1.  Then:
+    # z' = a * z + (1 - a) * zFar = a * z + (1 - a) * 1
+    # z = (z' - 1 + a) / a
+    # So we need some extra nodes to perform this calculation.
+    getAlphaNode = tree.nodes.new(type="CompositorNodeSepRGBA")
+
+    minusOneNode = tree.nodes.new(type="CompositorNodeMath")
+    minusOneNode.operation = "SUBTRACT"
+    minusOneNode.inputs[1].default_value = 1
+
+    plusAlphaNode = tree.nodes.new(type="CompositorNodeMath")
+    plusAlphaNode.operation = "ADD"
+
+    divideByAlphaNode = tree.nodes.new(type="CompositorNodeMath")
+    divideByAlphaNode.operation = "DIVIDE"
+
 zCombineNode = tree.nodes.new(type="CompositorNodeZcombine")
 zCombineNode.use_alpha = True
 
@@ -112,22 +136,44 @@ for i in range(len(roisToInput)):
         continue
 
     roiImageNode.image = bpy.data.images.load(roiPath)
-    roiImageNode.layer = "RenderLayer"
+    if bpy.app.version < (2, 80, 0):
+        roiImageNode.layer = "RenderLayer"
+    else:
+        roiImageNode.layer = "View Layer"
 
     treeLinks.new(roiImageNode.outputs["Combined"], zCombineNode.inputs[0])
-    treeLinks.new(roiImageNode.outputs["Depth"], zCombineNode.inputs[1])
+    if bpy.app.version < (2, 80, 0):
+        treeLinks.new(roiImageNode.outputs["Depth"], zCombineNode.inputs[1])
+    else:
+        # Unskewing z (mist) from the recorded mist value, z' (see above):
+        # z = (z' - 1 + a) / a
+        treeLinks.new(roiImageNode.outputs["Combined"], getAlphaNode.inputs["Image"])
+
+        treeLinks.new(roiImageNode.outputs["Mist"], minusOneNode.inputs[0])
+
+        treeLinks.new(minusOneNode.outputs["Value"], plusAlphaNode.inputs[0])
+        treeLinks.new(getAlphaNode.outputs["A"], plusAlphaNode.inputs[1])
+
+        treeLinks.new(plusAlphaNode.outputs["Value"], divideByAlphaNode.inputs[0])
+        treeLinks.new(getAlphaNode.outputs["A"], divideByAlphaNode.inputs[1])
+
+        treeLinks.new(divideByAlphaNode.outputs["Value"], zCombineNode.inputs[1])
 
     # Links have to be established after the images are loaded, apparently.
 
     if roi in neurons:
         neuronImageNode.image = bpy.data.images.load(neuronPath)
-        neuronImageNode.layer = "RenderLayer"
+        if bpy.app.version < (2, 80, 0):
+            neuronImageNode.layer = "RenderLayer"
+        else:
+            neuronImageNode.layer = "View Layer"
 
         if args.useOctane:
             treeLinks.new(neuronImageNode.outputs["OctDenoiserBeauty"], zCombineNode.inputs[2])
         else:
             treeLinks.new(neuronImageNode.outputs["Combined"], zCombineNode.inputs[2])
-        treeLinks.new(neuronImageNode.outputs["Depth"], zCombineNode.inputs[3])
+        if "Depth" in neuronImageNode.outputs.keys():
+            treeLinks.new(neuronImageNode.outputs["Depth"], zCombineNode.inputs[3])
     else:
         for link in zCombineNode.inputs[2].links:
             treeLinks.remove(link)

@@ -19,7 +19,9 @@ timeStart = datetime.datetime.now()
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsColors import colors, getColor
+from utilsGeneral import newObject
 from utilsJson import parseNeuronsIds, parseRoiNames, removeComments
+from utilsMaterials import newBasicMaterial, newGlowingMaterial, newSilhouetteMaterial
 from utilsMeshes import fileToImportForRoi, fileToImportForNeuron, fileToImportForSynapses
 
 argv = sys.argv
@@ -44,6 +46,8 @@ if args.inputJsonFile == None:
 outputFile = args.outputFile
 if outputFile == None:
     outputFile = os.path.splitext(args.inputJsonFile)[0] + ".blend"
+if not os.path.dirname(outputFile):
+    outputFile = os.path.join(".", outputFile)
 print("Using output Blender file: '{}'".format(outputFile))
 
 inputJsonDir = os.path.dirname(os.path.realpath(args.inputJsonFile))
@@ -61,7 +65,10 @@ def computeBbox(objs):
     bboxMin = [ limit,  limit,  limit]
     bboxMax = [-limit, -limit, -limit]
     for obj in objs:
-        verts = [(obj.matrix_world * vert.co).to_tuple() for vert in obj.data.vertices]
+        if bpy.app.version < (2, 80, 0):
+            verts = [(obj.matrix_world * vert.co).to_tuple() for vert in obj.data.vertices]
+        else:
+            verts = [(obj.matrix_world @ vert.co).to_tuple() for vert in obj.data.vertices]
         for vert in verts:
           for i in range(len(vert)):
               c = float(vert[i])
@@ -75,7 +82,10 @@ def computeBsphere(objs, center):
     radius = 0
     c = mathutils.Vector(center)
     for obj in objs:
-        verts = [obj.matrix_world * vert.co for vert in obj.data.vertices]
+        if bpy.app.version < (2, 80, 0):
+            verts = [obj.matrix_world * vert.co for vert in obj.data.vertices]
+        else:
+            verts = [obj.matrix_world @ vert.co for vert in obj.data.vertices]
         for vert in verts:
             radius = max((vert - c).length, radius)
     return radius
@@ -172,8 +182,8 @@ for i in range(len(neuronSources)):
                 matName = "Material." + obj.name
                 if matName in bpy.data.materials:
                     mat = bpy.data.materials[matName]
-                    bpy.data.materials.remove(mat, True)
-                bpy.data.objects.remove(obj, True)
+                    bpy.data.materials.remove(mat, do_unlink=True)
+                bpy.data.objects.remove(obj, do_unlink=True)
 
     for neuronId in neuronIds[i]:
         objPath = fileToImportForNeuron(neuronSources[i], neuronId, inputJsonDir)
@@ -198,13 +208,11 @@ for i in range(len(neuronSources)):
             print("Added object '{}'".format(obj.name))
 
             matName = "Material." + obj.name
-            mat = bpy.data.materials.new(name=matName)
+            color = getColor(neuronToColorIndex[obj.name], colors)
+            mat = newBasicMaterial(matName, color)
+            obj.data.materials.clear()
             obj.data.materials.append(mat)
 
-            color = getColor(neuronToColorIndex[obj.name], colors)
-            mat.diffuse_color = color[0:3]
-
-            mat.use_transparency = True
             # Make the object appear transparent in the interactive viewport rendering.
             obj.show_transparent = True
 
@@ -217,7 +225,7 @@ for i in range(len(neuronSources)):
         j = outputFile.rfind(".")
         outputFile = outputFile[:j] + "_neurons_" + str(i) + outputFile[j:]
         separateNeuronFiles.append(outputFile)
-        bpy.ops.wm.save_as_mainfile(filepath=outputFile)
+        bpy.ops.wm.save_mainfile(filepath=outputFile)
 
     print("Done")
 
@@ -247,8 +255,8 @@ if useSeparateNeuronFiles:
             matName = "Material." + obj.name
             if matName in bpy.data.materials:
                 mat = bpy.data.materials[matName]
-                bpy.data.materials.remove(mat, True)
-            bpy.data.objects.remove(obj, True)
+                bpy.data.materials.remove(mat, do_unlink=True)
+            bpy.data.objects.remove(obj, do_unlink=True)
 
 #
 
@@ -312,99 +320,18 @@ print("Assigning ROI materials...")
 rois = [o for o in bpy.data.objects.keys() if o.startswith("Roi.")]
 for roi in rois:
     obj = bpy.data.objects[roi]
-
     matName = "Material." + obj.name
-    mat = bpy.data.materials.new(name=matName)
-    obj.data.materials.append(mat)
-
-    # Enable the transparency of the ROI away from its silhouette.
-    mat.use_transparency = True
-    # Make that transparency appear in the interactive viewport rendering.
-    obj.show_transparent = True
-
 
     exp = 5
     if roi in roiExponents:
         exp = roiExponents[roi]
 
-    # A negative exponent gives simple surface shading instead of the silhouette.
-    if exp < 0:
-        mat.use_shadows = False
-        mat.use_cast_shadows = False
-        mat.use_transparent_shadows = False
-        mat.specular_intensity = 0
-        mat.alpha = 0.5
-        continue
+    mat = newSilhouetteMaterial(matName, exp)
+    obj.data.materials.clear()
+    obj.data.materials.append(mat)
 
-    # Do not apply lighting to the ROI; just use the silhouette calculation.
-    mat.use_shadeless = True
-    # Do not involve the ROI in any aspect of shadows.
-    mat.use_shadows = False
-    mat.use_cast_shadows = False
-    mat.use_transparent_shadows = False
-
-    mat.alpha = 0.5
-
-    # Set up the silhouette material for ROIs.
-
-    mat.use_nodes = True
-    matNodes = mat.node_tree.nodes
-    matLinks = mat.node_tree.links
-
-    matNode = matNodes["Material"]
-    outputNode = matNodes["Output"]
-
-    # Make the "Material" node use the non-node material being used
-    # to preview in the UI's 3D View, so its animated alpha can be
-    # reused as an input to alphaNode, below.  Thus we can preview
-    # the animation in the 3D View and also see it in the final render.
-
-    matNode.material = mat
-
-    geomNode = matNodes.new("ShaderNodeGeometry")
-    geomNode.name = "geom"
-
-    dotNode = matNodes.new("ShaderNodeVectorMath")
-    dotNode.name = "dot"
-    dotNode.operation = "DOT_PRODUCT"
-    matLinks.new(geomNode.outputs["View"], dotNode.inputs[0])
-    matLinks.new(geomNode.outputs["Normal"], dotNode.inputs[1])
-
-    absNode = matNodes.new("ShaderNodeMath")
-    absNode.name = "abs"
-    absNode.operation = "ABSOLUTE"
-    matLinks.new(dotNode.outputs["Value"],absNode.inputs[0])
-
-    negNode = matNodes.new("ShaderNodeMath")
-    negNode.name = "neg"
-    negNode.operation = "SUBTRACT"
-    negNode.inputs[0].default_value = 1
-    matLinks.new(absNode.outputs["Value"], negNode.inputs[1])
-
-    powNode = matNodes.new("ShaderNodeMath")
-    powNode.name = "pow"
-    powNode.operation = "POWER"
-    matLinks.new(negNode.outputs["Value"], powNode.inputs[0])
-    powNode.inputs[1].default_value = exp
-
-    # Multiply in the animated alpha from the non-node material, above.
-    # But note that alpha is the value needed for "SOLID" mode viewport
-    # rendering, which is lower.  So scale it up before multiplying with
-    # the silhouette alpha.
-
-    alphaGainNode = matNodes.new("ShaderNodeMath")
-    alphaGainNode.name = "alphaShift"
-    alphaGainNode.operation = "MULTIPLY"
-    alphaGainNode.inputs[0].default_value = 6 # 4
-    matLinks.new(matNode.outputs["Alpha"], alphaGainNode.inputs[1])
-
-    alphaCombineNode = matNodes.new("ShaderNodeMath")
-    alphaCombineNode.name = "alphaCombine"
-    alphaCombineNode.operation = "MULTIPLY"
-    matLinks.new(alphaGainNode.outputs["Value"], alphaCombineNode.inputs[0])
-    matLinks.new(powNode.outputs["Value"], alphaCombineNode.inputs[1])
-
-    matLinks.new(alphaCombineNode.outputs["Value"], outputNode.inputs["Alpha"])
+    # Make that transparency appear in the interactive viewport rendering.
+    obj.show_transparent = True
 
 #
 
@@ -459,24 +386,19 @@ synapseSets = [o for o in bpy.data.objects.keys() if o.startswith("Synapses.")]
 for synapseSet in synapseSets:
     obj = bpy.data.objects[synapseSet]
 
-    matName = "Material." + obj.name
-    mat = bpy.data.materials.new(name=matName)
-    obj.data.materials.append(mat)
-
-    mat.use_transparency = True
-    # Make that transparency appear in the interactive viewport rendering.
-    obj.show_transparent = True
-
     # Give each synapse ball the color of its neuron body.
     neuron = synapseSetToNeuron[obj.name]
     neuronMatName = "Material.Neuron." + str(neuron)
     neuronMat = bpy.data.materials[neuronMatName]
-    mat.diffuse_color = neuronMat.diffuse_color
+    color = neuronMat.diffuse_color
 
-    # And then make it "glow" like it is emitting light, which really just gives it
-    # a brighter version of its neuron's color.
-    mat.emit = 0.5
-    mat.specular_intensity = 0
+    matName = "Material." + obj.name
+    mat = newGlowingMaterial(matName, color)
+    obj.data.materials.clear()
+    obj.data.materials.append(mat)
+
+    # Make the transparency appear in the interactive viewport rendering.
+    obj.show_transparent = True
 
 print("Done")
 
@@ -486,8 +408,7 @@ print("Adding bounds...")
 
 def addBoundObj(name, boundData):
     boundName = "Bound." + name
-    bound = bpy.data.objects.new(boundName, None)
-    bpy.context.scene.objects.link(bound)
+    bound = newObject(boundName)
     bound.location = boundData["center"]
 
     bound["Min"] = boundData["min"]
@@ -572,9 +493,9 @@ if useSeparateNeuronFiles:
         proxy["neuronFile"] = separateNeuronFiles[groupToMeshesSourceIndex[group]]
 
         matName = "Material." + proxy.name
-        mat = bpy.data.materials.new(name=matName)
+        mat = newBasicMaterial(matName)
+        proxy.data.materials.clear()
         proxy.data.materials.append(mat)
-        mat.use_transparency = True
         proxy.show_transparent = True
 
     print("Done")
@@ -582,8 +503,8 @@ if useSeparateNeuronFiles:
 #
 
 # Maybe useful when previewing with viewport rendering set to "Material"?
-
-bpy.context.scene.world.light_settings.use_environment_light = True
+if bpy.app.version < (2, 80, 0):
+    bpy.context.scene.world.light_settings.use_environment_light = True
 
 #
 
@@ -593,6 +514,9 @@ camera = bpy.data.cameras["Camera"]
 # A lower clip_end can make many neurons invisibile.
 camera.clip_start = 100
 camera.clip_end = 100000
+
+camera.lens_unit = "FOV"
+camera.angle = math.radians(50)
 
 # HDTV 1080P
 # The X and Y resolution must be set before animation is applied, because

@@ -12,10 +12,15 @@ import json
 import math
 import mathutils
 import os
+import os.path
+import platform
 import shutil
 import sys
+import tempfile
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from utilsGeneral import newObject
+from utilsMaterials import getMaterialFcurve, getMaterialValue, setMaterialValue
 from utilsJson import removeComments
 
 timeStart = datetime.datetime.now()
@@ -70,8 +75,10 @@ if args.output != None:
     output = args.output
 else:
     output = "."
-if output[-1] != "/":
-    output += "/"
+# Ensure a final path separator, which is important for how Blender generates output file names
+# from frame numbers.
+output = os.path.join(output, "")
+disableStandardOutput = False
 print("Using output directory: {}".format(output))
 
 willComp = False
@@ -186,12 +193,15 @@ def rescaleRecenter(obj, overallCenter, overallScale):
                 oldMat = con.inverse_matrix.inverted()
                 oldTrans, oldRot, oldScale = oldMat.decompose()
                 newTrans = (oldTrans - overallCenter) * overallScale
-                newMat = mathutils.Matrix.Translation(newTrans) * oldRot.to_matrix().to_4x4()
+                if bpy.app.version < (2, 80, 0):
+                    newMat = mathutils.Matrix.Translation(newTrans) * oldRot.to_matrix().to_4x4()
+                else:
+                    newMat = mathutils.Matrix.Translation(newTrans) @ oldRot.to_matrix().to_4x4()
                 con.inverse_matrix = newMat.inverted()
 
 # If using Octane to render neurons, then ROIs should be rendered with "--roi --octane"
-# to get the same overallScale.  Then useOctane is disabled so the ROIs will be rendered
-# with the standard Blender Render.
+# to get the same `overallScale`.  Then `useOctane` is disabled so the ROIs will be rendered
+# with Eevee (for Blender 2.80 and later) or Blender Render (for Blender 2.79).
 
 overallScale = 0.00001
 if useOctane:
@@ -201,7 +211,7 @@ if args.doRois:
     useOctane = False
 
 if useOctane:
-    # For a test cube, this change to ray_epsilon eliminated ringing.
+    # For a test cube, this change to `ray_epsilon` eliminated ringing.
     bpy.data.scenes["Scene"].octane.ray_epsilon *= 10
     print("Using ray_epsilon: {}".format(bpy.data.scenes["Scene"].octane.ray_epsilon))
 
@@ -214,6 +224,9 @@ for obj in bpy.data.objects:
 camera = bpy.data.cameras["Camera"]
 camera.clip_start *= overallScale
 camera.clip_end *= overallScale
+
+print("Rescaled/recentered camera clip_start: {}".format(camera.clip_start))
+print("Rescaled/recentered camera clip_end: {}".format(camera.clip_end))
 
 print("Done")
 
@@ -232,33 +245,32 @@ def addOctaneMaterial(obj, animMat=None):
     matLinks = mat.node_tree.links
 
     if "Material" in matNodes:
-        # Make the "Material" node use the non-node material being used
+        # Make the `Material` node use the non-node material being used
         # to preview in the UI's 3D View, so its animated alpha can be
-        # reused as an input to alphaNode, below.  Thus we can preview
+        # reused as an input to `alphaNode`, below.  Thus we can preview
         # the animation in the 3D View and also see it in the final render.
 
         matNode = matNodes["Material"]
         matNode.material = mat
 
     glossyNode = matNodes.new("ShaderNodeOctGlossyMat")
-    # Diffuse color is inputs[0]
-    c = mat.diffuse_color
+    # Diffuse color is `inputs[0]`.
+    c = getMaterialValue(mat, "diffuse_color")
     glossyNode.inputs[0].default_value = (c[0], c[1], c[2], 1.0)
 
     if not animMat:
         animMat = mat
-    if animMat.animation_data:
-        # Opacity is inputs[11]
-        # To transfer the animation from the material's alpha to this opacity,
-        # it does not work to just add a link like the following:
-        # matLinks.new(matNode.outputs["Alpha"], glossyNode.inputs[11])
-        # Instead, it seems to be necessary to copy the keys.
-        fcurvesAlpha = animMat.animation_data.action.fcurves.find(data_path="alpha")
-        if fcurvesAlpha:
-            keyframes = fcurvesAlpha.keyframe_points
-            for i in range(len(keyframes)):
-                glossyNode.inputs[11].default_value = keyframes[i].co[1]
-                glossyNode.inputs[11].keyframe_insert("default_value", frame=keyframes[i].co[0])
+    # Opacity is `inputs[11]`.
+    # To transfer the animation from the material's alpha to this opacity,
+    # it does not work to just add a link like the following:
+    # `matLinks.new(matNode.outputs["Alpha"], glossyNode.inputs[11])`
+    # Instead, it seems to be necessary to copy the keys.
+    fcurvesAlpha = getMaterialFcurve(animMat, "alpha")
+    if fcurvesAlpha:
+        keyframes = fcurvesAlpha.keyframe_points
+        for i in range(len(keyframes)):
+            glossyNode.inputs[11].default_value = keyframes[i].co[1]
+            glossyNode.inputs[11].keyframe_insert("default_value", frame=keyframes[i].co[0])
 
     # Roughness
     glossyNode.inputs[2].default_value = 0.0
@@ -270,7 +282,10 @@ def addOctaneMaterial(obj, animMat=None):
     # the polygons of the surface will be sharp giving the surface a faceted look."
     glossyNode.inputs[12].default_value = True
 
-    outputNode = matNodes.new("ShaderNodeOutputMaterial")
+    if bpy.app.version < (2, 80, 0):
+        outputNode = matNodes.new("ShaderNodeOutputMaterial")
+    else:
+        outputNode = matNodes["Material Output"]
 
     # Connect the glossy node's "OutMat" output to the output node's "surface" input.
     matLinks.new(glossyNode.outputs[0], outputNode.inputs[0])
@@ -278,14 +293,29 @@ def addOctaneMaterial(obj, animMat=None):
 if args.doRois:
     for obj in bpy.data.objects:
         if obj.name.startswith("Neuron."):
-            obj.hide = True
+            if bpy.app.version < (2, 80, 0):
+                    obj.hide = True
             obj.hide_render = True
 
-    bpy.data.scenes["Scene"].render.use_textures = True
-    bpy.data.scenes["Scene"].render.use_sss = False
-    bpy.data.scenes["Scene"].render.use_shadows = False
-    bpy.data.scenes["Scene"].render.use_raytrace = False
-    bpy.data.scenes["Scene"].render.use_envmaps = False
+        # A current limitation of Blender's Eevee renderer is that "BLEND" (alpha blend)
+        # materials are ignored in all passes other than the basic "combined" pass.
+        # So for depth compositing, which needs a depth pass (i.e., "Mist"), change these 
+        # materials to "HASHED".
+        elif obj.name.startswith("Roi.") and willComp:
+            matName = "Material." + obj.name
+            if matName in bpy.data.materials:
+                mat = bpy.data.materials[matName]
+                mat.blend_method = "HASHED"
+
+    if bpy.app.version < (2, 80, 0):
+        bpy.data.scenes["Scene"].render.use_shadows = False
+        bpy.data.scenes["Scene"].render.use_textures = True
+        bpy.data.scenes["Scene"].render.use_sss = False
+        bpy.data.scenes["Scene"].render.use_raytrace = False
+        bpy.data.scenes["Scene"].render.use_envmaps = False
+    else:
+        bpy.data.scenes["Scene"].eevee.use_soft_shadows = False
+        bpy.data.scenes["Scene"].eevee.use_shadow_high_bitdepth = False
 else:
     if useOctane:
         print("Adding Octane materials...")
@@ -294,18 +324,21 @@ else:
                 matName = "Material." + obj.name
                 if matName in bpy.data.materials:
                     mat = bpy.data.materials[matName]
-                    bpy.data.materials.remove(mat, True)
-                bpy.data.objects.remove(obj, True)
+                    bpy.data.materials.remove(mat, do_unlink=True)
+                bpy.data.objects.remove(obj, do_unlink=True)
             elif obj.name.startswith("Neuron.") and not useSeparateNeuronFiles:
                 addOctaneMaterial(obj)
         print("Done")
     else:
-        bpy.data.scenes["Scene"].render.use_shadows = jsonUseShadows
-        bpy.data.scenes["Scene"].render.use_textures = True
-        bpy.data.scenes["Scene"].render.use_sss = False
-        bpy.data.scenes["Scene"].render.use_raytrace = False
-        bpy.data.scenes["Scene"].render.use_envmaps = False
-
+        if bpy.app.version < (2, 80, 0):
+            bpy.data.scenes["Scene"].render.use_shadows = jsonUseShadows
+            bpy.data.scenes["Scene"].render.use_textures = True
+            bpy.data.scenes["Scene"].render.use_sss = False
+            bpy.data.scenes["Scene"].render.use_raytrace = False
+            bpy.data.scenes["Scene"].render.use_envmaps = False
+        else:
+            bpy.data.scenes["Scene"].eevee.use_soft_shadows = True
+            bpy.data.scenes["Scene"].eevee.use_shadow_high_bitdepth = True
         print("Updating Blender materials...")
         for obj in bpy.data.objects:
             if obj.name.startswith("Neuron.") and not useSeparateNeuronFiles:
@@ -314,18 +347,21 @@ else:
                     mat = bpy.data.materials[matName]
 
                     if not jsonUseSpecular:
-                        mat.specular_intensity = 0
+                        setMaterialValue(mat, "specular_intensity", 0)
 
-                    if mat.animation_data:
-                        fcurvesAlpha = mat.animation_data.action.fcurves.find(data_path="alpha")
-                        if fcurvesAlpha:
-                            # To make an object transparent it is not sufficient to set just its material's alpha.
-                            # The material's specular_alpha must be set, too.  Using a driver to tie the specular_alpha
-                            # to the alpha seems difficult to do, so just copy the alpha animation.
-                            keyframes = fcurvesAlpha.keyframe_points
-                            for i in range(len(keyframes)):
-                                mat.specular_alpha = keyframes[i].co[1]
-                                mat.keyframe_insert("specular_alpha", frame=keyframes[i].co[0])
+                    if bpy.app.version < (2, 80, 0):
+                        if mat.animation_data:
+                            fcurvesAlpha = mat.animation_data.action.fcurves.find(data_path="alpha")
+                            if fcurvesAlpha:
+                                # To make an object transparent it is not sufficient to set just its material's alpha.
+                                # The material's `specular_alpha` must be set, too.  Using a driver to tie the `specular_alpha`
+                                # to the alpha seems difficult to do, so just copy the alpha animation.
+                                # (For 2.80+, there is no `specular_alpha` and this problem is solved in the material, by
+                                # by setting up node links to scale the specular with the alpha.)
+                                keyframes = fcurvesAlpha.keyframe_points
+                                for i in range(len(keyframes)):
+                                    mat.specular_alpha = keyframes[i].co[1]
+                                    mat.keyframe_insert("specular_alpha", frame=keyframes[i].co[0])
         print("Done")
 
 print("Adding lamps...")
@@ -359,7 +395,10 @@ if not args.onlyAmbient:
 
         # Use area lights for Octane, and for Octane-compatible ROIs, but not for synapses.
         if useOctane and not (args.doRois and hasSynapses):
-            lampData = bpy.data.lamps.new(name=lampName, type="AREA")
+            if bpy.app.version < (2, 80, 0):
+                lampData = bpy.data.lamps.new(name=lampName, type="AREA")
+            else:
+                lampData = bpy.data.lights.new(name=lampName, type="AREA")
             lampData.use_nodes = True
 
             lampData.size = neuronsBoundRadius
@@ -368,24 +407,27 @@ if not args.onlyAmbient:
                 lampData.size *= sizeFactor
             lampData.size *= jsonLightSizeScale
         else:
-            lampData = bpy.data.lamps.new(name = "Lamp.Key", type = "SPOT")
-            lampData.energy = 1.5
+            if bpy.app.version < (2, 80, 0):
+                lampData = bpy.data.lamps.new(name = "Lamp.Key", type = "SPOT")
+                lampData.shadow_method = "BUFFER_SHADOW"
+                lampData.use_auto_clip_start = True
+                lampData.use_auto_clip_end = True
+                lampData.energy = 1.5
+            else:
+                lampData = bpy.data.lights.new(name = "Lamp.Key", type = "SPOT")
+                # The newer Blender seems less bright somehow.
+                lampData.energy = 1.5 * 3.75
             lampData.energy *= jsonLightPowerScale[i]
+            lampData.spot_size = 1.4
             if jsonLightColor != "uniform":
                 lampData.color = spec["color"][0:3]
             lampData.falloff_type = "CONSTANT"
-            lampData.spot_size = 1.4
-            lampData.shadow_method = "BUFFER_SHADOW"
-            lampData.use_auto_clip_start = True
-            lampData.use_auto_clip_end = True
-        lamp = bpy.data.objects.new(name=lampName, object_data=lampData)
-        bpy.context.scene.objects.link(lamp)
+        lamp = newObject(lampName, lampData)
         lamps.append(lamp)
 
         direction = mathutils.Vector(spec["direction"])
         direction.rotate(lightRotationE)
         direction.normalize()
-
         lampDistance = neuronsBoundRadius * 2.5
         lampDistance *= jsonLightDistanceScale
         lamp.location = direction * lampDistance
@@ -396,7 +438,10 @@ if not args.onlyAmbient:
         lampTrackTo.up_axis = "UP_X"
 
         if useOctane:
-            lampLamp = bpy.data.lamps[lampData.name]
+            if bpy.app.version < (2, 80, 0):
+                lampLamp = bpy.data.lamps[lampData.name]
+            else:
+                lampLamp = bpy.data.lights[lampData.name]
             lampNodes = lampLamp.node_tree.nodes
             lampLinks = lampLamp.node_tree.links
             lampDiffuse = lampNodes.new("ShaderNodeOctDiffuseMat")
@@ -413,18 +458,27 @@ if not args.onlyAmbient:
             powerScale *= jsonLightPowerScale[i]
             lampEmit.inputs[1].default_value *= powerScale
 
+            if bpy.app.version >= (2, 80, 0):
+                # The newer Blender seems less bright somehow.
+                lampEmit.inputs[1].default_value *= 2.5
+
             print("lamp {} power {} after scaling by {}".format(i, lampEmit.inputs[1].default_value, powerScale))
 
             if "powerFactor" in spec:
                 powerFactor = spec["powerFactor"]
                 lampEmit.inputs[1].default_value *= powerFactor
-            lampOutput = lampNodes["Lamp Output"]
+            if bpy.app.version < (2, 80, 0):
+                lampOutputName = "Lamp Output"
+            else:
+                lampOutputName = "Light Output"
+            lampOutput = lampNodes[lampOutputName]
             lampLinks.new(lampDiffuse.outputs[0], lampOutput.inputs[0])
+
+            lamp.octane.camera_visibility = False
 
     # Put the lights in the correct orientation for the "standard" view,
     # with positive X right, positive Y out, positive Z down.
-    lampRotator = bpy.data.objects.new("Lamps", None)
-    bpy.context.scene.objects.link(lampRotator)
+    lampRotator = newObject("Lamps")
     lampRotator.location = neuronsBound.location
     for lamp in lamps:
         lamp.parent = lampRotator
@@ -439,19 +493,37 @@ if useOctane:
     if args.onlyAmbient:
         ambient = 0.25
 
-    texEnv = bpy.data.textures.new("Texture.Env", type="IMAGE")
-    texEnv.use_nodes = True
-    texEnvNodes = texEnv.node_tree.nodes
-    texEnvLinks = texEnv.node_tree.links
-    texEnvOut = texEnvNodes["Output"]
-    texEnvRGB = texEnvNodes.new("ShaderNodeOctRGBSpectrumTex")
-    texEnvRGB.inputs[0].default_value = (ambient, ambient, ambient, 1)
-    texEnvLinks.new(texEnvRGB.outputs[0], texEnvOut.inputs[0])
-    bpy.context.scene.world.octane.env_texture_ptr = texEnv
+    if bpy.app.version < (2, 80, 0):
+        texEnv = bpy.data.textures.new("Texture.Env", type="IMAGE")
+        texEnv.use_nodes = True
+        texEnvNodes = texEnv.node_tree.nodes
+        texEnvLinks = texEnv.node_tree.links
+        texEnvOut = texEnvNodes["Output"]
+        texEnvRGB = texEnvNodes.new("ShaderNodeOctRGBSpectrumTex")
+        texEnvRGB.inputs[0].default_value = (ambient, ambient, ambient, 1)
+        texEnvLinks.new(texEnvRGB.outputs[0], texEnvOut.inputs[0])
+        bpy.context.scene.world.octane.env_texture_ptr = texEnv
+    else:
+        color = (ambient, ambient, ambient, 1)
+        nodes = bpy.data.worlds["World"].node_tree.nodes
+        links = bpy.data.worlds["World"].node_tree.links
+        texEnvNode = nodes.new("ShaderNodeOctTextureEnvironment")
+        texEnvNode.inputs["Texture"].default_value = color
+        worldOutputNode = nodes["World Output"]
+        links.new(texEnvNode.outputs["OutEnv"], worldOutputNode.inputs["Octane Environment"])
 else:
     # Rendering background color
-    background = (1, 1, 1) if args.white else (0, 0, 0)
-    bpy.data.worlds["World"].horizon_color = background
+    background = (1, 1, 1, 1) if args.white else (0, 0, 0, 1)
+    if bpy.app.version < (2, 80, 0):
+        bpy.data.worlds["World"].horizon_color = background[0:3]
+    else:
+        bpy.data.worlds["World"].node_tree.nodes["Background"].inputs[0].default_value = background
+
+        numSamples = 512
+        if args.numSamples:
+            numSamples = args.numSamples
+        print("Samples per pixel: {}".format(numSamples))
+        bpy.data.scenes["Scene"].eevee.taa_render_samples = numSamples
 
 if useOctane:
     # Seems to causes some errors?
@@ -474,9 +546,6 @@ if useOctane:
     bpy.context.scene.world.octane.env_type = "0"
 
     if args.denoise:
-        # Turn on the AI denoiser.
-        bpy.context.scene.camera.data.octane.enable_denoising = True
-        bpy.context.scene.camera.data.octane.denoise_on_completion = True
 
         # Eliminate flickering during animation, at least in theory.
         bpy.context.scene.octane.static_noise = True
@@ -486,20 +555,86 @@ if useOctane:
 
         # The denoised result will be in a special beauty pass, called "OctDenoiserBeauty".
         bpy.context.scene.octane.use_passes = True
-        bpy.context.scene.render.layers["RenderLayer"].use_pass_denoise_beauty = True
+        
+        if bpy.app.version < (2, 80, 0):
+            bpy.context.scene.render.layers["RenderLayer"].use_pass_denoise_beauty = True
+        else:
+            bpy.data.scenes["Scene"].view_layers["View Layer"].use_pass_oct_denoise_beauty = True
+            if not platform.platform().startswith("macOS"):
+                # Turn on the Octane Spectral AI denoiser.
+                bpy.context.scene.camera.data.octane.enable_denoising = True
+                bpy.context.scene.camera.data.octane.denoise_on_completion = True
+            else:
+                # The Octane Spectral AI denoiser does not work well with Octane X on a M1 Mac:
+                # it is extremely slow and produces very dark results).  As a work-around,
+                # use the built-in Blender denoiser.
+                bpy.context.scene.use_nodes = True
+                bpy.context.scene.render.use_compositing = True
+                compNodes = bpy.context.scene.node_tree.nodes
+                compLinks = bpy.context.scene.node_tree.links
+                layersNode = compNodes["Render Layers"]
+
+                denoiseNode = compNodes.new("CompositorNodeDenoise")
+                compLinks.new(layersNode.outputs["Image"], denoiseNode.inputs["Image"])
+
+                bpy.data.scenes["Scene"].view_layers["View Layer"].use_pass_oct_info_geo_normal = True
+                compLinks.new(layersNode.outputs["OctGeoNormal"], denoiseNode.inputs["Normal"])
+
+                compNode = compNodes["Composite"]
+                if willComp:
+                    # Set up a new file output feeding output from denoising to the layer.channel names
+                    # expected by compFrames.py
+                    fileNode = compNodes.new("CompositorNodeOutputFile")
+                    fileNode.format.file_format = "OPEN_EXR_MULTILAYER"
+                    # The file path will be the same as the standard animation output file. 
+                    fileNode.base_path = output
+                    #  Blender currently offers no way to disable the writing of that standard file, so enable
+                    # code (later) that redirects that standard file to a temporary directory and deletes it.
+                    disableStandardOutput = True
+                    fileNode.file_slots.remove(fileNode.inputs[0])
+
+                    fileNode.file_slots.new("View Layer.OctDenoiserBeauty")
+                    compLinks.new(denoiseNode.outputs["Image"], fileNode.inputs["View Layer.OctDenoiserBeauty"])
+
+                    # Enable the "OctZDepth" pass, and map the depth at `camera.clip_end` to 1.0.
+                    bpy.data.scenes["Scene"].view_layers["View Layer"].use_pass_oct_info_z_depth = True
+                    bpy.context.view_layer.octane.info_pass_z_depth_max = camera.clip_end
+                    fileNode.file_slots.new("View Layer.Depth")
+                    sepNode = compNodes.new("CompositorNodeSepRGBA")
+                    # The "OctZDepth" pass produces a RGBA value with Z depth duplicated in the R, G and B
+                    # channels.  The compFrames.py nodes could handle this format, but it saves space in the
+                    # .exr files to extract just on copy of Z depth, from the R channel.
+                    compLinks.new(layersNode.outputs["OctZDepth"], sepNode.inputs["Image"])
+                    # Leave "View Layer.Depth" in [0, 1] range, so compFrames.py can compare it to "Mist".
+                    compLinks.new(sepNode.outputs["R"], fileNode.inputs["View Layer.Depth"])
+                else:
+                    compLinks.new(denoiseNode.outputs["Image"], compNode.inputs["Image"])
 
     bpy.context.scene.octane.filter_size *= args.filterSizeFactor
     print("Using filter size: {}".format(bpy.context.scene.octane.filter_size))
 
-
 if willComp:
+    # Save depth with the output image
+    bpy.context.scene.render.image_settings.file_format = "OPEN_EXR_MULTILAYER"
+
     # Use a transparent background, for compositing with other renderings (e.g., ROI)
     if useOctane:
         bpy.context.scene.octane.alpha_channel = True
-    else:
+    elif bpy.app.version < (2, 80, 0):
         bpy.context.scene.render.alpha_mode = "TRANSPARENT"
-    # Save depth with the output image
-    bpy.context.scene.render.image_settings.file_format = "OPEN_EXR_MULTILAYER"
+    else:
+        bpy.context.scene.render.film_transparent = True
+        # Remove the "Z" pass, because it has only a single sample per pixel and thus 
+        # does not capture "HASHED" transparency accurately.
+        bpy.data.scenes["Scene"].view_layers["View Layer"].use_pass_z = False
+        bpy.context.scene.display_settings.display_device = "None"
+
+        # Use "Mist" as depth (z), normalized with 1 at `camera.clip_end`.
+        bpy.data.scenes["Scene"].view_layers["View Layer"].use_pass_mist = True
+        bpy.context.scene.world.mist_settings.falloff = "LINEAR"
+        bpy.context.scene.world.mist_settings.start = 0
+        bpy.context.scene.world.mist_settings.depth = camera.clip_end
+        bpy.context.scene.render.image_settings.color_depth = '32'
 else:
     bpy.context.scene.render.image_settings.file_format = "PNG"
 
@@ -518,56 +653,85 @@ if args.outputFile != None:
 restIntervals = []
 numCurves = 0
 
-def addRestIntervals(collection):
-    global restIntervals, numCurves
-    for obj in collection:
+def getObjectFcurves():
+    result = []
+    for obj in bpy.data.objects:
         if obj.animation_data:
             for fc in obj.animation_data.action.fcurves:
-                if fc.data_path.endswith(("location", "rotation_euler", "alpha", "diffuse_color")):
+                if fc.data_path.endswith(("location", "rotation_euler")):
                     if (obj.name == "Orbiter" or obj.name.endswith(".Pivot")) and fc.data_path.endswith("location"):
                         continue
+                    result.append((obj.name, fc))
+    return result
 
-                    numCurves += 1
-                    id = obj.name + "." + fc.data_path + "." + str(fc.array_index)
-                    fStart = 1
-                    # The value for the first resting interval is not known until the first key,
-                    # with its value.
-                    vStart = None
-                    fEnd = None
-                    for key in fc.keyframe_points:
-                        f = int(key.co[0])
-                        v = key.co[1]
-                        if (vStart == None or v == vStart) and f != fStart:
-                            # The first key define the value of the first resting interval.
-                            vStart = v
-                            fEnd = f
-                        else:
-                            if fEnd:
-                                restIntervals.append((fStart, "s", id))
-                                restIntervals.append((fEnd, "e", id))
-                            vStart = v
-                            fStart = f
-                            fEnd = None
-                    fEnd = bpy.data.scenes["Scene"].frame_end
-                    if fStart != fEnd:
-                        restIntervals.append((fStart, "s", id))
-                        restIntervals.append((fEnd, "e", id))
+def getMaterialFcurves():
+    result = []
+    for mat in bpy.data.materials:
+        fc = getMaterialFcurve(mat, "alpha")
+        if fc:
+            result.append((mat.name, fc))
+        fc = getMaterialFcurve(mat, "diffuse_color")
+        if fc:
+            result.append((mat.name, fc))
+
+    return result
+
+def addRestIntervals(namesAndFcurves):
+    global restIntervals, numCurves
+    for name, fc in namesAndFcurves:
+        numCurves += 1
+        id = name + "." + fc.data_path + "." + str(fc.array_index)
+        fStart = 1
+        # The value for the first resting interval is not known until the first key,
+        # with its value.
+        vStart = None
+        fEnd = None
+        for key in fc.keyframe_points:
+            f = int(key.co[0])
+            v = key.co[1]
+            if (vStart == None or v == vStart) and f != fStart:
+                # The first key define the value of the first resting interval.
+                vStart = v
+                fEnd = f
+            else:
+                if fEnd:
+                    restIntervals.append((fStart, "s", id))
+                    restIntervals.append((fEnd, "e", id))
+                vStart = v
+                fStart = f
+                fEnd = None
+        fEnd = bpy.data.scenes["Scene"].frame_end
+        if fStart != fEnd:
+            restIntervals.append((fStart, "s", id))
+            restIntervals.append((fEnd, "e", id))
 
 def addTextureRestIntervals():
     global restIntervals, numCurves
-    for tex in bpy.data.textures:
-        if isinstance(tex, bpy.types.ImageTexture):
-            if tex.image.source == "MOVIE":
-                numCurves += 1
-                id = tex.name
-                iu = tex.image_user
-                restIntervals.append((1, "s", id))
-                restIntervals.append((iu.frame_start, "e", id))
-                restIntervals.append((iu.frame_start + iu.frame_duration, "s", id))
-                restIntervals.append((bpy.data.scenes["Scene"].frame_end, "e", id))
+    idIus = []
+    if bpy.app.version < (2, 80, 0):
+        for tex in bpy.data.textures:
+            if isinstance(tex, bpy.types.ImageTexture):
+                if tex.image.source == "MOVIE":
+                    id = tex.name
+                    iu = tex.image_user
+                    idIus.append((id, iu))
+    else:
+        for mat in bpy.data.materials:
+            if mat.name.startswith("Material.ImagePlane."):
+                texImageNode = mat.node_tree.nodes["texImage"]
+                if texImageNode.image.source == "MOVIE":
+                    id = texImageNode.image.name
+                    iu = texImageNode.image_user
+                    idIus.append((id, iu))
+    for id, iu in idIus:
+        numCurves += 1
+        restIntervals.append((1, "s", id))
+        restIntervals.append((iu.frame_start, "e", id))
+        restIntervals.append((iu.frame_start + iu.frame_duration, "s", id))
+        restIntervals.append((bpy.data.scenes["Scene"].frame_end, "e", id))
 
-addRestIntervals(bpy.data.objects)
-addRestIntervals(bpy.data.materials)
+addRestIntervals(getObjectFcurves())
+addRestIntervals(getMaterialFcurves())
 addTextureRestIntervals()
 restIntervals.sort()
 
@@ -634,44 +798,43 @@ def findHideRenderFrames(materials):
     hideRenderAtFrame = {}
     for mat in materials:
         name = mat.name[mat.name.find(".")+1:]
-        if mat.animation_data:
-            for fc in mat.animation_data.action.fcurves:
-                if fc.data_path.endswith(("alpha")):
-                    # Go through the keys, looking for keys i and i+1 both setting alpha to 0
-                    # and i+2 setting alpha > 0.  Then hideRenderAtFrame is True for the
-                    # key i's frame (fStartHidden), and  False for key i+1's frame (fAlpha0).
-                    fAlpha0 = None
-                    fStartHidden = None
-                    firstKey = True
-                    for key in fc.keyframe_points:
-                        f = int(key.co[0])
-                        v = key.co[1]
-                        if v == 0.0:
-                            if not fStartHidden:
-                                if firstKey:
-                                    fStartHidden = 1
-                                else:
-                                    fStartHidden = f
-                            fAlpha0 = f
+        fc = getMaterialFcurve(mat, "alpha")
+        if fc:
+            # Go through the keys, looking for keys i and i+1 both setting alpha to 0
+            # and i+2 setting alpha > 0.  Then hideRenderAtFrame is True for the
+            # key i's frame (fStartHidden), and  False for key i+1's frame (fAlpha0).
+            fAlpha0 = None
+            fStartHidden = None
+            firstKey = True
+            for key in fc.keyframe_points:
+                f = int(key.co[0])
+                v = key.co[1]
+                if v == 0.0:
+                    if not fStartHidden:
+                        if firstKey:
+                            fStartHidden = 1
                         else:
-                            if fStartHidden and fAlpha0 and fStartHidden < fAlpha0:
-                                if not fStartHidden in hideRenderAtFrame:
-                                    hideRenderAtFrame[fStartHidden] = []
-                                hideRenderAtFrame[fStartHidden].append((name, True))
-                                if not fAlpha0 in hideRenderAtFrame:
-                                    hideRenderAtFrame[fAlpha0] = []
-                                hideRenderAtFrame[fAlpha0].append((name, False))
-                            elif firstKey:
-                                if not 1 in hideRenderAtFrame:
-                                    hideRenderAtFrame[1] = []
-                                hideRenderAtFrame[1].append((name, False))
-                            fAlpha0 = None
-                            fStartHidden = None
-                        firstKey = False
-                    if fStartHidden != None:
+                            fStartHidden = f
+                    fAlpha0 = f
+                else:
+                    if fStartHidden and fAlpha0 and fStartHidden < fAlpha0:
                         if not fStartHidden in hideRenderAtFrame:
                             hideRenderAtFrame[fStartHidden] = []
                         hideRenderAtFrame[fStartHidden].append((name, True))
+                        if not fAlpha0 in hideRenderAtFrame:
+                            hideRenderAtFrame[fAlpha0] = []
+                        hideRenderAtFrame[fAlpha0].append((name, False))
+                    elif firstKey:
+                        if not 1 in hideRenderAtFrame:
+                            hideRenderAtFrame[1] = []
+                        hideRenderAtFrame[1].append((name, False))
+                    fAlpha0 = None
+                    fStartHidden = None
+                firstKey = False
+            if fStartHidden != None:
+                if not fStartHidden in hideRenderAtFrame:
+                    hideRenderAtFrame[fStartHidden] = []
+                hideRenderAtFrame[fStartHidden].append((name, True))
     return hideRenderAtFrame
 
 def hideRenderTrueAtFrame(f, hideRenderTrueFrames):
@@ -728,19 +891,18 @@ if not args.doRois:
 def findFadingIntervals(hideRenderTrueFrames):
     fadingIntervalsRaw = []
     for mat in bpy.data.materials:
-        if mat.animation_data:
-            for fc in mat.animation_data.action.fcurves:
-                if fc.data_path.endswith(("alpha")):
-                    fPrev = None
-                    vPrev = None
-                    for key in fc.keyframe_points:
-                        f = int(key.co[0])
-                        v = key.co[1]
-                        if vPrev != None:
-                            if (vPrev == 0 and v > 0) or (vPrev > 0 and v == 0):
-                                fadingIntervalsRaw.append((fPrev, f))
-                        fPrev = f
-                        vPrev = v
+        fc = getMaterialFcurve(mat, "alpha")
+        if fc:
+            fPrev = None
+            vPrev = None
+            for key in fc.keyframe_points:
+                f = int(key.co[0])
+                v = key.co[1]
+                if vPrev != None:
+                    if (vPrev == 0 and v > 0) or (vPrev > 0 and v == 0):
+                        fadingIntervalsRaw.append((fPrev, f))
+                fPrev = f
+                vPrev = v
     fadingIntervalsRaw.sort()
     fadingIntervals = []
     fStart = None
@@ -916,8 +1078,8 @@ def separateNeuronFilesHideRender(obj, hideRenderTrue):
     else:
         # Remove all neurons appended previously.
         try:
-            bpy.data.materials.remove(mat, True)
-            bpy.data.objects.remove(obj, True)
+            bpy.data.materials.remove(mat, do_unlink=True)
+            bpy.data.objects.remove(obj, do_unlink=True)
         except:
             pass
 
@@ -946,8 +1108,8 @@ def render(renderIntervalsClipped, hideRenderTrueFrames, justPrint=False):
             numSamples = DefaultNumSamples
             if len(ri) == 3:
                 numSamples = int(ri[2])
-            if args.numSamples != None:
-                numSamples= args.numSamples
+            if args.numSamples:
+                numSamples = args.numSamples
             bpy.context.scene.octane.max_samples = numSamples
 
         hideRenderTrue = hideRenderTrueAtFrame(fStart, hideRenderTrueFrames)
@@ -993,7 +1155,13 @@ def render(renderIntervalsClipped, hideRenderTrueFrames, justPrint=False):
 bpy.context.scene.render.resolution_x = args.resX
 bpy.context.scene.render.resolution_y = args.resY
 
-bpy.context.scene.render.filepath = output
+if not disableStandardOutput:
+    bpy.context.scene.render.filepath = output
+else:
+    tmpDir = tempfile.TemporaryDirectory().name
+    tmpDir = os.path.join(tmpDir, "")
+    bpy.context.scene.render.filepath = tmpDir
+    print("Non-compositing output redirected to '{}'".format(tmpDir))
 
 print(bpy.context.scene.render.engine)
 
@@ -1012,3 +1180,9 @@ timeEnd = datetime.datetime.now()
 print("Rendering started at {}".format(timeStart))
 print("Copied {} frames of {} total".format(numFramesCopied, numFramesTotal))
 print("Rendering ended at {}".format(timeEnd))
+
+if disableStandardOutput:
+    try:
+        shutil.rmtree(tmpDir)
+    except OSError as e:
+        print("Error: %s : %s" % (tmpDir, e.strerror))
