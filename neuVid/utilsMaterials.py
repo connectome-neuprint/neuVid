@@ -81,7 +81,7 @@ def setupAlphaScaledSpecular(mat):
     # So pull the specular value out into its own node...
     specNode = matNodes.new("ShaderNodeValue")
     specNode.name = "specular_intensity"
-    alphaNode.outputs["Value"].default_value = 0.5
+    specNode.outputs["Value"].default_value = 0.5
 
     # ...and scale its output by the alpha node...
     alphaXSpecNode = matNodes.new("ShaderNodeMath")
@@ -116,6 +116,8 @@ def newBasicMaterial(name, color=None):
         alphaNode, diffuseColorNode = setupMaterialAttributeNodes(mat)        
         bsdfNode = matNodes["Principled BSDF"]
         bsdfNode.inputs["Roughness"].default_value = 0.25
+
+        bsdfNode.inputs["Specular Tint"].default_value = 0.75
 
         if color:
             diffuseColorNode.outputs["Color"].default_value = color[0:4]
