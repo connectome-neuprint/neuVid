@@ -80,7 +80,7 @@ The `neurons` key in the simplest video is one example of a *category*.  Names a
 
 There are four categories in `neuVid`, each with its own key in the definitions section:
 
-- `neurons`: Neurons are rendered as colored surfaces with shading and shadows (which look better with the Octane renderer).
+- `neurons`: Neurons are rendered as colored surfaces with shading and shadows (which look better with a path-tracing renderer like Cycles or Octane).
 - `rois`: ROIs are rendered as white silhouettes.
 - `synapses`: Synapses are rendered as colored balls, with a bit of extra brightness suggesting that they emit light.
 - `grayscales`: This rather specialized category is for 2D images, with the typical usage being to show the grayscale images of the original electron microscopy (EM) data.  These images are rendered as a special "picture in picture" element on in front of the 3D rendering.
@@ -365,6 +365,26 @@ The object for `anchorPSD` has two keys, but `neuVid` supports additional keys t
 
 ![Animation from showPictureInPicture](showPiP.png)
 
+## Renderers
+
+*Incomplete*
+
+| Renderer | Quality | Speed | Capacity | Ease of use | Free |
+| -------- | ------- | ----- | -------- | ----------- | ---- |
+| Eevee    | *       | ***   | ***      | ***         | Yes  |
+| Cycles   | ***     | *     | ***      | ***         | Yes  |
+| Octane   | ***     | **    | *        | **          | No   |
+
+- "Capacity" refers to the amount of data (i.e., neuron meshes, ROI meshes) that the renderer can handle.  Octane's capacity is limited by GPU memory.  Cycles uses the CPU only by default, and can handle significantly more data.  On a machine with 32 GB of memory, for example, it has rendered a scene with almost one-quarter billion mesh faces.
+
+- Rendering with Cycles:
+  - `-cyc` or `--cycles-render` argument for `render.py`
+
+- Rendering with Octane:
+  - `-oct` or `--octane` argument for `render.py`
+  - `--roi` argument `render.py`
+  - `compRoisAndNeurons.py` script
+
 ## Advanced
 
 *Incomplete*
@@ -377,10 +397,6 @@ The object for `anchorPSD` has two keys, but `neuVid` supports additional keys t
   - `lightColor`
   - `useShadows`
   - `useSpecular`
-- Rendering with Octane:
-  - `--octane` argument
-  - `--roi` argument
-  - `compRoisAndNeurons.py` script
 - Too much mesh data to load at once:
   - `neurons` category `sources` can be an array, for multiple levels of detail
   - `neurons` category `idSources` is a directory for files that list neuron identifiers

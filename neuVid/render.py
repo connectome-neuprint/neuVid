@@ -45,6 +45,12 @@ parser.set_defaults(willComp=True)
 parser.add_argument("--nocomp", "-nc", dest="willComp", action="store_false", help="create a final PNG, not a comp layer")
 parser.set_defaults(useOctane=False)
 parser.add_argument("--octane", "-oct", dest="useOctane", action="store_true", help="use the Octane renderer")
+parser.set_defaults(useCycles=False)
+# The Blender documentation claims that the double dashes (`--`) in the command line arguments "end option processing, 
+# following arguments passed unchanged."  But in fact, Blender does look after the double dashes for some arguments
+# that start with `--cycles`.  So this script cannot specify `--cycles` as its argument, and instead it must specify
+# something more awkward like `--cycles-render`.  As a user, it is simplest to use the short form, `-cyc`.
+parser.add_argument("--cycles-render", "-cyc", dest="useCycles", action="store_true", help="use the Cycles renderer")
 parser.add_argument("--samples", "-sa", type=int, dest="numSamples", help="number of samples per pixel for the Octane renderer")
 parser.set_defaults(denoise=True)
 parser.add_argument("--nodenoise", "-ndn", dest="denoise", action="store_false", help="skip final denoising")
@@ -69,6 +75,7 @@ if args.doRois:
     print("Compatibilty with Octane renderer: {}".format(args.useOctane))
 else:
     print("Using Octane renderer: {}".format(args.useOctane))
+print("Using Cycles renderer: {}".format(args.useCycles))
 print("Using fps: {}".format(bpy.context.scene.render.fps))
 
 if args.output != None:
@@ -208,6 +215,8 @@ def rescaleRecenter(obj, overallCenter, overallScale):
 overallScale = 0.00001
 if useOctane:
     overallScale = 0.01
+elif args.useCycles:
+    overallScale = 0.01
 print("Using overall scale: {}".format(overallScale))
 if args.doRois:
     useOctane = False
@@ -332,15 +341,22 @@ else:
                 addOctaneMaterial(obj)
         print("Done")
     else:
-        if bpy.app.version < (2, 80, 0):
-            bpy.data.scenes["Scene"].render.use_shadows = jsonUseShadows
-            bpy.data.scenes["Scene"].render.use_textures = True
-            bpy.data.scenes["Scene"].render.use_sss = False
-            bpy.data.scenes["Scene"].render.use_raytrace = False
-            bpy.data.scenes["Scene"].render.use_envmaps = False
+        if args.useCycles:
+            for obj in bpy.data.objects:
+                matName = "Material." + obj.name
+                if matName in bpy.data.materials:
+                    mat = bpy.data.materials[matName]
+                    mat.cycles.use_transparent_shadow = True
         else:
-            bpy.data.scenes["Scene"].eevee.use_soft_shadows = True
-            bpy.data.scenes["Scene"].eevee.use_shadow_high_bitdepth = True
+            if bpy.app.version < (2, 80, 0):
+                bpy.data.scenes["Scene"].render.use_shadows = jsonUseShadows
+                bpy.data.scenes["Scene"].render.use_textures = True
+                bpy.data.scenes["Scene"].render.use_sss = False
+                bpy.data.scenes["Scene"].render.use_raytrace = False
+                bpy.data.scenes["Scene"].render.use_envmaps = False
+            else:
+                bpy.data.scenes["Scene"].eevee.use_soft_shadows = True
+                bpy.data.scenes["Scene"].eevee.use_shadow_high_bitdepth = True
         print("Updating Blender materials...")
         for obj in bpy.data.objects:
             if obj.name.startswith("Neuron.") and not useSeparateNeuronFiles:
@@ -408,6 +424,15 @@ if not args.onlyAmbient:
                 sizeFactor = spec["sizeFactor"]
                 lampData.size *= sizeFactor
             lampData.size *= jsonLightSizeScale
+        elif args.useCycles:
+            lampData = bpy.data.lights.new(name=lampName, type="AREA")
+            lampData.size = neuronsBoundRadius
+            if "sizeFactor" in spec:
+                sizeFactor = spec["sizeFactor"]
+                lampData.size *= sizeFactor
+            lampData.size *= jsonLightSizeScale
+            lampData.cycles.cast_shadow = True
+            lampData.cycles.use_multiple_importance_sampling = True
         else:
             if bpy.app.version < (2, 80, 0):
                 lampData = bpy.data.lamps.new(name = "Lamp.Key", type = "SPOT")
@@ -477,6 +502,15 @@ if not args.onlyAmbient:
             lampLinks.new(lampDiffuse.outputs[0], lampOutput.inputs[0])
 
             lamp.octane.camera_visibility = False
+        elif args.useCycles:
+            # Power 2400000 works well for lamp distance 425 with the "visual-E-PG-new" data, so scale relative to it.
+            # Emission power: lampEmit.inputs[1].default_value
+            lampData.energy = 2400000
+            powerScale = (lampDistance / 425.1282)**2
+            powerScale *= jsonLightPowerScale[i]
+            lampData.energy *= powerScale
+
+            lamp.visible_camera = False
 
     # Put the lights in the correct orientation for the "standard" view,
     # with positive X right, positive Y out, positive Z down.
@@ -521,11 +555,15 @@ else:
     else:
         bpy.data.worlds["World"].node_tree.nodes["Background"].inputs[0].default_value = background
 
-        numSamples = 512
+        numSamples = 256
+        if args.useCycles:
+            numSamples = 128
         if args.numSamples:
             numSamples = args.numSamples
         print("Samples per pixel: {}".format(numSamples))
         bpy.data.scenes["Scene"].eevee.taa_render_samples = numSamples
+        if args.useCycles:
+            bpy.data.scenes["Scene"].cycles.samples = numSamples
 
 if useOctane:
     # Seems to causes some errors?
@@ -614,6 +652,26 @@ if useOctane:
 
     bpy.context.scene.octane.filter_size *= args.filterSizeFactor
     print("Using filter size: {}".format(bpy.context.scene.octane.filter_size))
+elif args.useCycles:
+    bpy.context.scene.render.engine = "CYCLES"
+
+    if args.denoise:
+        bpy.context.scene.cycles.use_denoising = True
+        bpy.context.view_layer.cycles.denoising_store_passes = True
+
+        bpy.context.scene.use_nodes = True
+        bpy.context.scene.render.use_compositing = True
+        compNodes = bpy.context.scene.node_tree.nodes
+        compLinks = bpy.context.scene.node_tree.links
+        layersNode = compNodes["Render Layers"]
+
+        denoiseNode = compNodes.new("CompositorNodeDenoise")
+        compLinks.new(layersNode.outputs["Noisy Image"], denoiseNode.inputs["Image"])
+        compLinks.new(layersNode.outputs["Denoising Normal"], denoiseNode.inputs["Normal"])
+        compLinks.new(layersNode.outputs["Denoising Albedo"], denoiseNode.inputs["Albedo"])
+
+        compNode = compNodes["Composite"]
+        compLinks.new(denoiseNode.outputs["Image"], compNode.inputs["Image"])
 
 if willComp:
     # Save depth with the output image
@@ -1125,10 +1183,13 @@ def render(renderIntervalsClipped, hideRenderTrueFrames, justPrint=False):
         else:
             if not args.doRois:
                 for obj in bpy.data.objects:
-                    if obj.name.startswith("Neuron"):
+                    if args.useCycles or obj.name.startswith("Neuron"):
                         if useSeparateNeuronFiles:
                             separateNeuronFilesHideRender(obj, hideRenderTrue)
                         else:
+                            # Path-traced renderers (e.g., Octane or Cycles) produce dark artifacts for
+                            # fully transparent objects (alpha == 0), so such objects must be explicitly
+                            # excluded from the rendering.
                             obj.hide_render = (obj.name in hideRenderTrue)
             bpy.context.scene.frame_start = fStart
             bpy.context.scene.frame_end = fEnd
