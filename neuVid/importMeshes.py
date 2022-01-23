@@ -332,6 +332,10 @@ for roi in rois:
 
     # Make that transparency appear in the interactive viewport rendering.
     obj.show_transparent = True
+    
+    # Prevent shadows from these objects in renderers like Cycles.
+    if bpy.app.version >= (2, 80, 0):
+        obj.visible_shadow = False
 
 #
 
