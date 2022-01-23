@@ -64,7 +64,7 @@ parser.add_argument("--debug", "-d", dest="debug", action="store_true", help="de
 
 args = parser.parse_args(argv)
 
-print("Rendering ROIs and unlit content: {}".format(args.doRois))
+print("Rendering only ROIs and unlit content: {}".format(args.doRois))
 if args.doRois:
     print("Compatibilty with Octane renderer: {}".format(args.useOctane))
 else:
@@ -104,8 +104,10 @@ bpy.ops.wm.open_mainfile(filepath=inputBlenderFile)
 print("Using output width: {} px".format(args.resX))
 print("Using output height: {} px".format(args.resY))
 
-useSeparateNeuronFiles = all(map(lambda x: not x.name.startswith("Neuron") or
-    x.name.startswith("Neuron.proxy"), bpy.data.objects))
+useSeparateNeuronFiles = False
+if any(map(lambda x: x.name.startswith("Neuron"), bpy.data.objects)):
+    useSeparateNeuronFiles = all(map(lambda x: not x.name.startswith("Neuron") or
+        x.name.startswith("Neuron.proxy"), bpy.data.objects))
 
 hasSynapses = any(map(lambda x: x.name.startswith("Synapses."), bpy.data.objects))
 
