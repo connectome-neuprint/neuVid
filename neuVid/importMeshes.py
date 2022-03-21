@@ -334,8 +334,10 @@ for roi in rois:
     obj.show_transparent = True
     
     # Prevent shadows from these objects in renderers like Cycles.
-    if bpy.app.version >= (2, 80, 0):
+    if bpy.app.version >= (3, 0, 0):
         obj.visible_shadow = False
+    elif bpy.app.version >= (2, 80, 0):
+        obj.cycles_visibility.shadows = False
 
 #
 
