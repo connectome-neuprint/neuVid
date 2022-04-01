@@ -262,16 +262,18 @@ if useSeparateNeuronFiles:
 
 roiExponents = {}
 
-print("Importing ROI meshes...")
-
 if "rois" in jsonData:
     jsonRois = jsonData["rois"]
 
-    source = "."
+    roiSources = ["."]
     if "source" in jsonRois:
         source = jsonRois["source"]
+        if isinstance(source, str):
+            roiSources = [source]
+        else:
+            roiSources = source
 
-    roiNames, groupToRoiNames = parseRoiNames(jsonRois)
+    roiNames, groupToRoiNames, groupToRoiMeshesSourceIndex = parseRoiNames(jsonRois)
 
     if "exponents" in jsonRois:
         groupToExponent = jsonRois["exponents"]
@@ -288,30 +290,34 @@ if "rois" in jsonData:
                 for roiName in groupToRoiNames[groupName]:
                     roiExponents["Roi." + roiName] = groupToExponent[groupName]
 
-    for roiName in roiNames:
-        objPath = fileToImportForRoi(source, roiName, inputJsonDir)
-        if not os.path.isfile(objPath):
-            print("Skipping missing file {}".format(objPath))
-            missingRoiObjs.append(roiName)
-            continue
+    for i in range(len(roiSources)):
+        if len(roiSources) == 1:
+            print("Importing {} ROI meshes".format(len(roiNames[i])))
+        else:
+            print("Importing {} ROI meshes for index {}".format(len(roiNames[i]), i))
 
-        try:
-            # Follow the conventions of NeuTu/Neu3:
-            # positive X points right, positive Y points out, positive Z points down.
-            # Note that this is different from the convention in the first FlyEM movies:
-            # positive X pointed down, positive Y pointed right, positive Z pointed out,
-            # implemented with a call like the following:
-            # bpy.ops.import_scene.obj(filepath=objPath, axis_up="Y", axis_forward="X")
-            bpy.ops.import_scene.obj(filepath=objPath, axis_up="Z", axis_forward="Y")
+        for roiName in roiNames[i]:
+            objPath = fileToImportForRoi(roiSources[i], roiName, inputJsonDir)
+            if not os.path.isfile(objPath):
+                print("Skipping missing file {}".format(objPath))
+                missingRoiObjs.append(roiName)
+                continue
 
-            obj = bpy.context.selected_objects[0]
-            obj.name = "Roi." + roiName
+            try:
+                # Follow the conventions of NeuTu/Neu3:
+                # positive X points right, positive Y points out, positive Z points down.
+                # Note that this is different from the convention in the first FlyEM movies:
+                # positive X pointed down, positive Y pointed right, positive Z pointed out,
+                # implemented with a call like the following:
+                # bpy.ops.import_scene.obj(filepath=objPath, axis_up="Y", axis_forward="X")
+                bpy.ops.import_scene.obj(filepath=objPath, axis_up="Z", axis_forward="Y")
 
-            print("Added object '{}'".format(obj.name))
-        except Exception as e:
-            print("Error: cannot import '{}': '{}'".format(objPath, str(e)))
+                obj = bpy.context.selected_objects[0]
+                obj.name = "Roi." + roiName
 
-print("Done")
+                print("Added object '{}'".format(obj.name))
+            except Exception as e:
+                print("Error: cannot import '{}': '{}'".format(objPath, str(e)))
 
 #
 
@@ -334,8 +340,10 @@ for roi in rois:
     obj.show_transparent = True
     
     # Prevent shadows from these objects in renderers like Cycles.
-    if bpy.app.version >= (2, 80, 0):
+    if bpy.app.version >= (3, 0, 0):
         obj.visible_shadow = False
+    elif bpy.app.version >= (2, 80, 0):
+        obj.cycles_visibility.shadows = False
 
 #
 

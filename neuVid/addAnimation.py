@@ -57,11 +57,11 @@ if jsonData == None:
 
 if "neurons" in jsonData:
     jsonNeurons = jsonData["neurons"]
-    neuronIds, groupToNeuronIds, groupToMeshesSourceIndex, useSeparateNeuronFiles = parseNeuronsIds(jsonNeurons)
+    neuronIds, groupToNeuronIds, _, useSeparateNeuronFiles = parseNeuronsIds(jsonNeurons)
 
 if "rois" in jsonData:
     jsonRois = jsonData["rois"]
-    roiNames, groupToRoiNames = parseRoiNames(jsonRois)
+    roiNames, groupToRoiNames, _ = parseRoiNames(jsonRois)
 
 if "synapses" in jsonData:
     jsonSynapses = jsonData["synapses"]
