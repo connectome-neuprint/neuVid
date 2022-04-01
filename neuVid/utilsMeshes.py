@@ -43,8 +43,8 @@ def fileToImportForNeuron(source, bodyId, parentForDownloadDir):
 
 def fileToImportForRoi(source, roiName, parentForDownloadDir):
     if source.startswith("http"):
-        meshBin = downloadMesh(source, roiName)
-        if meshBin:
+        mesh = downloadMesh(source, roiName)
+        if mesh:
             dirName = "neuVidRoiMeshes/"
             downloadDir = parentForDownloadDir
             if downloadDir[-1] != "/":
@@ -54,9 +54,21 @@ def fileToImportForRoi(source, roiName, parentForDownloadDir):
             try:
                 if not os.path.exists(downloadDir):
                     os.mkdir(downloadDir)
-                fileName = downloadDir + roiNameClean(roiName) + ".obj"
-                with open(fileName, "w") as f:
-                    f.write(meshBin.decode("utf-8"))
+                if roiName.endswith(".ngmesh"):
+                    fileName = roiName.replace(".ngmesh", "")
+                    fileName = downloadDir + roiNameClean(fileName) + ".obj"
+                    with BytesIO(mesh) as meshBinStream:
+                        verticesXYZ, faces = read_ngmesh(meshBinStream)
+                        # Per the comment in
+                        # https://github.com/janelia-flyem/vol2mesh/blob/master/vol2mesh/ngmesh.py,
+                        # divide by 8 to convert to DVID coordinates.
+                        verticesXYZ = verticesXYZ / 8
+                    with open(fileName, "w") as f:
+                        write_obj(verticesXYZ, faces,  None, f)
+                else:
+                    fileName = downloadDir + roiNameClean(roiName) + ".obj"
+                    with open(fileName, "w") as f:
+                        f.write(mesh.decode("utf-8"))
                 return fileName
             except OSError as e:
                 print("Error: writing roi '{}' from source URL '{}' failed: {}".format(roiName, source, str(e)))
@@ -91,7 +103,9 @@ def downloadMesh(source, key):
     url = source
     if url[-1] != "/":
         url += "/"
-    url += "key/" + key
+    if "dvid" in url or "janelia.org" in url:
+        url += "key/"
+    url += key
     try:
         r = requests.get(url)
         r.raise_for_status()

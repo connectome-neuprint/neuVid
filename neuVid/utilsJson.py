@@ -85,20 +85,49 @@ def parseNeuronsIds(jsonNeurons, limit=0):
     return neuronIds, groupToNeuronIds, groupToMeshesSourceIndex, useSeparateNeuronFiles
 
 def parseRoiNames(jsonRois):
-    roiNames = set()
+    roiNames = [set()]
     groupToRoiNames = {}
+    # The mapping from group name to the index in the array of directories
+    # for mesh files; using an array supports mutiple mesh sources.
+    groupToMeshesSourceIndex = {}
 
     for key in jsonRois.keys():
-        if isinstance(jsonRois[key], list):
-            jsonList = jsonRois[key]
+        if key == "source":
+            continue
+        value = jsonRois[key]
+        if isinstance(value, list):
+            jsonList = value
             groupToRoiNames[key] = []
+            iMeshesPath = 0
+            groupToMeshesSourceIndex[key] = iMeshesPath
 
             for x in jsonList:
                 if isinstance(x, str):
-                    roiNames.add(x)
+                    roiNames[iMeshesPath].add(x)
                     groupToRoiNames[key].append(x)
 
-    return roiNames, groupToRoiNames
+        # A key for a group name has a value that is a dictionary.
+        # E.g., "nerveRois" here:
+        # "rois" : { "source" : [ "./meshesDirRois", "./meshesDirNerveRois" ],
+        #            "nerveRois" : { "ids" : [ "n1", "n2" ], "sourceIndex" : 1 } }
+        elif isinstance(value, dict):
+            jsonDict = value
+            groupToRoiNames[key] = []
+            iMeshesPath = 0
+            if "sourceIndex" in jsonDict:
+                iMeshesPath = jsonDict["sourceIndex"]
+                while len(roiNames) <= iMeshesPath:
+                    roiNames.append(set())
+            groupToMeshesSourceIndex[key] = iMeshesPath
+
+            if "ids" in jsonDict:
+                idsItemList = jsonDict["ids"]
+                for idsItem in idsItemList:
+                    if isinstance(idsItem, str):
+                        roiNames[iMeshesPath].add(idsItem)
+                        groupToRoiNames[key].append(idsItem)
+
+    return roiNames, groupToRoiNames, groupToMeshesSourceIndex
 
 def parseSynapsesSetNames(jsonSynapses):
     groupToSynapseSetNames = {}
