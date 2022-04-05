@@ -7,6 +7,7 @@ These Python scripts generate simple anatomical videos in [Blender](https://www.
 [![Watch the video](https://img.youtube.com/vi/nu0b_tjCGxQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=nu0b_tjCGxQ)
 
 ## Basic Usage
+
 Here is how to render a simple example video:
 1. [Install Blender](https://www.blender.org/download/).  These scripts were developed originally for version 2.79 but now work for later versions, like 2.93 and 3.0.
 2. Clone this repository.
@@ -55,7 +56,7 @@ conda install -c flyem-forge neuprint-python
 export NEUPRINT_APPLICATION_CREDENTIALS="eyJhbGci...xwRYI3dg"
 ```
 
-6. Run the script to create query the synapses.  This stage creates a directory for the synapse meshes, `neuVidSynapseMeshes`, in the same directory as the JSON file (assumed to have been copied to `/tmp` as in the first example)
+6. Run the script to create query the synapses.  This stage creates a directory for the synapse meshes, `neuVidSynapseMeshes`, in the same directory as the JSON file (assumed to have been copied to `/tmp` as in the first example).
 ```
 python neuVid/buildSynapses.py -ij /tmp/example2.json
 ```
@@ -67,6 +68,23 @@ blender --background --python neuVid/addAnimation.py -- -ij /tmp/example2.json
 blender --background --python neuVid/render.py -- -ib /tmp/example2.json -o /tmp/framesFinal
 blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
 ```
+
+## Usage with Neuroglancer
+
+One way to start authoring input for `neuVid` is to use [Neuroglancer](https://github.com/google/neuroglancer), a WebGL-based viewer for volumetric data.  Neuroglancer encodes all its state&mdash;the bodies it is showing, where they were loaded from, which ones are faded out, the camera orientation, etc.&mdash;in its URL.  Neuroglancer provides [a Python script](https://github.com/google/neuroglancer/blob/master/python/neuroglancer/tool/video_tool.py) that can interpolate between the states in URLs to create animation for video.  To make this animation easier to edit, and to improve the video quality with smoother transitions and more believable rendering, `neuVid` includes a utility for converting the text file of Neuroglancer URLs into a `neuVid` input JSON file.
+```
+python neuVid/importNg.py -i /tmp/ng.txt -o /tmp/fromNg.json
+```
+This `neuVid` input file is then processed with the standard steps.
+```
+blender --background --python neuVid/importMeshes.py -- -ij /tmp/fromNg.json
+blender --background --python neuVid/addAnimation.py -- -ij /tmp/fromNg.json
+blender --background --python neuVid/render.py -- -ib /tmp/fromNg.json -o /tmp/framesFinal
+blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
+```
+An example of a dataset supported by this approach is the [FlyEM hemibrain dataset in Neuroglancer](https:/hemibrain-dot-neuroglancer-demo.appspot.com/#!gs:/neuroglancer-janelia-flyem-hemibrain/v1.0/neuroglancer_demo_statesbase.json), 
+and it also works with the [Neuroglancer viewer in neuPrint](https://neuprint.janelia.org/?dataset=hemibrain:v1.2.1).  See
+[the detailed `neuVid` documentation](https://github.com/connectome-neuprint/neuVid/tree/master/documentation#neuroglancer) for more on the capabilities and limitations of this approach.
 
 ## History
 
