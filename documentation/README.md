@@ -385,6 +385,82 @@ The object for `anchorPSD` has two keys, but `neuVid` supports additional keys t
   - `--roi` argument `render.py`
   - `compRoisAndNeurons.py` script
 
+## Neuroglancer
+
+_Incomplete_
+
+[Neuroglancer](https://github.com/google/neuroglancer) has its own way of rendering videos.  Documentation for using [Neuroglancer's own video-generation script](https://github.com/google/neuroglancer/blob/master/python/neuroglancer/tool/video_tool.py) consists of the comments at the top of the script.  To use the script, install the necessary support software with [Conda](https://docs.conda.io/en/latest/miniconda.html):
+
+```
+conda create -n ng -c conda-forge geckodriver pillow numpy requests tornado six google-apitools google-auth atomicwrites 
+conda activate ng
+pip install neuroglancer
+```
+Copy the Neuroglancer URLs for key moments and paste them into a text file, say, `/tmp/ng.txt`.  Separate these URL lines with timing lines, containing just the number of seconds to advance before applying the next URL.  Generate frames from `ng.txt` (using [Firefox]( https://www.mozilla.org/) to do the rendering in this example):
+```
+python -m neuroglancer.tool.video_tool render --browser firefox --hide-axis-lines --height=1080 --width=1920 /tmp/ng.txt /tmp/framesNg
+```
+Assemble the video:
+```
+blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesNg -o /tmp
+```
+To use `neuVid` instead, convert `ng.txt` to a JSON file for `neuVid` input:
+```
+python neuVid/importNg.py -i /tmp/ng.txt -o /tmp/fromNg.json
+```
+Then proceed as usual.
+
+Why convert to `neuVid`:
+* Smoother animation transitions, with ["slow in and slow out"](https://en.wikipedia.org/wiki/Twelve_basic_principles_of_animation#Slow_in_and_slow_out)
+* More believable rendering, with global illumination effects from Cycles or Octane
+* Simpler editing
+
+To see how `neuVid` simplifies editing, note that `neuVid`'s input is _commands_ to create animation rather than the _state_ at key moments in the animation as with Neuroglancer.  Many of the edits involved in refining a video are small when expressed as commands, but have effects on much or all of the state of the video, and so are large when expressed as changes to that state.  
+
+Consider the following example:
+1. Frame the camera on neuron _A_
+2. Start orbiting the camera around _A_
+3. Two seconds later, fade on neuron _B_
+4. Two seconds later, fade on neuron _C_
+5. Two seconds later, fade off neuron _A_
+5. Two seconds later, stop orbiting the camera
+
+State in the corresponding Neuroglancer URLs:
+1. Camera facing _A_, camera rotation 0º, _A_ visible, _B_ not visible, _C_ not visible
+2. Camera facing _A_, camera rotation 90º, _A_ visible, _B_ visible, _C_ not visible
+3. Camera facing _A_, camera rotation 180º, _A_ visible, _B_ visible, _C_ visible
+4. Camera facing _A_, camera rotation 270º, _A_ not visible, _B_ visible, _C_ visible
+5. Camera facing _A_, camera rotation 360º, _A_ not visible, _B_ visible, _C_ visible
+
+The edit is to make the camera frame on _B_ instead of _A_.
+
+All the state URLs must be updated because every one encodes the camera facing _A_.
+
+On the other hand, consider the corresponding `neuVid` input:
+```
+[ "frameCamera", { "bound" : "neurons.A" } ],
+[ "orbitCamera", { "duration" : 4.0 } ],
+[ "advanceTime", { "by" : 1.0 } ],
+[ "fade", { "meshes" : "neurons.B", "startingAlpha" : 0.0, "endingAlpha" : 1.0, "duration" : 1.0 } ]
+[ "advanceTime", { "by" : 1.0 } ],
+[ "fade", { "meshes" : "neurons.C", "startingAlpha" : 0.0, "endingAlpha" : 1.0, "duration" : 1.0 } ]
+[ "advanceTime", { "by" : 1.0 } ],
+[ "fade", { "meshes" : "neurons.A", "startingAlpha" : 1.0, "endingAlpha" : 0.0, "duration" : 1.0 } ]
+[ "advanceTime", { "by" : 1.0 } ]
+
+```
+The edit in this case involves merely changing the first command's `"neurons.A"` argument to `"neurons.B"`.
+
+Another example: change the camera orbiting to total 180º instead of 360º.
+
+This kind of editing is common during iterative refinement to reach a desired final video.  So the best use of Neuroglancer might be to set up the initial, rough version of a video, with `neuVid` being used for the iterations of editing to reach the final result.
+
+Current limitations of importing Neuroglancer into `neuVid`:
+* Only segmentation meshes (e.g., neurons, ROIs) are imported; other data (grayscale images, synapses) are ignored.
+* Only meshes in OBJ format or the [Neuroglancer legacy single-resolution format](https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/meshes.md#legacy-single-resolution-mesh-format) are supported.
+* Only one camera framing is created automatically: an initial framing, on a prominent body chosen by heuristics.  Once the translation has produced a `neuVid` input JSON file, though, it is easy to add additional `frameCamera` commands as needed.
+* Only camera orbiting around principal axes (_X_, _Y_, or _Z_) is supported.
+
 ## Advanced
 
 *Incomplete*
