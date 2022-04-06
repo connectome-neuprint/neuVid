@@ -14,6 +14,7 @@ import colorsys
 import json
 import math
 import mathutils
+import numbers
 import os
 import sys
 
@@ -262,7 +263,7 @@ def advanceTime(args):
     global time, tentativeEndTime
     if "by" in args:
         by = args["by"]
-        if isinstance(by, float):
+        if isinstance(by, numbers.Number):
             time += by
             tentativeEndTime = max(time, tentativeEndTime)
         else:
