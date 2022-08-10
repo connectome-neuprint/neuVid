@@ -539,7 +539,13 @@ bpy.context.scene.render.resolution_percentage = 100
 bpy.context.scene.render.pixel_aspect_x = 1
 bpy.context.scene.render.pixel_aspect_y = 1
 
-bpy.ops.wm.save_as_mainfile(filepath=outputFile)
+if bpy.app.version < (3, 1, 0):
+    print("Writing {}".format(outputFile))
+    bpy.ops.wm.save_as_mainfile(filepath=outputFile)
+else:
+    outputAbsPath = os.path.join(os.getcwd(), outputFile)
+    print("Writing {}".format(outputAbsPath))
+    bpy.ops.wm.save_as_mainfile(filepath=outputAbsPath)
 
 timeEnd = datetime.datetime.now()
 print()

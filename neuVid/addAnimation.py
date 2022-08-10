@@ -825,4 +825,11 @@ else:
 # Make sure ImagePlane is not selected, which seems to prevent it from being rendered transparently.
 #bpy.context.scene.objects.active = None
 
-bpy.ops.wm.save_as_mainfile(filepath=outputFile)
+if bpy.app.version < (3, 1, 0):
+    print("Writing {}".format(outputFile))
+    bpy.ops.wm.save_as_mainfile(filepath=outputFile)
+else:
+    outputAbsPath = os.path.join(os.getcwd(), outputFile)
+    print("Writing {}".format(outputAbsPath))
+    bpy.ops.wm.save_as_mainfile(filepath=outputAbsPath)
+
