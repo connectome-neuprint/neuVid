@@ -102,6 +102,10 @@ bpy.context.scene.render.fps = 24
 
 bpy.context.scene.render.filepath = outputDir
 
+# Do not use the default "Filmic" tone mapping because the individual frames
+# should have any desired tone mapping already.
+bpy.context.scene.view_settings.view_transform = "Standard"
+
 bpy.ops.render.render(animation=True)
 
 if tmp:
