@@ -147,7 +147,7 @@ if args.inputJsonFile:
         print("Using shadows: {}".format(jsonUseShadows))
     if "useSpecular" in jsonData:
         jsonUseSpecular = jsonData["useSpecular"]
-        print("Using specular: {}".format(jsonUseShadows))
+        print("Using specular: {}".format(jsonUseSpecular))
     if "lightRotationZ" in jsonData:
         jsonLightRotationZ = jsonData["lightRotationZ"]
         print("Using lightRotationZ: {}".format(jsonLightRotationZ))
@@ -355,7 +355,7 @@ else:
                 bpy.data.scenes["Scene"].render.use_raytrace = False
                 bpy.data.scenes["Scene"].render.use_envmaps = False
             else:
-                bpy.data.scenes["Scene"].eevee.use_soft_shadows = True
+                bpy.data.scenes["Scene"].eevee.use_soft_shadows = jsonUseShadows
                 bpy.data.scenes["Scene"].eevee.use_shadow_high_bitdepth = True
         print("Updating Blender materials...")
         for obj in bpy.data.objects:
@@ -444,6 +444,7 @@ if not args.onlyAmbient:
                 lampData = bpy.data.lights.new(name = "Lamp.Key", type = "SPOT")
                 # The newer Blender seems less bright somehow.
                 lampData.energy = 1.5 * 3.75
+                lampData.use_shadow = jsonUseShadows
             lampData.energy *= jsonLightPowerScale[i]
             lampData.spot_size = 1.4
             if jsonLightColor != "uniform":
