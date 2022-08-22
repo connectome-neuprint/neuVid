@@ -51,6 +51,8 @@ parser.set_defaults(useCycles=False)
 # that start with `--cycles`.  So this script cannot specify `--cycles` as its argument, and instead it must specify
 # something more awkward like `--cycles-render`.  As a user, it is simplest to use the short form, `-cyc`.
 parser.add_argument("--cycles-render", "-cyc", dest="useCycles", action="store_true", help="use the Cycles renderer")
+parser.set_defaults(transparentMaxBounces=32)
+parser.add_argument("--transparent-max-bounces", "-tmb", type=int, dest="transparentMaxBounces", help="max ray bounces when alpha < 1")
 parser.add_argument("--samples", "-sa", type=int, dest="numSamples", help="number of samples per pixel for the Octane renderer")
 parser.set_defaults(denoise=True)
 parser.add_argument("--nodenoise", "-ndn", dest="denoise", action="store_false", help="skip final denoising")
@@ -104,9 +106,12 @@ if inputBlenderFile == None:
     else:
         parser.print_help()
         quit()
-print("Using input Blender file: '{}'".format(inputBlenderFile))
+print("Opening input Blender file '{}'...".format(inputBlenderFile))
 
 bpy.ops.wm.open_mainfile(filepath=inputBlenderFile)
+
+timeEndOpen = datetime.datetime.now()
+print("Done (elapsed time: {:.2f} sec)".format((timeEndOpen - timeStart).total_seconds()))
 
 print("Using output width: {} px".format(args.resX))
 print("Using output height: {} px".format(args.resY))
@@ -158,6 +163,8 @@ if args.white and not useOctane:
 #
 
 print("Rescaling/recentering to improve numerical precision...")
+
+timeStartRescale = datetime.datetime.now()
 
 def rescaleRecenter(obj, overallCenter, overallScale):
     if obj.name.startswith("Neuron.") or obj.name.startswith("Roi.") or obj.name.startswith("Synapses."):
@@ -239,7 +246,8 @@ camera.clip_end *= overallScale
 print("Rescaled/recentered camera clip_start: {}".format(camera.clip_start))
 print("Rescaled/recentered camera clip_end: {}".format(camera.clip_end))
 
-print("Done")
+timeEndRescale = datetime.datetime.now()
+print("Done (elapsed time: {:.2f} sec)".format((timeEndRescale - timeStartRescale).total_seconds()))
 
 #
 
@@ -347,6 +355,10 @@ else:
                 if matName in bpy.data.materials:
                     mat = bpy.data.materials[matName]
                     mat.cycles.use_transparent_shadow = True
+            # With the default transparent_max_bounces (8), some complex scenes with many bodies having alpha below one
+            # max have black patches, when the maximum is reached too soon.  So raise the maximum.
+            bpy.data.scenes["Scene"].cycles.transparent_max_bounces = args.transparentMaxBounces
+            print("Using transparent_max_bounces {}".format(bpy.data.scenes["Scene"].cycles.transparent_max_bounces))
         else:
             if bpy.app.version < (2, 80, 0):
                 bpy.data.scenes["Scene"].render.use_shadows = jsonUseShadows
@@ -511,7 +523,10 @@ if not args.onlyAmbient:
             powerScale *= jsonLightPowerScale[i]
             lampData.energy *= powerScale
 
-            lamp.visible_camera = False
+            if bpy.app.version < (3, 0, 0):
+                lamp.cycles_visibility.camera = False
+            else:
+                lamp.visible_camera = False
 
     # Put the lights in the correct orientation for the "standard" view,
     # with positive X right, positive Y out, positive Z down.
