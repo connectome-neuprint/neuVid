@@ -379,6 +379,7 @@ The object for `anchorPSD` has two keys, but `neuVid` supports additional keys t
 
 - Rendering with Cycles:
   - `-cyc` or `--cycles-render` argument for `render.py`
+  - If black spots appear on fading objects (i.e., objects with alpha less than one), try a `--transparent-max-bounces` (`-tmb`) value greater than the default of 32.
 
 - Rendering with Octane:
   - `-oct` or `--octane` argument for `render.py`
