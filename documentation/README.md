@@ -375,11 +375,16 @@ The object for `anchorPSD` has two keys, but `neuVid` supports additional keys t
 | Cycles   | ***     | *     | ***      | ***         | Yes  |
 | Octane   | ***     | **    | *        | **          | No   |
 
-- "Capacity" refers to the amount of data (i.e., neuron meshes, ROI meshes) that the renderer can handle.  Octane's capacity is limited by GPU memory.  Cycles uses the CPU only by default, and can handle significantly more data.  On a machine with 32 GB of memory, for example, it has rendered a scene with almost one-quarter billion mesh faces.
+- "Capacity" refers to the amount of data (i.e., neuron meshes, ROI meshes) that the renderer can handle.  Octane's capacity is limited by GPU memory.  Cycles can use either the CPU or the GPU, and the CPU often can handle more data.  On a machine with 32 GB of memory, for example, it has rendered a scene with almost one-quarter billion mesh faces.
 
 - Rendering with Cycles:
-  - `-cyc` or `--cycles-render` argument for `render.py`
-  - If black spots appear on fading objects (i.e., objects with alpha less than one), try a `--transparent-max-bounces` (`-tmb`) value greater than the default of 32.
+  - `--cycles-render` (or `-cyc`) argument for `render.py`
+  - If black spots appear on fading objects (i.e., objects with alpha less than one), try a `--transparent-max-bounces` (or `-tmb`) value greater than the default of 32.
+  - Uses only the CPU by default.  To use the GPU, use one of the following flags, to choose the options [described in the Blender documantion](https://docs.blender.org/manual/en/latest/render/cycles/gpu_rendering.html):
+    - `--optix` (or `-optix`)
+    - `--cuda` (or `-cuda`)
+    - `--hip` (or `-hip`)
+    - `--metal` (or `-metal`)
 
 - Rendering with Octane:
   - `-oct` or `--octane` argument for `render.py`

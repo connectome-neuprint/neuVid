@@ -53,6 +53,16 @@ parser.set_defaults(useCycles=False)
 parser.add_argument("--cycles-render", "-cyc", dest="useCycles", action="store_true", help="use the Cycles renderer")
 parser.set_defaults(transparentMaxBounces=32)
 parser.add_argument("--transparent-max-bounces", "-tmb", type=int, dest="transparentMaxBounces", help="max ray bounces when alpha < 1")
+
+parser.set_defaults(useOptix=False)
+parser.add_argument("--optix", "-optix", dest="useOptix", action="store_true", help="use the GPU and NVIDIA OptiX for Cycles")
+parser.set_defaults(useCuda=False)
+parser.add_argument("--cuda", "-cuda", dest="useCuda", action="store_true", help="use the GPU and NVIDIA CUDA for Cycles")
+parser.set_defaults(useHip=False)
+parser.add_argument("--hip", "-hip", dest="useHip", action="store_true", help="use the GPU and AMD HIP for Cycles")
+parser.set_defaults(useMetal=False)
+parser.add_argument("--metal", "-metal", dest="useMetal", action="store_true", help="use the GPU and Apple Metal for Cycles")
+
 parser.add_argument("--samples", "-sa", type=int, dest="numSamples", help="number of samples per pixel for the Octane renderer")
 parser.set_defaults(denoise=True)
 parser.add_argument("--nodenoise", "-ndn", dest="denoise", action="store_false", help="skip final denoising")
@@ -1243,6 +1253,33 @@ else:
     print("Non-compositing output redirected to '{}'".format(tmpDir))
 
 print(bpy.context.scene.render.engine)
+
+if args.useCycles:
+    cyclesPrefs = bpy.context.preferences.addons["cycles"].preferences
+    bpy.context.scene.cycles.device = "CPU"
+    cyclesPrefs.compute_device_type = "NONE"    
+    if platform.system == "Darwin":
+        # https://docs.blender.org/manual/en/latest/render/cycles/gpu_rendering.html#metal-apple-macos
+        # "macOS 12.2 is required to use Metal with Apple Silicon"
+        if args.useMetal:
+            bpy.context.scene.cycles.device = "GPU"
+            cyclesPrefs.compute_device_type = "METAL"
+    else:
+        if args.useOptix:
+            bpy.context.scene.cycles.device = "GPU"
+            cyclesPrefs.compute_device_type = "OPTIX"
+        elif args.useCuda:
+            bpy.context.scene.cycles.device = "GPU"
+            cyclesPrefs.compute_device_type = "CUDA"
+        elif args.useHip:
+            bpy.context.scene.cycles.device = "GPU"
+            cyclesPrefs.compute_device_type = "HIP"
+    if bpy.context.scene.cycles.device == "GPU":
+        cyclesPrefs.get_devices()
+        for device in cyclesPrefs.devices:
+            device["use"] = True
+    print("Cycles device: {} {}".format(bpy.context.scene.cycles.device, cyclesPrefs.compute_device_type))
+
 
 render(renderIntervalsClipped, hideRenderTrueFrames, justPrint=True)
 
