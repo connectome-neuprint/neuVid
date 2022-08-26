@@ -127,6 +127,12 @@ def layer_is_roi(layer):
             return "roi" in layer["source"]["url"]
     return False
 
+def layer_is_segmentation(layer):
+    if "type" in layer:
+        if layer["type"] == "segmentation":
+            return True
+    return False
+
 def layer_is_visible(layer):
     if "visible" in layer:
         return layer["visible"]
@@ -180,10 +186,16 @@ def set_layer_segments(layer, segments):
 
 def layer_source(layer):
     if "source" in layer:
-        if "url" in layer["source"]:
-            return layer["source"]["url"]
-        else:
-            return layer["source"]
+        source = layer["source"]
+        if not isinstance(source, list):
+            source = [source]
+        for s in source:
+            if isinstance(s, dict):
+                if "url" in s:
+                    return s["url"]
+        for s in source:
+            if isinstance(s, str):
+                return s
     return ""
 
 def set_layer_source(layer, url):
@@ -555,8 +567,10 @@ def process_layer_source(layer):
                 except requests.exceptions.RequestException as e:
                     print("Error: request URL '{}' failed: {}".format(url, str(e)))
             set_layer_segments(layer, segments_processed)
-        else:
+        elif url_mid.startswith("flyem"):
             url_base = "https://storage.googleapis.com/" + url_mid + "/"
+        else:
+            url_base = src
 
         set_layer_source(layer, url_base)
 
@@ -564,16 +578,17 @@ def process_ng_state_sources(ng_state, time, time_next):
     if not "layers" in ng_state:
         return
     for layer in ng_state["layers"]:
-        name = layer_name(layer)
-        category, sources = layer_category(layer)
-        # "Categories" (e.g., which bodies are in which named ROI or neuron groups) are not
-        # declared in advance, so their declarations have to be added as they are found and used.
-        if not name in category:
-            process_layer_source(layer)
-            src = layer_source(layer)
-            if not src in sources:
-                sources.append(src)
-            category[name] = [sources.index(src), layer_segments(layer)]
+        if layer_is_segmentation(layer):
+            name = layer_name(layer)
+            category, sources = layer_category(layer)
+            # "Categories" (e.g., which bodies are in which named ROI or neuron groups) are not
+            # declared in advance, so their declarations have to be added as they are found and used.
+            if not name in category:
+                process_layer_source(layer)
+                src = layer_source(layer)
+                if not src in sources:
+                    sources.append(src)
+                category[name] = [sources.index(src), layer_segments(layer)]
 
 def process_ng_state_alphas(ng_state, time, time_next):
     global initial_layer_alphas, contains_groups
