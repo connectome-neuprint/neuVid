@@ -6,6 +6,10 @@ import os
 import os.path
 from pathlib import Path
 import requests
+import sys
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from utilsNg import dir_name_from_ng_source, is_ng_source
 
 def fileToImportForNeuron(source, bodyId, parentForDownloadDir):
     if source.startswith("http"):
@@ -34,6 +38,12 @@ def fileToImportForNeuron(source, bodyId, parentForDownloadDir):
             except OSError as e:
                 print("Error: writing neuron '{}' from source URL '{}' failed: {}".format(bodyId, source, str(e)))
                 return None
+
+    elif is_ng_source(source):
+        # Try to use OBJ files downloaded by fetchMeshes.py.
+        download_dir = dir_name_from_ng_source(source)
+        path = os.path.join(parentForDownloadDir, download_dir)
+        return os.path.join(path, bodyId + ".obj")
 
     else:
         dir = source
