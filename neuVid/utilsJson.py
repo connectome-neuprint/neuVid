@@ -1,5 +1,11 @@
 # Utility functions related to JSON and parsing.
 
+def encode_id(id, source_index):
+    return "{}_{}".format(id, source_index)
+
+def decode_id(id):
+    return id.split("_")[0]
+
 def parseNeuronsIds(jsonNeurons, limit=0):
     # neuronIds[i] is the set of neuron IDs for resolution i.
     neuronIds = [set()]
@@ -65,8 +71,9 @@ def parseNeuronsIds(jsonNeurons, limit=0):
                     idsItemList = [idsItemList]
                 for idsItem in idsItemList:
                     if isinstance(idsItem, int):
-                        neuronIds[iMeshesPath].add(str(idsItem))
-                        groupToNeuronIds[key].append(str(idsItem))
+                        id = encode_id(idsItem, iMeshesPath)
+                        neuronIds[iMeshesPath].add(id)
+                        groupToNeuronIds[key].append(id)
                     else:
                         idsFile = idsPath + idsItem
                         try:
@@ -74,8 +81,10 @@ def parseNeuronsIds(jsonNeurons, limit=0):
                                 i = 0
                                 for line in f:
                                     id = line[0:-1]
-                                    neuronIds[iMeshesPath].add(str(id))
-                                    groupToNeuronIds[key].append(str(id))
+                                    id = encode_id(id, iMeshesPath)
+                                    neuronIds[iMeshesPath].add(id)
+                                    groupToNeuronIds[key].append(id)
+
                                     i += 1
                                     if i == limit:
                                         break
