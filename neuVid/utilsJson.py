@@ -144,6 +144,7 @@ def removeComments(file):
     output = ""
     with open(file) as f:
         for line in f:
-            if not (line.startswith("#") or line.startswith("//")):
+            lineStripped = line.lstrip()
+            if not (lineStripped.startswith("#") or lineStripped.startswith("//")):
                 output += line
     return output
