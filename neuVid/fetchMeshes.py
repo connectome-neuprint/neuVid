@@ -15,7 +15,7 @@ import trimesh
 from meshparty import trimesh_io
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from utilsJson import parseNeuronsIds, removeComments
+from utilsJson import decode_id, parseNeuronsIds, removeComments
 from utilsNg import dir_name_from_ng_source, is_ng_source
 
 def fetch_ng_source(source, decim_fraction):
@@ -30,6 +30,7 @@ def fetch_ng_source(source, decim_fraction):
 
         j = 0
         for neuron_id in neuron_ids[i]:
+            neuron_id = decode_id(neuron_id)
             neuron_id = int(neuron_id)
             percent = j / len(neuron_ids[i]) * 100
 

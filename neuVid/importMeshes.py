@@ -20,7 +20,7 @@ timeStart = datetime.datetime.now()
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsColors import colors, getColor
 from utilsGeneral import newObject
-from utilsJson import parseNeuronsIds, parseRoiNames, removeComments
+from utilsJson import decode_id, parseNeuronsIds, parseRoiNames, removeComments
 from utilsMaterials import newBasicMaterial, newGlowingMaterial, newSilhouetteMaterial
 from utilsMeshes import fileToImportForRoi, fileToImportForNeuron, fileToImportForSynapses
 
@@ -186,7 +186,8 @@ for i in range(len(neuronSources)):
                 bpy.data.objects.remove(obj, do_unlink=True)
 
     for neuronId in neuronIds[i]:
-        objPath = fileToImportForNeuron(neuronSources[i], neuronId, inputJsonDir)
+        id = decode_id(neuronId)
+        objPath = fileToImportForNeuron(neuronSources[i], id, inputJsonDir)
 
         if not os.path.isfile(objPath):
             print("Skipping missing file {}".format(objPath))
