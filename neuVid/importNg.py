@@ -189,13 +189,15 @@ def layer_source(layer):
         source = layer["source"]
         if not isinstance(source, list):
             source = [source]
+        url = ""
         for s in source:
             if isinstance(s, dict):
                 if "url" in s:
-                    return s["url"]
-        for s in source:
-            if isinstance(s, str):
-                return s
+                    url = s["url"]
+            elif isinstance(s, str):
+                url = s
+            if url.startswith("precomputed://"):
+                return url
     return ""
 
 def set_layer_source(layer, url):
@@ -461,7 +463,7 @@ def setup_containment_if_needed(ng_state):
         setA = segment_sets[groupA]
         for layerB in ng_state["layers"]:
             groupB = layer_group_name(layerB)
-            if groupA != groupB:
+            if groupA != groupB and layer_source(layerA) == layer_source(layerB):
                 setB = segment_sets[groupB]
                 inter = setA.intersection(setB)
                 if len(inter) > 0:
