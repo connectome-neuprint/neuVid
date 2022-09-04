@@ -385,6 +385,7 @@ The object for `anchorPSD` has two keys, but `neuVid` supports additional keys t
     - `--cuda` (or `-cuda`)
     - `--hip` (or `-hip`)
     - `--metal` (or `-metal`)
+  - Wastes time on a "Synchronizing object" step for every object at almost every frame.  Use `--persistent` (or `-p`) to avoid it, but note that this option causes a crash if the system does not have sufficent memory (RAM).
 
 - Rendering with Octane:
   - `-oct` or `--octane` argument for `render.py`
