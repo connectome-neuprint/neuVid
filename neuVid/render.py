@@ -87,7 +87,7 @@ parser.add_argument(USE_HIP1, USE_HIP2, dest="useHip", action="store_true", help
 parser.set_defaults(useMetal=False)
 parser.add_argument(USE_METAL1, USE_METAL2, dest="useMetal", action="store_true", help="use the GPU and Apple Metal for Cycles")
 parser.set_defaults(usePersistentData=False)
-parser.add_argument(USE_PERSISTENT_DATA1, USE_PERSISTENT_DATA2, dest="usePersistentData", action="store_true", help="do NOT use persistent data")
+parser.add_argument(USE_PERSISTENT_DATA1, USE_PERSISTENT_DATA2, dest="usePersistentData", action="store_true", help="use the persistent data optimization")
 
 parser.add_argument("--samples", "-sa", type=int, dest="numSamples", help="number of samples per pixel for the Octane renderer")
 parser.set_defaults(denoise=True)
