@@ -23,6 +23,30 @@ from utilsGeneral import newObject
 from utilsMaterials import getMaterialFcurve, getMaterialValue, setMaterialValue
 from utilsJson import removeComments
 
+USE_OPTIX1 = "--optix"
+USE_OPTIX2 = "-optix"
+USE_CUDA1 = "--cuda"
+USE_CUDA2 = "-cuda"
+USE_HIP1 = "--hip"
+USE_HIP2 = "-hip"
+USE_METAL1 = "--metal"
+USE_METAL2 = "-metal"
+USE_PERSISTENT_DATA1 = "--persist"
+USE_PERSISTENT_DATA2 = "-p"
+
+def suggest_optimizations(args):
+    if args.useCycles:
+        gpu = args.useOptix or args.useCuda or args.useHip or args.useMetal
+        persist = args.usePersistentData
+        if not gpu or not persist:
+            print("--------------------------------------------------------------")
+            print("Better performance may be possible with the following options:")
+            if not gpu:
+                print(". Use a GPU, if available: {} or {} or {} or {}".format(USE_OPTIX1, USE_CUDA1, USE_HIP1, USE_METAL1))
+            if not persist:
+                print(". Use persistent data (to avoid 'Synchronizing object'), if memory allows: {}".format(USE_PERSISTENT_DATA1))
+            print("--------------------------------------------------------------")
+
 timeStart = datetime.datetime.now()
 
 argv = sys.argv
@@ -55,13 +79,15 @@ parser.set_defaults(transparentMaxBounces=32)
 parser.add_argument("--transparent-max-bounces", "-tmb", type=int, dest="transparentMaxBounces", help="max ray bounces when alpha < 1")
 
 parser.set_defaults(useOptix=False)
-parser.add_argument("--optix", "-optix", dest="useOptix", action="store_true", help="use the GPU and NVIDIA OptiX for Cycles")
+parser.add_argument(USE_OPTIX1, USE_OPTIX2, dest="useOptix", action="store_true", help="use the GPU and NVIDIA OptiX for Cycles")
 parser.set_defaults(useCuda=False)
-parser.add_argument("--cuda", "-cuda", dest="useCuda", action="store_true", help="use the GPU and NVIDIA CUDA for Cycles")
+parser.add_argument(USE_CUDA1, USE_CUDA2, dest="useCuda", action="store_true", help="use the GPU and NVIDIA CUDA for Cycles")
 parser.set_defaults(useHip=False)
-parser.add_argument("--hip", "-hip", dest="useHip", action="store_true", help="use the GPU and AMD HIP for Cycles")
+parser.add_argument(USE_HIP1, USE_HIP2, dest="useHip", action="store_true", help="use the GPU and AMD HIP for Cycles")
 parser.set_defaults(useMetal=False)
-parser.add_argument("--metal", "-metal", dest="useMetal", action="store_true", help="use the GPU and Apple Metal for Cycles")
+parser.add_argument(USE_METAL1, USE_METAL2, dest="useMetal", action="store_true", help="use the GPU and Apple Metal for Cycles")
+parser.set_defaults(usePersistentData=False)
+parser.add_argument(USE_PERSISTENT_DATA1, USE_PERSISTENT_DATA2, dest="usePersistentData", action="store_true", help="use the persistent data optimization")
 
 parser.add_argument("--samples", "-sa", type=int, dest="numSamples", help="number of samples per pixel for the Octane renderer")
 parser.set_defaults(denoise=True)
@@ -81,6 +107,8 @@ parser.add_argument("--resY", "-ry", type=int, dest="resY", help="output image Y
 parser.add_argument("--debug", "-d", dest="debug", action="store_true", help="debug")
 
 args = parser.parse_args(argv)
+
+suggest_optimizations(args)
 
 print("Rendering only ROIs and unlit content: {}".format(args.doRois))
 if args.doRois:
@@ -1256,6 +1284,11 @@ print(bpy.context.scene.render.engine)
 
 if args.useCycles:
     cyclesPrefs = bpy.context.preferences.addons["cycles"].preferences
+    if bpy.app.version >= (2, 93, 0):
+        # Eliminates the "Synchronizing object" steps, but uses more memory.
+        bpy.data.scenes["Scene"].render.use_persistent_data = args.usePersistentData
+        print("Cycles using persistent data: {}".format(bpy.data.scenes["Scene"].render.use_persistent_data))
+
     bpy.context.scene.cycles.device = "CPU"
     cyclesPrefs.compute_device_type = "NONE"    
     if platform.system == "Darwin":
