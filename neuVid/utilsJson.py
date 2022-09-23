@@ -165,8 +165,12 @@ def removeComments(file):
     output = ""
     with open(file) as f:
         for line in f:
-            lineStripped = line.lstrip()
-            if not (lineStripped.startswith("#") or lineStripped.startswith("//")):
+            line_stripped = line.lstrip()
+            if line_stripped.startswith("#") or line_stripped.startswith("//"):
+                # Replace a comment line with a blank line, so the line count stays the same
+                # in error messages.
+                output += "\n"
+            else:
                 output += line
     return output
 
