@@ -7,13 +7,13 @@ def decode_id(id):
     return id.split("_")[0]
 
 def parseNeuronsIds(jsonNeurons, limit=0):
-    # neuronIds[i] is the set of neuron IDs for resolution i.
+    # neuronIds[i] is the set of neuron IDs for source i.
     neuronIds = [set()]
     # The mapping from group name to neuron IDs in that group does not need to be
-    # split up by resolution, as each group can have only one resolution.
+    # split up by source, as each group can have only one source.
     groupToNeuronIds = {}
     # The mapping from group name to the index in the array of directories
-    # for mesh files; using an array supports mutiples resolutions of meshes.
+    # for mesh files; using an array supports mutiples source for meshes.
     groupToMeshesSourceIndex = {}
 
     # True indicates that each group's body IDs are not only loaded from separate files,
@@ -91,7 +91,19 @@ def parseNeuronsIds(jsonNeurons, limit=0):
                         except Exception as e:
                             print("Error: cannot read neuron IDs file '{}': '{}'".format(idsFile, str(e)))
 
-    return neuronIds, groupToNeuronIds, groupToMeshesSourceIndex, useSeparateNeuronFiles
+    if "source" in jsonNeurons:
+        value = jsonNeurons["source"]
+        if isinstance(value, list):
+            while len(neuronIds) <= len(value):
+                neuronIds.append(set())
+
+    # Sort `neuronIds` to improve the peformance when importing large numbers (Blender 3.3+):
+    # https://developer.blender.org/D15506
+    # Match: `int BLI_strcasecmp(const char *s1, const char *s2)`
+    neuronIdsSorted = []
+    for ids in neuronIds:
+        neuronIdsSorted.append(sorted(ids))
+    return neuronIdsSorted, groupToNeuronIds, groupToMeshesSourceIndex, useSeparateNeuronFiles
 
 def parseRoiNames(jsonRois):
     roiNames = [set()]
@@ -157,3 +169,4 @@ def removeComments(file):
             if not (lineStripped.startswith("#") or lineStripped.startswith("//")):
                 output += line
     return output
+
