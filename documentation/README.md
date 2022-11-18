@@ -588,6 +588,7 @@ Optional arguments:
 - `axis` (default: `z`)
 - `endingRelativeAngle` (default: -360)
 - `duration` (default: 1)
+- `scale` (default: 1) : non-default values give a "spiral" effect
 
 ### `pulse`
 

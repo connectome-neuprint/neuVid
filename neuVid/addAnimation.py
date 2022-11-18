@@ -641,6 +641,11 @@ def orbitCamera(args):
     bpy.context.scene.frame_set(startFrame)
     constraint.inverse_matrix = orbiter.matrix_world.inverted()
 
+    if "scale" in args:
+        scale = args["scale"]
+        d = camera.location - center
+        camera.location = center + d
+
     camera.keyframe_insert("location", frame=startFrame)
     camera.keyframe_insert("rotation_euler", frame=startFrame)
 
@@ -655,6 +660,11 @@ def orbitCamera(args):
     constraint.influence = 1
     constraint.keyframe_insert("influence", frame=endFrame-1)
 
+    if "scale" in args:
+        scale = args["scale"]
+        d = camera.location - center
+        camera.location = center + scale * d
+
     # Needed if the rotation does not go all the way back to the start (360 degrees).
     camera.keyframe_insert("location", frame=endFrame-1)
     camera.keyframe_insert("rotation_euler", frame=endFrame-1)
@@ -664,6 +674,14 @@ def orbitCamera(args):
     camera.rotation_euler = r.to_euler()
     camera.keyframe_insert("location", frame=endFrame)
     camera.keyframe_insert("rotation_euler", frame=endFrame)
+
+    # With the additional camera movement caused by "scale", the standard Bezier interpolation
+    # can have odd "swoopimg" at the beginning.  Fix it by changing the interpolation method.
+    if "scale" in args:
+        for fcurve in camera.animation_data.action.fcurves:
+            for kf in fcurve.keyframe_points:
+                kf.interpolation = "SINE"
+                kf.easing = "EASE_IN_OUT"
 
     constraint.influence = 0
     constraint.keyframe_insert("influence", frame=endFrame)
