@@ -615,7 +615,11 @@ else:
     if bpy.app.version < (2, 80, 0):
         bpy.data.worlds["World"].horizon_color = background[0:3]
     else:
+        bpy.data.worlds["World"].use_nodes = True
         bpy.data.worlds["World"].node_tree.nodes["Background"].inputs[0].default_value = background
+        bpy.data.worlds["World"].cycles_visibility.diffuse = False
+        if args.white:
+            bpy.context.scene.view_settings.view_transform = "Standard"
 
         numSamples = 256
         if args.useCycles:
