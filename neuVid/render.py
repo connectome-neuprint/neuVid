@@ -230,6 +230,7 @@ def rescaleRecenter(obj, overallCenter, overallScale):
     elif obj.name.startswith("ImagePlane."):
         if not obj.name.endswith(".Pivot"):
             obj.scale *= overallScale
+        if not obj.name.endswith(".Pivot") and obj.animation_data == None:
             if not obj.parent:
                 obj.location = (obj.location - overallCenter) * overallScale
         else:
@@ -1174,8 +1175,10 @@ def addSamplesPerInterval(renderIntervals, fadingIntervals, dollyIntervals):
 
     return renderIntervals5
 
-def separateNeuronFilesHideRender(obj, hideRenderTrue):
+def separateNeuronFilesHideRender(obj, hideRenderTrue, useOctane):
     matName = "Material." + obj.name
+    if not matName in bpy.data.materials:
+        return
     mat = bpy.data.materials[matName]
     if obj.name.startswith("Neuron.proxy"):
         if not obj.name in hideRenderTrue:
@@ -1191,7 +1194,8 @@ def separateNeuronFilesHideRender(obj, hideRenderTrue):
 
                 referencedObj = bpy.data.objects[referencedObjName]
                 rescaleRecenter(referencedObj, overallCenter, overallScale)
-                addOctaneMaterial(referencedObj, mat)
+                if useOctane:
+                    addOctaneMaterial(referencedObj, mat)
 
             # But do not render the proxy itself.
             obj.hide_render = True
@@ -1246,7 +1250,7 @@ def render(renderIntervalsClipped, hideRenderTrueFrames, justPrint=False):
                 for obj in bpy.data.objects:
                     if args.useCycles or obj.name.startswith("Neuron"):
                         if useSeparateNeuronFiles:
-                            separateNeuronFilesHideRender(obj, hideRenderTrue)
+                            separateNeuronFilesHideRender(obj, hideRenderTrue, args.useOctane)
                         else:
                             # Path-traced renderers (e.g., Octane or Cycles) produce dark artifacts for
                             # fully transparent objects (alpha == 0), so such objects must be explicitly
