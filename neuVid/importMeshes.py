@@ -174,7 +174,7 @@ for i in range(len(neuronSources)):
     if len(neuronSources) == 1:
         print("Importing {} neuron meshes".format(len(neuronIds[i])))
     else:
-        print("Importing {} neuron meshes for index {}".format(len(neuronIds[i]), i))
+        print("Importing {} neuron meshes for index {} ({})".format(len(neuronIds[i]), i, neuronSources[i]))
 
     if useSeparateNeuronFiles or i == 0:
         for obj in bpy.data.objects:
@@ -185,9 +185,15 @@ for i in range(len(neuronSources)):
                     bpy.data.materials.remove(mat, do_unlink=True)
                 bpy.data.objects.remove(obj, do_unlink=True)
 
+    j = 0
     for neuronId in neuronIds[i]:
         id = decode_id(neuronId)
         objPath = fileToImportForNeuron(neuronSources[i], id, inputJsonDir)
+
+        timeNow = datetime.datetime.now()
+        elapsedSecs = (timeNow - timeStart).total_seconds()
+        print("{}: {} / {} ({:.2f} secs)".format(i, j, len(neuronIds[i]), elapsedSecs))
+        j += 1
 
         if not os.path.isfile(objPath):
             print("Skipping missing file {}".format(objPath))
