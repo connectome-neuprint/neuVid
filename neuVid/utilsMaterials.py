@@ -142,11 +142,14 @@ def newShadelessImageMaterial(name, source):
         img = bpy.data.images.load(source)
         tex.image = img
 
+        # Actually, in many cases the following settings make the image quality worse.
+        '''
         # The following settings improve the sharpness of the image somewhat.
         tex.use_interpolation = False
         tex.use_mipmap = False
         tex.filter_type = "BOX"
         tex.filter_size = 0.1
+        '''
 
         mtex = mat.texture_slots.add()
         mtex.texture = tex
