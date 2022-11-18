@@ -1,27 +1,31 @@
-# Requires MeshParty, Open3D:
+# Runs with standard Python (not through Blender), as in:
+# $ python fetchMeshes.py -ij from-neuroglancer.json
+
+# To fetch only meshes (e.g., synapses) from a neuPrint.janelia.org Neuroglancer session,
+# no additional dependencies are required.
+
+# To fetch meshes from other Neuroglancer sessions,
+# the following dependencies may be required:
 # $ conda create --name neuvid python=3.9
 # $ conda activate neuvid
 # $ pip install meshparty open3d
 
-# Runs with standard Python (not through Blender), as in:
-# $ python fetchMeshes.py -ij video.json
-
 import argparse
 import datetime
-import DracoPy
 import json
-import numpy as np
 import os
 import requests
 import struct
 import sys
 import traceback
 import tempfile
-import trimesh
-from meshparty import trimesh_io
+
+# Additional imports (e.g., numpy, trimesh, DracoPy) occur in the specific functions that need them,
+# to allow the simplest use with neuPrint (to get synapses) with no need for Conda.
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsJson import decode_id, parseNeuronsIds, removeComments
+from utilsMeshesBasic import icosohedron
 from utilsNg import dir_name_from_ng_source, is_ng_source, source_to_url
 
 def get_mesh_info(source):
@@ -37,7 +41,13 @@ def get_mesh_info(source):
     return None
 
 def is_cloudvolume_accessible(mesh_info):
-    return "scales" in mesh_info
+    return mesh_info and "scales" in mesh_info
+
+def ensure_dir(input_json_dir, dir):
+    download_dir = os.path.join(input_json_dir, dir)
+    if not os.path.exists(download_dir):
+        os.mkdir(download_dir)
+    return download_dir
 
 def already_fetched(id, download_dir):
     path = os.path.join(download_dir, str(id) + ".obj")
@@ -46,12 +56,12 @@ def already_fetched(id, download_dir):
 # Supports Neuroglancer precomputed with sharding, but fails when the "scales" metadata is on another source.
 
 def fetch_with_cloudvolume(source, ids, decim_fraction, input_json_dir, force):
-    dir = dir_name_from_ng_source(source)
+    print("Fetching with CloudVolume")
+    from meshparty import trimesh_io
+    import trimesh
 
     try:
-        download_dir = os.path.join(input_json_dir, dir)
-        if not os.path.exists(download_dir):
-            os.mkdir(download_dir)
+        download_dir = ensure_dir(input_json_dir, dir_name_from_ng_source(source))
         tmp_dir = tempfile.TemporaryDirectory().name
         mesh_meta = trimesh_io.MeshMeta(cv_path=source, disk_cache_path=tmp_dir, map_gs_to_https=True)
 
@@ -74,9 +84,9 @@ def fetch_with_cloudvolume(source, ids, decim_fraction, input_json_dir, force):
             mesh_smooth = trimesh.smoothing.filter_taubin(mesh)
             print("Done")
 
-            print(f"[{percent:.1f}%] Decimating ID {id} ...")
-            mesh_smooth_decim = mesh_smooth.simplify_quadratic_decimation(face_count * decim_fraction)
-            print("Done")
+            face_count_decim = int(face_count * decim_fraction)
+            print(f"[{percent:.1f}%] Decimating ID {id} from {face_count} to {face_count_decim} faces ...")
+            mesh_smooth_decim = mesh_smooth.simplify_quadratic_decimation(face_count_decim)
 
             output = os.path.join(download_dir, str(id) + ".obj")
             print(f"[{percent:.1f}%] Exporting {output} ...")
@@ -94,12 +104,19 @@ def fetch_with_cloudvolume(source, ids, decim_fraction, input_json_dir, force):
 # Based on code from David Ackerman.
 
 def unpack_and_remove(datatype, num_elements, file_content):
+    import numpy as np
+
     datatype = datatype * num_elements
     output = struct.unpack(datatype, file_content[0:4 * num_elements])
     file_content = file_content[4 * num_elements:] 
     return np.array(output), file_content
 
 def fetch_directly(source, mesh_info, ids, lod, decim_fraction, input_json_dir, force):
+    print("Fetching directly")
+    import DracoPy
+    import numpy as np
+    import trimesh
+
     url_base = source_to_url(source)
     if not url_base:
         return
@@ -114,11 +131,7 @@ def fetch_directly(source, mesh_info, ids, lod, decim_fraction, input_json_dir, 
     meshes_transform += [0, 0, 0, 1]
     meshes_transform = np.reshape(meshes_transform, (4, 4))
 
-    dir = dir_name_from_ng_source(source)   
-    download_dir = os.path.join(input_json_dir, dir)
-    if not os.path.exists(download_dir):
-        os.mkdir(download_dir)
-
+    download_dir = ensure_dir(input_json_dir, dir_name_from_ng_source(source))
     failed = []
 
     j = 0
@@ -183,12 +196,13 @@ def fetch_directly(source, mesh_info, ids, lod, decim_fraction, input_json_dir, 
                 mesh_smooth = trimesh.smoothing.filter_taubin(mesh)
                 print("Done")
 
-                print(f"[{percent:.1f}%] Decimating ID {id} ...")
-                mesh_smooth_decim = mesh_smooth.simplify_quadratic_decimation(face_count * decim_fraction)
+                face_count_decim = int(face_count * decim_fraction)
+                print(f"[{percent:.1f}%] Decimating ID {id} from {face_count} to {face_count_decim} faces ...")
+                mesh_smooth_decim = mesh_smooth.simplify_quadratic_decimation(face_count_decim)
                 print("Done")
 
                 output = os.path.join(download_dir, str(id) + ".obj")
-                mesh.export(output)
+                mesh_smooth_decim.export(output)
 
                 j += 1
 
@@ -204,6 +218,65 @@ def fetch_directly(source, mesh_info, ids, lod, decim_fraction, input_json_dir, 
 
     if len(failed) > 0:
         print(f"Failed: {failed}")
+
+def synapse_type_matches(response_synapse, spec):
+    type = spec["type"] if "type" in spec else None
+    if not type:
+        return True
+    if "Kind" in response_synapse:
+        kind = response_synapse["Kind"].lower()
+        return kind.startswith(type)
+    return True
+
+def synapse_confidence_matches(response_synapse, spec):
+    spec_conf = spec["confidence"] if "confidence" in spec else None
+    if not spec_conf:
+        return True
+    if "Prop" in response_synapse:
+        prop = response_synapse["Prop"].lower()
+        if "conf" in prop:
+            conf = prop["conf"]
+            return conf >= spec_conf
+    return True
+
+def synapse_radius(spec):
+    if "radius" in spec:
+        return spec["radius"]
+    return 60
+
+def fetch_synapses(json_synapses):
+    if not "source" in json_synapses:
+        return
+    source = json_synapses["source"]
+    if not source.startswith("http"):
+        return
+    output_dir = ensure_dir(input_json_dir, "neuVidSynapseMeshes")
+    for (group_name, group_spec) in json_synapses.items():
+        if isinstance(group_spec, dict):
+            positions = []
+            if "neurons" in group_spec:
+                neuron_ids = group_spec["neurons"]
+                for id in neuron_ids:
+                    url = f"{source}/label/{id}"
+                    response = requests.get(url)
+                    response.raise_for_status()
+                    for synapse in response.json():
+                        if "Pos" in synapse:
+                            pos = synapse["Pos"]
+                            if synapse_type_matches(synapse, group_spec):
+                                if synapse_confidence_matches(synapse, group_spec):
+                                    positions.append(pos)
+
+                radius = synapse_radius(group_spec)
+                output_path = os.path.join(output_dir, group_name) + ".obj"
+                try:
+                    print("Writing {} ...".format(output_path))
+                    with open(output_path, "w") as f:
+                        for i in range(len(positions)):
+                            f.write(icosohedron(positions[i], radius, i))
+                    print("Done")
+                except OSError as e:
+                    print("Error: writing synapses '{}' failed: {}\n".format(group_name, str(e)))
 
 #
 
@@ -243,17 +316,22 @@ if __name__ == "__main__":
             for i in range(len(neuron_sources)):
                 source = neuron_sources[i]
 
-                if len(neuron_sources) == 1:
-                    print(f"Fetching {len(neuron_ids[i])} neuron meshes from source {source}")
-                else:
-                    print(f"Fetching {len(neuron_ids[i])} neuron meshes for source index {i}: {source}")
-
                 if is_ng_source(source):
+                    if len(neuron_sources) == 1:
+                        print(f"Fetching {len(neuron_ids[i])} neuron meshes from source {source}")
+                    else:
+                        print(f"Fetching {len(neuron_ids[i])} neuron meshes for source index {i}: {source}")
+
                     mesh_info = get_mesh_info(source)
                     if is_cloudvolume_accessible(mesh_info):
                         fetch_with_cloudvolume(source, neuron_ids[i], args.decim_fraction, input_json_dir, args.force)
                     else:
                         fetch_directly(source, mesh_info, neuron_ids[i], args.lod, args.decim_fraction, input_json_dir, args.force)
+
+    if "synapses" in json_data:
+        json_synapses = json_data["synapses"]
+        fetch_synapses(json_synapses)
+
 
     time_end = datetime.datetime.now()
     print()
