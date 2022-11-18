@@ -104,6 +104,11 @@ parser.add_argument("--resX", "-rx", type=int, dest="resX", help="output image X
 parser.set_defaults(resY=1080)
 parser.add_argument("--resY", "-ry", type=int, dest="resY", help="output image Y resolution (height)")
 
+# TODO: Improve on this temporary solution for data sets (e.g., FAFB) that have unit that are orders of magnitude different
+# from the original FlyEM units.
+parser.set_defaults(rescaleFactor=1.0)
+parser.add_argument("--rescale", "-re", type=float, dest="rescaleFactor", help="rescale factor (for numerical precision)")
+
 parser.add_argument("--debug", "-d", dest="debug", action="store_true", help="debug")
 
 args = parser.parse_args(argv)
@@ -262,6 +267,8 @@ if useOctane:
     overallScale = 0.01
 elif args.useCycles:
     overallScale = 0.01
+print("Original overall scale: {}, factor: {}".format(overallScale, args.rescaleFactor))
+overallScale *= args.rescaleFactor
 print("Using overall scale: {}".format(overallScale))
 if args.doRois:
     useOctane = False
