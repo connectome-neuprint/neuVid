@@ -29,7 +29,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsJson import removeComments
-from utilsMeshes import icosohedron
+from utilsMeshesBasic import icosohedron
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--inputJson", "-ij", dest="inputJsonFile", help="path to the JSON file describing the input")
@@ -82,10 +82,16 @@ if synapseSource.startswith("http"):
         if synapseSetName == "source":
             continue
 
-        if not "neuron" in synapseSetSpec:
+        if "neuron" in synapseSetSpec:
+            body = synapseSetSpec["neuron"]
+        elif "neurons" in synapseSetSpec:
+            bodies = synapseSetSpec["neurons"]
+            if len(bodies) > 1:
+                print("Using only the first body from 'neurons' list {}".format(bodies))
+            body = bodies[0]
+        else:
             print("Error: synapse set '{}' is missing 'neuron'\n".format(synapseSetName))
             continue
-        body = synapseSetSpec["neuron"]
 
         if not "type" in synapseSetSpec:
             print("Error: synapse set '{}' is missing 'type'\n".format(synapseSetName))

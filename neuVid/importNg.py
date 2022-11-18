@@ -11,7 +11,6 @@ import json
 import math
 import numbers
 import os
-from re import A
 import requests
 import sys
 import urllib
@@ -29,6 +28,9 @@ rois = {}
 roi_sources = []
 neurons = {}
 neuron_sources = []
+synapses = {}
+synapse_sources = []
+synapse_params = {}
 animation = []
 contains_groups = {}
 layer_alphas = {}
@@ -65,7 +67,7 @@ def vectors_equal(v1, v2, percent=0.005):
     return dm / m < percent
 
 # Swizzles a tuple representing a Neuroglancer quaternion (x, y, z, w) into a
-# tuple suitable as the argument for constructing a Blender quaternion (w, x, y, w).
+# tuple suitable as the argument for constructing a Blender quaternion (w, x, y, z).
 def qswzl(t):
     return (t[3], t[0], t[1], t[2])
 
@@ -95,7 +97,7 @@ def normalize_input(input):
         for line in f:
             if not line.endswith("\n"):
                 line += "\n"
-            if line.startswith("http"):
+            if line.startswith("http") or line.startswith("/#!"):
                 # If there are two Neuroglancer state URLs in a row, keep just the second one.
                 if len(lines) > 0 and isinstance(lines[-1], str):
                     lines[-1] = line
@@ -121,6 +123,10 @@ def parse_nglink(link):
     data = json.loads(pseudo_json)
     return data
 
+def store_synapse_params(args):
+    synapse_params["radius"] = args.synapse_radius
+    synapse_params["confidence"] = args.synapse_confidence
+
 def layer_is_roi(layer):
     if "source" in layer:
         if "url" in layer["source"]:
@@ -131,6 +137,14 @@ def layer_is_segmentation(layer):
     if "type" in layer:
         if layer["type"] == "segmentation":
             return True
+    return False
+
+def layer_is_synapses(layer):
+    if "type" in layer:
+        if layer["type"] == "annotation":
+            if "name" in layer:
+                if layer["name"].endswith("synapses"):
+                    return True
     return False
 
 def layer_is_visible(layer):
@@ -155,15 +169,31 @@ def layer_name(layer):
         return layer["name"].replace(" ", "-").replace("(", "").replace(")", "")
     raise KeyError
 
+def set_layer_name(layer, name):
+    layer["name"] = name
+
 def layer_category(layer):
-    global neurons, neuron_sources, rois, roi_sources
-    return (rois, roi_sources) if layer_is_roi(layer) else (neurons, neuron_sources)
+    global neurons, neuron_sources, rois, roi_sources, synapses, synapse_sources
+    if layer_is_roi(layer):
+        return (rois, roi_sources)
+    elif layer_is_synapses(layer):
+        return (synapses, synapse_sources)
+    elif layer_is_segmentation(layer):
+        return (neurons, neuron_sources)
 
 def layer_category_name(layer):
-    return "rois" if layer_is_roi(layer) else "neurons"
+    if layer_is_roi(layer):
+        return "rois"
+    elif layer_is_synapses(layer):
+        return "synapses"
+    elif layer_is_segmentation(layer):
+        return "neurons"
 
 def layer_group_name(layer):
-    return layer_category_name(layer) + "." + layer_name(layer)
+    category = layer_category_name(layer)
+    name = layer_name(layer)
+    if category and name:
+        return category + "." + name
 
 def state_camera_look_at(ng_state):
     if "position" in ng_state:
@@ -196,7 +226,7 @@ def layer_source(layer):
                     url = s["url"]
             elif isinstance(s, str):
                 url = s
-            if url.startswith("precomputed://"):
+            if url.startswith("precomputed://") or url.startswith("http"):
                 return url
     return ""
 
@@ -273,21 +303,25 @@ def add_category(category, ids, sources):
         else:
             result_json[category]["source"] = sources
     for key in ids.keys():
-        if len(sources) == 1:
-            result_json[category][key] = ids[key][1]
-        else:
-            result_json[category][key] = {
-                "ids": ids[key][1],
-                "sourceIndex": ids[key][0]
-            }
+        if isinstance(ids[key], dict):
+            result_json[category][key] = ids[key]
+        elif isinstance(ids[key], list):
+            if len(sources) == 1:
+                result_json[category][key] = ids[key][1]
+            else:
+                result_json[category][key] = {
+                    "ids": ids[key][1],
+                    "sourceIndex": ids[key][0]
+                }
             
 def add_categories():
-    global neurons, neuron_sources, rois, roi_sources
+    global neurons, neuron_sources, rois, roi_sources, synapses, synapse_sources
     global result_json
     compress_category("rois", rois, roi_sources)
     compress_category("neurons", neurons, neuron_sources)
     add_category("rois", rois, roi_sources)
     add_category("neurons", neurons, neuron_sources)
+    add_category("synapses", synapses, synapse_sources)
 
 def add_advance_time(time, time_next):
     global animation
@@ -309,15 +343,15 @@ def add_fade(group, to_omit, startingAlpha, endingAlpha, duration):
 
     print("'{}' fade alpha from {} to {} duration {}".format(meshes, startingAlpha, endingAlpha, duration))
 
-def add_set_value(group, alpha, index=-1):
+def add_set_value(group, key, value, index=-1):
     global animation
     if index == -1:
         index = len(animation)
     animation.insert(index, [
-        "setValue", { "meshes": group, "alpha": alpha }
+        "setValue", { "meshes": group, key: value }
     ])
 
-    print("'{}' set alpha to {} ".format(group, alpha))
+    print("'{}' set {} to {} ".format(group, key, value))
 
 def add_frame_camera(group, index=-1):
     global animation
@@ -329,25 +363,23 @@ def add_frame_camera(group, index=-1):
 
     print("frame camera on '{}'".format(group))
 
-def add_orbit_camera(group, endRelAngle, duration, axis="z", index=-1):
+def add_orbit_camera(group=None, endRelAngle=None, duration=10, axis="z", index=-1):
     global animation
-    angle = float(round(endRelAngle))
+    angle = float(round(endRelAngle)) if endRelAngle else None
     if index == -1:
         index = len(animation)
-    if group == None:
-        animation.insert(index, [
-            "orbitCamera", { "axis": axis, "endingRelativeAngle": angle, "duration": duration }
-        ])
-
-        if duration > 0:
-            print("orbit camera, ending relative angle {}, duration {}".format(angle, duration))
-    else:
-        animation.insert(index, [
-            "orbitCamera", { "around": group,  "axis": axis, "endingRelativeAngle": angle, "duration": duration }
-        ])
-
-        if duration > 0:
-            print("orbit camera around '{}', ending relative angle {}, duration {}".format(group, angle, duration))
+    args = {}
+    if group:
+        args["around"] = group
+    if axis != "z":
+        args["axis"] = axis
+    if endRelAngle:
+        args["endingRelativeAngle"] = angle
+    args["duration"] = duration
+    
+    animation.insert(index, [
+        "orbitCamera", args
+    ])
 
     return len(animation) - 1
 
@@ -363,32 +395,16 @@ def update_orbit_camera(endRelAngle, duration, axis, index):
 
 def add_initial_frame_camera():
     global rois, neurons
-    global animation
-    candidates = []
-    for cmd in animation:
-        if "fade" in cmd:
-            candidates.append(cmd[1]["meshes"])
-        if "advanceTime" in cmd and len(candidates) > 0:
-            break
-    if len(candidates) == 0:
-        candidates = ["rois." + key for key in rois.keys() if not key == "source" and len(rois[key][1]) > 0]
-    if len(candidates) == 0:
-        candidates = ["neurons." + key for key in neurons.keys() if not key == "source" and len(neurons[key][1]) > 0]
-    if len(candidates) == 1:
-        add_frame_camera(candidates[0], 0)
+    if len(neurons) > len(rois):
+        which = "neurons" if len(neurons) > 0 else None
     else:
-        chosen = None
-        for candidate in candidates:
-            if "all" in candidate:
-                chosen = candidate
-                break
-        if not chosen:
-            chosen = candidates[0]
-        add_frame_camera(chosen, 0)
+        which = "rois" if len(rois) > 0 else None
+    if which:
+        add_frame_camera(which, 0)
 
 def add_initial_orient_camera(lines):
     for line in lines:
-        if line.startswith("http"):
+        if line.startswith("http") or line.startswith("/#!"):
             ng_state = parse_nglink(line)
             q = state_camera_quaternion(ng_state)
 
@@ -481,19 +497,31 @@ def setup_initial_alphas_if_needed(ng_state):
         return
     for layer in ng_state["layers"]:
         group = layer_group_name(layer)
-        initial_layer_alphas[group] = layer_alpha(layer)
-        layer_alphas[group] = initial_layer_alphas[group]
+        if group:
+            initial_layer_alphas[group] = layer_alpha(layer)
+            layer_alphas[group] = initial_layer_alphas[group]
 
 def add_initial_alphas():
     for (group, alpha) in initial_layer_alphas.items():
-        category, name = group.split(".")
+        category, name = group.split(".", maxsplit=1)
         m = rois if category == "rois" else neurons
         if name in m:
-            add_set_value(group, alpha, 0)
+            if alpha != 1.0:
+                add_set_value(group, "alpha", alpha, 0)
 
-def add_animation():
+def add_initial_colors():
+    items = list(reversed(synapses.items()))
+    for (group, spec) in items:
+        color = "#ffff00" if group.endswith("Pre") else "#303030"
+        add_set_value("synapses." + group, "color", color, 0)
+
+def add_animation(end_time):
     global result_json, animation
     compress_time_advances()
+
+    if end_time == 0:
+        add_orbit_camera()
+
     result_json["animation"] = animation
 
 def sort_containing_first(layers):
@@ -516,6 +544,7 @@ def sort_containing_first(layers):
 # TODO: Find an alternative to this special-case processing.
 def process_layer_source(layer):
     src = layer_source(layer)
+    print("Processing layer source '{}'".format(src))
     GS_PREFIX = "precomputed://gs://"
     if src.startswith(GS_PREFIX):
         url_mid = src.split(GS_PREFIX)[1]
@@ -549,8 +578,10 @@ def process_layer_source(layer):
                     if 0 < id and id < len(roiIdToName):
                         segments_processed.append(roiIdToName[id])
                 set_layer_segments(layer, segments_processed)
-            else:
+            elif layer_is_segmentation(layer):
                 url_base += "segmentation_meshes"
+            elif layer_is_synapses(layer):
+                url_base += "synapses"
 
         elif layer_is_roi(layer):
             url_base = "https://storage.googleapis.com/" + url_mid + "/mesh/"
@@ -575,13 +606,44 @@ def process_layer_source(layer):
             url_base = src
 
         set_layer_source(layer, url_base)
+    
+# `type` is "Pre" or "Post"
+def add_synapses_for_neurons(synapses_category, type, neuron_group_name, neuron_ids):
+    synapses_group_name = neuron_group_name + type
+    spec = {
+        "neurons": neuron_ids[1],
+        "type": type.lower(),
+        "confidence": synapse_params["confidence"],
+        "radius": synapse_params["radius"]
+    }
+    synapses_category[synapses_group_name] = spec
 
-def process_ng_state_sources(ng_state, time, time_next):
-    if not "layers" in ng_state:
-        return
+def split_groups(ng_state):
+    result = []
     for layer in ng_state["layers"]:
         if layer_is_segmentation(layer):
-            name = layer_name(layer)
+            segments = layer_segments(layer)
+            for i in range(len(segments)):
+                new_layer = layer.copy()
+                # Simpler names: "n" for neurons, "r" for ROIs.
+                new_name = layer_category_name(layer)[0] + str(i + 1)
+                set_layer_name(new_layer, new_name)
+                set_layer_segments(new_layer, [str(segments[i])])
+                result.append(new_layer)
+        else:
+            result.append(layer)
+    return result
+
+def process_ng_state_sources(ng_state, time, time_next, split):
+    global neurons
+    if not "layers" in ng_state:
+        return
+
+    layers = split_groups(ng_state) if split else ng_state["layers"]
+
+    for layer in layers:
+        name = layer_name(layer)
+        if layer_is_segmentation(layer) or layer_is_synapses(layer):
             category, sources = layer_category(layer)
             # "Categories" (e.g., which bodies are in which named ROI or neuron groups) are not
             # declared in advance, so their declarations have to be added as they are found and used.
@@ -590,7 +652,12 @@ def process_ng_state_sources(ng_state, time, time_next):
                 src = layer_source(layer)
                 if not src in sources:
                     sources.append(src)
-                category[name] = [sources.index(src), layer_segments(layer)]
+                if layer_is_segmentation(layer):
+                    category[name] = [sources.index(src), layer_segments(layer)]
+                elif layer_is_synapses(layer):
+                    for (neuron_group_name, neuron_ids) in neurons.items():
+                        add_synapses_for_neurons(category, "Pre", neuron_group_name, neuron_ids)
+                        add_synapses_for_neurons(category, "Post", neuron_group_name, neuron_ids)
 
 def process_ng_state_alphas(ng_state, time, time_next):
     global initial_layer_alphas, contains_groups
@@ -599,9 +666,8 @@ def process_ng_state_alphas(ng_state, time, time_next):
     # If `layer[i]` is contained in `layer[j]`, process `layer[j]` first.
     layers = sort_containing_first([layer for layer in ng_state["layers"]])
     for layer in layers:
-        if layer_is_visible(layer):
-            group = layer_group_name(layer)
-
+        group = layer_group_name(layer)
+        if layer_is_visible(layer) and group:
             alpha = layer_alphas[group]
             alpha_next = layer_alpha(layer)
             duration = time_next - time
@@ -687,8 +753,8 @@ def process_ng_state_orbit(ng_state, time, time_next):
     orbit_axis_last = axis_snapped
     orbit_angle += angle
 
-def process_ng_state(ng_state, time, time_next):
-    process_ng_state_sources(ng_state, time, time_next)
+def process_ng_state(ng_state, time, time_next, split):
+    process_ng_state_sources(ng_state, time, time_next, split)
     setup_containment_if_needed(ng_state)
     setup_initial_alphas_if_needed(ng_state)
     process_ng_state_alphas(ng_state, time, time_next)
@@ -731,10 +797,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", "-i", dest="input", help="path to the file of Neuroglancer links")
     parser.add_argument("--output", "-o", dest="output", help="path to output JSON file")
+    parser.set_defaults(split_groups=False)
+    parser.add_argument("--split", "-sg", dest="split_groups", action="store_true", help="split groups of segments to allow individual animation")
+    parser.set_defaults(synapse_radius=60.0)
+    parser.add_argument("--synrad", "-sr", type=float, dest="synapse_radius", help="synapse ball radius")
+    parser.set_defaults(synapse_confidence=0.0)
+    parser.add_argument("--synconf", "-sc", type=float, dest="synapse_confidence", help="synapse confidence [0, 1]")
     args = parser.parse_args()
 
     print("Using input file: {}".format(args.input))
-    print("Using output file: {}".format(args.output))
+    output = args.output
+    if output == None:
+        output = os.path.splitext(args.input)[0] + ".json"
+    print("Using output file: {}".format(output))
+
+    store_synapse_params(args)
 
     lines = normalize_input(args.input)
     time = 0
@@ -748,7 +825,7 @@ if __name__ == "__main__":
             time_next = time + dt
         else:
             ng_state = parse_nglink(line)
-            process_ng_state(ng_state, time, time_next)
+            process_ng_state(ng_state, time, time_next, args.split_groups)
 
             # We have just processed a command that spans the period from `time` to `time_next`.
             # So now we can advance `time` to `time_next`.
@@ -759,11 +836,12 @@ if __name__ == "__main__":
     add_initial_orient_camera(lines)
     add_initial_frame_camera()
     add_initial_alphas()
-    add_animation()
+    add_initial_colors()
+    add_animation(time)
 
     result_json_formatted = formatted()
 
-    print("Writing {}...".format(args.output))
-    with open(args.output, "w") as f:
+    print("Writing {}...".format(output))
+    with open(output, "w") as f:
         f.write(result_json_formatted)
     print("Done")
