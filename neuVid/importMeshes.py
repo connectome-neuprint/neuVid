@@ -195,6 +195,8 @@ for i in range(len(neuronSources)):
             continue
 
         try:
+            objs0 = bpy.data.objects.keys()
+
             # Follow the conventions of NeuTu/Neu3:
             # positive X points right, positive Y points out, positive Z points down.
             # Note that this is different from the convention in the first FlyEM movies:
@@ -207,6 +209,14 @@ for i in range(len(neuronSources)):
             obj.name = "Neuron." + neuronId
 
             print("Added object '{}'".format(obj.name))
+
+            # Is there a bug in Blender that sometimes adds an extra object when importing?
+            objs1 = bpy.data.objects.keys()
+            extra = [o for o in objs1 if not o in objs0 and o != obj.name]
+            for name in extra:
+                o = bpy.data.objects[name]
+                print("Removing extra object '{}'".format(o.name))
+                bpy.data.objects.remove(o, do_unlink=True)
 
             matName = "Material." + obj.name
             color = getColor(neuronToColorIndex[obj.name], colors)
