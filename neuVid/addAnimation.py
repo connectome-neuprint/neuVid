@@ -242,6 +242,14 @@ def imagePlane(source, parented=False):
             # TODO: Why is data[0] not there?
             #plane.data.uv_textures[0].data[0].image = img
 
+        # Prevent shadows from these objects in renderers like Cycles.
+        if bpy.app.version >= (3, 0, 0):
+            plane.visible_shadow = False
+            plane.visible_diffuse = False
+            plane.visible_glossy = False
+        elif bpy.app.version >= (2, 80, 0):
+            plane.cycles_visibility.shadows = False
+
         bpy.ops.object.mode_set(mode="OBJECT")
 
         return plane
@@ -823,7 +831,8 @@ else:
             a.spaces[0].overlay.show_axis_z = False    
 
 # Make sure ImagePlane is not selected, which seems to prevent it from being rendered transparently.
-#bpy.context.scene.objects.active = None
+for obj in bpy.data.objects:
+    obj.select_set(False)
 
 if bpy.app.version < (3, 1, 0):
     print("Writing {}".format(outputFile))
