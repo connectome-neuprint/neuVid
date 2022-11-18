@@ -192,7 +192,7 @@ def frame(t = None):
         t = time
     return round(t * fps) + 1
 
-def imagePlane(source, parented=False):
+def imagePlane(source, parented=False, aligned=True, flip=True):
     name = "ImagePlane." + os.path.basename(source)
     if not name in bpy.data.objects:
         mat = newShadelessImageMaterial("Material." + name, source)
@@ -209,11 +209,13 @@ def imagePlane(source, parented=False):
             plane.parent = pivot
             constrained = pivot
 
-        constraint = constrained.constraints.new(type="TRACK_TO")
-        constraint.name = "AlignToCamera"
-        constraint.target = bpy.data.objects["Camera"]
-        constraint.track_axis = "TRACK_Z"
-        constraint.up_axis = "UP_Y"
+        # For showSlice
+        if aligned:
+            constraint = constrained.constraints.new(type="TRACK_TO")
+            constraint.name = "AlignToCamera"
+            constraint.target = bpy.data.objects["Camera"]
+            constraint.track_axis = "TRACK_Z"
+            constraint.up_axis = "UP_Y"
 
         bpy.ops.object.mode_set(mode="EDIT")
         me = plane.data
@@ -227,7 +229,10 @@ def imagePlane(source, parented=False):
             for l in f.loops:
                 luv = l[uv_layer]
                 v = l.vert.co
-                luv.uv = (1.0 - (v[0] + 1.0)/2.0, 1.0 - (v[1] + 1.0)/2.0)
+                if flip:
+                    luv.uv = (1.0 - (v[0] + 1.0)/2.0, 1.0 - (v[1] + 1.0)/2.0)
+                else:
+                    luv.uv = ((v[0] + 1.0)/2.0, 1.0 - (v[1] + 1.0)/2.0)
         bmesh.update_edit_mesh(me)
 
         plane.data.materials.append(mat)
@@ -715,7 +720,6 @@ def showPictureInPicture(args):
     if "duration" in args:
         duration = args["duration"]
         tentativeEndTime = max(time + duration, tentativeEndTime)
-    image = args["image"]
     imageSteps = args["image"].split(".")
     json = jsonData
     for i in range(len(imageSteps)):
@@ -728,7 +732,7 @@ def showPictureInPicture(args):
         rotationDuration = min(1.0, duration / 4.0)
         translationDuration = rotationDuration / 3.0
 
-        plane = imagePlane(source, True)
+        plane = imagePlane(source, parented=True)
         pivot = plane.parent
 
         print("{}, {}: showPictureInPicture, '{}'".format(frame(), frame(time + duration), source))
@@ -778,6 +782,97 @@ def showPictureInPicture(args):
             tex.image_user.frame_start = frame(time + rotationDuration)
 
             print("  frame_start {}, frame_duration {}".format(tex.image_user.frame_start, tex.image_user.frame_duration))
+
+def showSlice(args):
+    global time, tentativeEndTime
+    duration = 3
+    if "duration" in args:
+        duration = args["duration"]
+        tentativeEndTime = max(time + duration, tentativeEndTime)
+
+    bboxCenter = None
+    eulerTuple = None
+    if "bound" in args:
+        bound = args["bound"]
+        bboxCenter, bboxMin, bboxMax, radius = bounds(bound)
+    elif "euler" in args:
+        eulerTupleDeg = args["euler"]
+        eulerTuple = [math.radians(x) for x in eulerTupleDeg]
+
+    fade = 0.5
+    if "fade" in args:
+        fade = args["fade"]
+
+    delay = fade
+    if "delay" in args:
+        delay = args["delay"]
+
+    imageSteps = args["image"].split(".")
+    json = jsonData
+    for i in range(len(imageSteps)):
+        if imageSteps[i] in json:
+            json = json[imageSteps[i]]
+
+    if "source" in json:
+        source = json["source"]
+        plane = imagePlane(source, parented=False, aligned=False, flip=False)   
+
+        if bboxCenter:
+            w = (bboxMax[0] - bboxMin[0]) / 2
+            h = (bboxMax[1] - bboxMin[1]) / 2
+            plane.scale = (w, h, 1)
+
+            location0 = mathutils.Vector((bboxCenter[0], bboxCenter[1], bboxMin[2]))
+            location1 = mathutils.Vector((bboxCenter[0], bboxCenter[1], bboxMax[2]))
+        else:
+            euler = mathutils.Euler((0, 0, 0), "XYZ")
+            if eulerTuple:
+                euler = mathutils.Euler(eulerTuple, "XYZ")
+            s = 1
+            if "scale" in args:
+                s = args["scale"]
+            plane.scale = (s, s, 1)
+            plane.rotation_euler = euler
+            if "position" in json:
+                position = json["position"]
+                location0 = mathutils.Vector(position)
+            distance = 1
+            if "distance" in args:
+                distance = args["distance"]
+            displacement = euler.to_matrix() @ mathutils.Vector((0, 0, distance))
+            location1 = location0 + displacement
+
+        print("{}, {}: showSlice, '{}'".format(frame(), frame(time + duration), source))
+
+        plane.location = location0
+        plane.keyframe_insert("location", frame=frame(time))
+        if delay > 0:
+            plane.keyframe_insert("location", frame=frame(time + delay))
+        plane.location = location1
+        plane.keyframe_insert("location", frame=frame(time + duration - fade))
+
+        # Linear interpolation instead of any ease-in-ease-out, to match Neuroglancer.
+        for fcurve in plane.animation_data.action.fcurves:
+            for kf in fcurve.keyframe_points:
+                kf.interpolation = "LINEAR"
+
+        matName = "Material." + plane.name
+        mat = plane.data.materials[matName]
+        setMaterialValue(mat, "alpha", 0)
+        insertMaterialKeyframe(mat, "alpha", frame(time))
+        setMaterialValue(mat, "alpha", 1)
+        insertMaterialKeyframe(mat, "alpha", frame(time + fade))
+        insertMaterialKeyframe(mat, "alpha", frame(time + duration - fade))
+        setMaterialValue(mat, "alpha", 0)
+        insertMaterialKeyframe(mat, "alpha", frame(time + duration) + 1)
+
+        if bpy.app.version < (2, 80, 0):
+            tex = bpy.data.textures["Texture." + plane.name]
+        else:
+            tex = mat.node_tree.nodes["texImage"]
+        if tex:
+            tex.image_user.frame_start = frame(time + delay)
+
 
 bpy.ops.wm.open_mainfile(filepath=inputBlenderFile)
 

@@ -365,6 +365,17 @@ The object for `anchorPSD` has two keys, but `neuVid` supports additional keys t
 
 ![Animation from showPictureInPicture](showPiP.png)
 
+- Use `showSlice` to animate a "card" shwoing the image or movie texture without the initial and final rotation of `showPictureInPicture`
+  - `source`: one image, or an .avi file for a "movie texture"
+  - `bound`: the image will animate through this bounding box
+  - `euler`: angles for the card, as an alternative to `bound`
+    - `position`
+    - `scale`
+    - `distance`
+  - `duration`
+  - `delay`
+  - `fade`
+
 ## Renderers
 
 *Incomplete*
@@ -601,3 +612,14 @@ Required arguments:
 
 Optional arguments:
 - `duration` (default: 3)
+
+### `showSlice`
+
+Required arguments:
+- `source`
+- `bound` or `euler`
+
+ Optional arguments:
+- `duration` (default: 3)
+- `fade` (default: 0.5)
+- `delay` (default: `fade` value)
