@@ -350,7 +350,6 @@ for roi in rois:
 
 print("Importing synapse meshes...")
 
-synapseSetToNeuron = {}
 if "synapses" in jsonData:
     jsonSynapses = jsonData["synapses"]
 
@@ -361,11 +360,6 @@ if "synapses" in jsonData:
     for synapseSetName, synapseSetSpec in jsonSynapses.items():
         if synapseSetName == "source":
             continue
-
-        if not "neuron" in synapseSetSpec:
-            print("Error: synapse set '{}' is missing 'neuron'\n".format(synapseSetName))
-            continue
-        neuron = synapseSetSpec["neuron"]
 
         objPath = fileToImportForSynapses(source, synapseSetName, inputJsonDir)
         if not os.path.isfile(objPath):
@@ -385,8 +379,6 @@ if "synapses" in jsonData:
             obj = bpy.context.selected_objects[0]
             obj.name = "Synapses." + synapseSetName
 
-            synapseSetToNeuron[obj.name] = neuron
-
             print("Added object '{}'".format(obj.name))
         except Exception as e:
             print("Error: cannot import '{}': '{}'".format(objPath, str(e)))
@@ -399,11 +391,8 @@ synapseSets = [o for o in bpy.data.objects.keys() if o.startswith("Synapses.")]
 for synapseSet in synapseSets:
     obj = bpy.data.objects[synapseSet]
 
-    # Give each synapse ball the color of its neuron body.
-    neuron = synapseSetToNeuron[obj.name]
-    neuronMatName = "Material.Neuron." + str(neuron)
-    neuronMat = bpy.data.materials[neuronMatName]
-    color = neuronMat.diffuse_color
+    # Make each synapse white by default, to be changed when animation is added.
+    color = (1, 1, 1, 1)
 
     matName = "Material." + obj.name
     mat = newGlowingMaterial(matName, color)
