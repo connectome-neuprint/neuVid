@@ -43,3 +43,21 @@ def getColor(colorId, colors):
     else:
         print("Error: invalid color identifier '{}'".format(colorId))
         return None
+
+# The standard palette happens to have relatively similar colors at consecutive indices.
+# So for very small data sets, like just two neurons, the colors don't have enough contrast.
+# To fix this problem without changing the colors for older videos with larger data sets,
+# this special function mixes up the standard palette if `groupToNeuronIds` indicates that
+# the data set is very small.
+def shuffledColorsForSmallDataSets(groupToNeuronIds):
+    n = 0
+    for ids in groupToNeuronIds.values():
+        n += len(ids)
+    if n <= len(colors):
+        newColors = colors
+        newColors[0] = colors[2]
+        newColors[2] = colors[0]
+        newColors[3] = colors[4]
+        newColors[4] = colors[3]
+        return newColors
+    return colors

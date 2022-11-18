@@ -18,7 +18,7 @@ import sys
 timeStart = datetime.datetime.now()
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from utilsColors import colors, getColor
+from utilsColors import colors, getColor, shuffledColorsForSmallDataSets
 from utilsGeneral import newObject
 from utilsJson import decode_id, parseNeuronsIds, parseRoiNames, removeComments
 from utilsMaterials import newBasicMaterial, newGlowingMaterial, newSilhouetteMaterial
@@ -134,6 +134,9 @@ neuronToColorIndex = {}
 groupSizes = [[k, len(groupToNeuronIds[k])] for k in groupToNeuronIds.keys()]
 # Sort on size, and if there is a tie sort on group name.
 groupSizes.sort(key=lambda x: (x[1], x[0]))
+
+# Add more contrast for very small data sets.
+colors = shuffledColorsForSmallDataSets(groupToNeuronIds)
 
 iColor = 0
 for groupSize in groupSizes:
