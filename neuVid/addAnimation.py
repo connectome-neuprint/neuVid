@@ -891,6 +891,28 @@ def showSlice(args):
         if tex:
             tex.image_user.frame_start = frame(time + delay)
 
+def removeUnused():
+    for obj in bpy.data.objects:
+        if "." in obj.name:
+            category, name = obj.name.split(".", 1)
+            if category == "Neuron":
+                found = False
+                for group, ids in groupToNeuronIds.items():
+                    if name in ids:
+                        found = True
+                        break
+                if not found:
+                    bpy.data.objects.remove(obj, do_unlink=True)
+            elif category == "Roi":
+                found = False
+                for group, names in groupToRoiNames.items():
+                    if name in names:
+                        found = True
+                        break
+                if not found:
+                    bpy.data.objects.remove(obj, do_unlink=True)
+            elif category == "Synapses" and name not in groupToSynapseSetNames:
+                bpy.data.objects.remove(obj, do_unlink=True)
 
 bpy.ops.wm.open_mainfile(filepath=inputBlenderFile)
 
@@ -902,6 +924,8 @@ lastViewVector = mathutils.Vector((0, 1, 0))
 
 camera = bpy.data.objects["Camera"]
 camera.rotation_euler = mathutils.Euler((math.radians(-90), 0, 0), "XYZ")
+
+removeUnused()
 
 for step in jsonAnim:
     cmdName = step[0]
