@@ -2,8 +2,17 @@
 # used as the input for the Neuroglancer video tool:
 # https://github.com/google/neuroglancer/blob/master/python/neuroglancer/tool/video_tool.py
 
-# Runs with standard Python (not through Blender), as in:
-# $ python importNg.py -i video.txt -o video.json
+# Can be run any of a number of ways.
+
+# Getting input from the clipboard (particularly convenient for use with neuPrint):
+# $ python2 importNg.py -o videoA.json
+# $ python3 importNg.py -o videoB.json
+# $ blender --background --python importNg.py -- -o videoC.json
+
+# Getting input from a text file:
+# $ python2 importNg.py -i ng.txt -o videoD.json
+# $ python3 importNg.py -i ng.txt -o videoE.json
+# $ blender --background --python importNg.py -- -i ng.txt -o videoF.json
 
 import argparse
 import functools
@@ -11,10 +20,8 @@ import json
 import math
 import numbers
 import os
-import requests
+import platform
 import sys
-import urllib
-import urllib.parse
 
 # Only a few vector and quaternion functions are needed.  Get them from a custom implementation
 # instead of the standard Blender `mathutils` so this script can be run outside of Blender.
@@ -91,19 +98,23 @@ def argmin(l):
 #  URL of NG state C
 #  5
 #  URL of NG state D
-def normalize_input(input):
+def normalize_input(input_lines):
     lines = []
-    with open(input, "r") as f:
-        for line in f:
-            if not line.endswith("\n"):
-                line += "\n"
-            if line.startswith("http") or line.startswith("/#!"):
-                # If there are two Neuroglancer state URLs in a row, keep just the second one.
-                if len(lines) > 0 and isinstance(lines[-1], str):
-                    lines[-1] = line
-                else:
-                    lines.append(line)
-            elif line[:-1].isnumeric():
+    for line in input_lines:
+        if not line.endswith("\n"):
+            line += "\n"
+        if line.startswith("http") or line.startswith("/#!"):
+            # If there are two Neuroglancer state URLs in a row, keep just the second one.
+            if len(lines) > 0 and isinstance(lines[-1], str):
+                lines[-1] = line
+            else:
+                lines.append(line)
+        else:
+            if sys.version_info.major == 2:
+                u = unicode(line[:-1], "utf-8")
+            else:
+                u = line[:-1]
+            if u.isnumeric():
                 n = float(line[:-1])
                 # Numbers indicate how many seconds should pass before the effects of the next
                 # Neuroglancer state URL, and two numbers in a row should be summed.
@@ -119,7 +130,12 @@ def normalize_input(input):
 
 def parse_nglink(link):
     url_base, pseudo_json = link.split("#!")
-    pseudo_json = urllib.parse.unquote(pseudo_json)
+    if sys.version_info.major == 2:
+        import urllib
+        pseudo_json = urllib.unquote(pseudo_json)
+    else:
+        import urllib.parse
+        pseudo_json = urllib.parse.unquote(pseudo_json)
     data = json.loads(pseudo_json)
     return data
 
@@ -584,6 +600,7 @@ def process_layer_source(layer):
                 url_base += "synapses"
 
         elif layer_is_roi(layer):
+            import requests
             url_base = "https://storage.googleapis.com/" + url_mid + "/mesh/"
             segments = layer_segments(layer)
             segments_processed = []
@@ -642,22 +659,23 @@ def process_ng_state_sources(ng_state, time, time_next, split):
     layers = split_groups(ng_state) if split else ng_state["layers"]
 
     for layer in layers:
-        name = layer_name(layer)
-        if layer_is_segmentation(layer) or layer_is_synapses(layer):
-            category, sources = layer_category(layer)
-            # "Categories" (e.g., which bodies are in which named ROI or neuron groups) are not
-            # declared in advance, so their declarations have to be added as they are found and used.
-            if not name in category:
-                process_layer_source(layer)
-                src = layer_source(layer)
-                if not src in sources:
-                    sources.append(src)
-                if layer_is_segmentation(layer):
-                    category[name] = [sources.index(src), layer_segments(layer)]
-                elif layer_is_synapses(layer):
-                    for (neuron_group_name, neuron_ids) in neurons.items():
-                        add_synapses_for_neurons(category, "Pre", neuron_group_name, neuron_ids)
-                        add_synapses_for_neurons(category, "Post", neuron_group_name, neuron_ids)
+        if layer_is_visible(layer):
+            name = layer_name(layer)
+            if layer_is_segmentation(layer) or layer_is_synapses(layer):
+                category, sources = layer_category(layer)
+                # "Categories" (e.g., which bodies are in which named ROI or neuron groups) are not
+                # declared in advance, so their declarations have to be added as they are found and used.
+                if not name in category:
+                    process_layer_source(layer)
+                    src = layer_source(layer)
+                    if not src in sources:
+                        sources.append(src)
+                    if layer_is_segmentation(layer):
+                        category[name] = [sources.index(src), layer_segments(layer)]
+                    elif layer_is_synapses(layer):
+                        for (neuron_group_name, neuron_ids) in neurons.items():
+                            add_synapses_for_neurons(category, "Pre", neuron_group_name, neuron_ids)
+                            add_synapses_for_neurons(category, "Post", neuron_group_name, neuron_ids)
 
 def process_ng_state_alphas(ng_state, time, time_next):
     global initial_layer_alphas, contains_groups
@@ -760,6 +778,11 @@ def process_ng_state(ng_state, time, time_next, split):
     process_ng_state_alphas(ng_state, time, time_next)
     process_ng_state_orbit(ng_state, time, time_next)
 
+def fix_end(line):
+    if line.endswith(",\n"):
+        return line[:-2] + "\n"
+    return line
+
 def formatted():
     global result_json
     result_str = "{\n"
@@ -774,7 +797,7 @@ def formatted():
                 result_str += indent + "{}: {},\n".format(json.dumps(key1), json.dumps(val1))
 
             indent = indent[:-2]
-            result_str = result_str.removesuffix(",\n") + "\n"
+            result_str = fix_end(result_str)
             result_str += indent + "},\n"
         elif isinstance(val0, list):
             result_str += indent + "{}: [\n".format(json.dumps(key0))
@@ -784,16 +807,24 @@ def formatted():
                 result_str += indent + json.dumps(item) + ",\n"
 
             indent = indent[:-2]
-            result_str = result_str.removesuffix(",\n") + "\n"
+            result_str = fix_end(result_str)
             result_str += indent + "],\n"
         else:
             result_str += json.dumps(val0) + ",\n"
 
-    result_str = result_str.removesuffix(",\n") + "\n"
+    result_str = result_str = fix_end(result_str)
     result_str += "}\n"
     return result_str
 
 if __name__ == "__main__":
+    argv = sys.argv
+    if "--" in argv:
+        # Running as `blender --background --python importNg.py -- <more arguments>`
+        argv = argv[argv.index("--") + 1:]
+    else:
+        # Running as `python importNg.py <more arguments>`
+        argv = argv[1:]
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", "-i", dest="input", help="path to the file of Neuroglancer links")
     parser.add_argument("--output", "-o", dest="output", help="path to output JSON file")
@@ -805,7 +836,7 @@ if __name__ == "__main__":
     parser.add_argument("--synrad", "-sr", type=float, dest="synapse_radius", help="synapse ball radius")
     parser.set_defaults(synapse_confidence=0.0)
     parser.add_argument("--synconf", "-sc", type=float, dest="synapse_confidence", help="synapse confidence [0, 1]")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     print("Using input file: {}".format(args.input))
     output = args.output
@@ -815,7 +846,11 @@ if __name__ == "__main__":
 
     store_synapse_params(args)
 
-    lines = normalize_input(args.input)
+    input_lines = ""
+    with open(args.input, "r") as f:
+        input_lines = f.readlines()
+
+    lines = normalize_input(input_lines)
     time = 0
     time_next = 0
     for line in lines:
