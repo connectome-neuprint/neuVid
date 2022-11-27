@@ -15,16 +15,16 @@ Here is how to render a simple example video:
 4. Copy `examples/example1.json` to some writable directory like `/tmp`.
 5. Run the script to download meshes and create the basic Blender file without animation in the same directory as the JSON file.  This stage also creates two directories for downloaded mesh files, `neuVidNeuronMeshes` and `neuVidRoiMeshes`, also in the same directory as the JSON file.
 ```
-blender --background --python neuVid/importMeshes.py -- -ij /tmp/example1.json
+blender --background --python neuVid/importMeshes.py -- -i /tmp/example1.json
 ```
 6. Run the script to create a second Blender file with animation.  Adding animation is a separate step since it can take significantly less time than creating the basic Blender file, and may need to be done repeatedly as the animation specification is refined.
 ```
-blender --background --python neuVid/addAnimation.py -- -ij /tmp/example1.json
+blender --background --python neuVid/addAnimation.py -- -i /tmp/example1.json
 ```
 7. If desired, preview the animation by opening the second blender file (`/tmp/example1Anim.blender`) in a normal interactive (not background) Blender session.
 8. Run the script to render the animation with Blender's Cycles renderer.  This step takes the longest, about 30-40 minutes on a modern desktop or laptop computer.
 ```
-blender --background --python neuVid/render.py -- -ij /tmp/example1.json -o /tmp/framesFinal
+blender --background --python neuVid/render.py -- -i /tmp/example1.json -o /tmp/framesFinal
 ```
 9. Run the script to assemble the rendered frames into a video (named `/tmp/1-N.avi`, where `N` is the number of rendered frames).
 ```
@@ -43,15 +43,15 @@ Some datasets in Neuroglancer use the ["precomputed"](https://github.com/google/
 conda create --name neuVid-precomputed python=3.9
 conda activate neuVid-precomputed
 pip install meshparty open3d
-python neuVid/fetchMeshes.py -ij /tmp/fromNg.json
+python neuVid/fetchMeshes.py -i /tmp/fromNg.json
 ```
 Unfortunately, this installation does not work yet with the "arm64" version of Conda for Apple silicon, like the M1 chip; use the legacy "x86_64" version of Conda instead. (_Note that `neuVid's` conversion of Neuroglancer precomputed format is still experimental and the details could change._)
 
 The `neuVid` input file is then processed with the standard steps.
 ```
-blender --background --python neuVid/importMeshes.py -- -ij /tmp/fromNg.json
-blender --background --python neuVid/addAnimation.py -- -ij /tmp/fromNg.json
-blender --background --python neuVid/render.py -- -ij /tmp/fromNg.json -o /tmp/framesFinal
+blender --background --python neuVid/importMeshes.py -- -i /tmp/fromNg.json
+blender --background --python neuVid/addAnimation.py -- -i /tmp/fromNg.json
+blender --background --python neuVid/render.py -- -i /tmp/fromNg.json -o /tmp/framesFinal
 blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
 ```
 An example of a dataset supported by this approach is the [FlyEM hemibrain dataset in Neuroglancer](https://hemibrain-dot-neuroglancer-demo.appspot.com/#!%7B%22dimensions%22:%7B%22x%22:%5B8e-9%2C%22m%22%5D%2C%22y%22:%5B8e-9%2C%22m%22%5D%2C%22z%22:%5B8e-9%2C%22m%22%5D%7D%2C%22position%22:%5B17114%2C20543%2C18610%5D%2C%22crossSectionScale%22:54.23751620061224%2C%22crossSectionDepth%22:-37.62185354999912%2C%22projectionScale%22:64770.91726975332%2C%22layers%22:%5B%7B%22type%22:%22image%22%2C%22source%22:%22precomputed://gs://neuroglancer-janelia-flyem-hemibrain/emdata/clahe_yz/jpeg%22%2C%22tab%22:%22source%22%2C%22name%22:%22emdata%22%7D%2C%7B%22type%22:%22segmentation%22%2C%22source%22:%22precomputed://gs://neuroglancer-janelia-flyem-hemibrain/v1.0/segmentation%22%2C%22tab%22:%22segments%22%2C%22name%22:%22segmentation%22%7D%2C%7B%22type%22:%22segmentation%22%2C%22source%22:%7B%22url%22:%22precomputed://gs://neuroglancer-janelia-flyem-hemibrain/v1.0/rois%22%2C%22subsources%22:%7B%22default%22:true%2C%22properties%22:true%2C%22mesh%22:true%7D%2C%22enableDefaultSubsources%22:false%7D%2C%22pick%22:false%2C%22tab%22:%22segments%22%2C%22selectedAlpha%22:0%2C%22saturation%22:0%2C%22objectAlpha%22:0.8%2C%22ignoreNullVisibleSet%22:false%2C%22meshSilhouetteRendering%22:3%2C%22colorSeed%22:2685294016%2C%22name%22:%22roi%22%7D%2C%7B%22type%22:%22annotation%22%2C%22source%22:%22precomputed://gs://neuroglancer-janelia-flyem-hemibrain/v1.0/synapses%22%2C%22tab%22:%22rendering%22%2C%22ignoreNullSegmentFilter%22:false%2C%22shader%22:%22#uicontrol%20vec3%20preColor%20color%28default=%5C%22red%5C%22%29%5Cn#uicontrol%20vec3%20postColor%20color%28default=%5C%22blue%5C%22%29%5Cn#uicontrol%20float%20preConfidence%20slider%28min=0%2C%20max=1%2C%20default=0%29%5Cn#uicontrol%20float%20postConfidence%20slider%28min=0%2C%20max=1%2C%20default=0%29%5Cn%5Cnvoid%20main%28%29%20%7B%5Cn%20%20setColor%28defaultColor%28%29%29%3B%5Cn%20%20setEndpointMarkerColor%28%5Cn%20%20%20%20vec4%28preColor%2C%200.5%29%2C%5Cn%20%20%20%20vec4%28postColor%2C%200.5%29%29%3B%5Cn%20%20setEndpointMarkerSize%282.0%2C%202.0%29%3B%5Cn%20%20setLineWidth%282.0%29%3B%5Cn%20%20if%20%28prop_pre_synaptic_confidence%28%29%3C%20preConfidence%20%7C%7C%5Cn%20%20%20%20%20%20prop_post_synaptic_confidence%28%29%3C%20postConfidence%29%20discard%3B%5Cn%7D%5Cn%22%2C%22linkedSegmentationLayer%22:%7B%22pre_synaptic_cell%22:%22segmentation%22%2C%22post_synaptic_cell%22:%22segmentation%22%7D%2C%22filterBySegmentation%22:%5B%22post_synaptic_cell%22%2C%22pre_synaptic_cell%22%5D%2C%22name%22:%22synapse%22%7D%2C%7B%22type%22:%22segmentation%22%2C%22source%22:%22precomputed://gs://neuroglancer-janelia-flyem-hemibrain/mito_20190717.27250582%22%2C%22pick%22:false%2C%22tab%22:%22segments%22%2C%22selectedAlpha%22:0.82%2C%22name%22:%22mito%22%2C%22visible%22:false%7D%2C%7B%22type%22:%22segmentation%22%2C%22source%22:%22precomputed://gs://neuroglancer-janelia-flyem-hemibrain/mask_normalized_round6%22%2C%22pick%22:false%2C%22tab%22:%22segments%22%2C%22selectedAlpha%22:0.53%2C%22segments%22:%5B%222%22%5D%2C%22name%22:%22mask%22%2C%22visible%22:false%7D%5D%2C%22showSlices%22:false%2C%22selectedLayer%22:%7B%22visible%22:true%2C%22layer%22:%22segmentation%22%7D%2C%22layout%22:%22xy-3d%22%2C%22selection%22:%7B%7D%7D)
@@ -85,14 +85,14 @@ export NEUPRINT_APPLICATION_CREDENTIALS="eyJhbGci...xwRYI3dg"
 
 6. Run the script to create query the synapses.  This stage creates a directory for the synapse meshes, `neuVidSynapseMeshes`, in the same directory as the JSON file (assumed to have been copied to `/tmp` as in the first example).
 ```
-python neuVid/buildSynapses.py -ij /tmp/example2.json
+python neuVid/buildSynapses.py -i /tmp/example2.json
 ```
 
 7. Now proceed with the normal steps, as described in the previous section.
 ```
-blender --background --python neuVid/importMeshes.py -- -ij /tmp/example2.json
-blender --background --python neuVid/addAnimation.py -- -ij /tmp/example2.json
-blender --background --python neuVid/render.py -- -ij /tmp/example2.json -o /tmp/framesFinal
+blender --background --python neuVid/importMeshes.py -- -i /tmp/example2.json
+blender --background --python neuVid/addAnimation.py -- -i /tmp/example2.json
+blender --background --python neuVid/render.py -- -i /tmp/example2.json -o /tmp/framesFinal
 blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
 ```
 

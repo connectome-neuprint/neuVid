@@ -57,7 +57,7 @@ else:
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--inputBlender", "-ib", dest="inputBlenderFile", help="path to the input .blend file")
-parser.add_argument("--inputJson", "-ij", dest="inputJsonFile", help="path to the JSON file describing the input")
+parser.add_argument("--inputJson", "-ij", "-i", dest="inputJsonFile", help="path to the JSON file describing the input")
 parser.add_argument("--frame-start", "-s", type=int, dest="start", help="first frame to render")
 parser.add_argument("--frame-end", "-e", type=int, dest="end", help="last frame to render")
 parser.add_argument("--frame-jump", "-j", type=int, dest="step", help="number of frames to step forward")

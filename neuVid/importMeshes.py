@@ -31,7 +31,7 @@ else:
     argv = argv[argv.index("--") + 1:]
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--inputJson", "-ij", dest="inputJsonFile", help="path to the JSON file describing the input")
+parser.add_argument("--inputJson", "-ij", "-i", dest="inputJsonFile", help="path to the JSON file describing the input")
 parser.add_argument("--output", "-o", dest="outputFile", help="path for the output .blend file")
 # A limit of 0 means no limit.
 parser.set_defaults(limit=0)

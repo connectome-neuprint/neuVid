@@ -18,7 +18,7 @@
 # functionality in this script cannot easily be invoked from within
 # importMeshes.py, even after the Conda environment is activated.
 # So run it manually:
-# $ python buildSynapses.py -ij example.json
+# $ python buildSynapses.py -i example.json
 
 
 import argparse
@@ -32,7 +32,7 @@ from utilsJson import removeComments
 from utilsMeshesBasic import icosohedron
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--inputJson", "-ij", dest="inputJsonFile", help="path to the JSON file describing the input")
+parser.add_argument("--inputJson", "-ij", "-i", dest="inputJsonFile", help="path to the JSON file describing the input")
 args = parser.parse_args()
 
 def matchingKey(key, json):

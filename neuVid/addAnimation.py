@@ -31,7 +31,7 @@ else:
     argv = argv[argv.index("--") + 1:]
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--inputJson", "-ij", dest="inputJsonFile", help="path to the JSON file describing the input")
+parser.add_argument("--inputJson", "-ij", "-i", dest="inputJsonFile", help="path to the JSON file describing the input")
 parser.add_argument("--inputBlender", "-ib", dest="inputBlenderFile", help="path to the input .blend file")
 parser.add_argument("--output", "-o", dest="outputFile", help="path for the output .blend file")
 args = parser.parse_args(argv)
