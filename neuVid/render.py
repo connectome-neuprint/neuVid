@@ -127,7 +127,10 @@ print("Using fps: {}".format(bpy.context.scene.render.fps))
 if args.output != None:
     output = args.output
 else:
-    output = "."
+    input = args.inputJsonFile
+    if not input:
+        input = args.inputBlenderFile
+    output = os.path.splitext(input)[0] + "-frames"
 # Ensure a final path separator, which is important for how Blender generates output file names
 # from frame numbers.
 output = os.path.join(output, "")
