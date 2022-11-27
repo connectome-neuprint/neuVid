@@ -233,9 +233,9 @@ def synapse_confidence_matches(response_synapse, spec):
     if not spec_conf:
         return True
     if "Prop" in response_synapse:
-        prop = response_synapse["Prop"].lower()
+        prop = response_synapse["Prop"]
         if "conf" in prop:
-            conf = prop["conf"]
+            conf = float(prop["conf"])  
             return conf >= spec_conf
     return True
 
@@ -258,6 +258,9 @@ def fetch_synapses(json_synapses):
                 neuron_ids = group_spec["neurons"]
                 for id in neuron_ids:
                     url = f"{source}/label/{id}"
+
+                    print(f"Fetching synapses from {url}")
+
                     response = requests.get(url)
                     response.raise_for_status()
                     for synapse in response.json():
