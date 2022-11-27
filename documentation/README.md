@@ -68,7 +68,7 @@ When the input file is edited, some `neuVid` scripts need to be rerun, but which
 
 ## Previewing
 
-For videos more complex than the simplest one, it is useful to see a preview before taking the time to render all the frames.  The simplest way to do so is to run the interactive Blender application and load the file produced by `addAnimation.py`. Press the "Play Animation" button by the timeline to see a lower-quality rendering of the animation at near-realtime rates.  (Note that with Blender 2.79, this interactive rendering of silhouette shading and transparency is rather bad, but the situation is significantly better for Blender 2.80 and later.)
+For videos more complex than the simplest one, it is useful to see a preview before taking the time to render all the frames.  The simplest way to do so is to run the interactive Blender application and load the file produced by `addAnimation.py`. Press the "Play Animation" button by the timeline to see a lower-quality rendering of the animation.  (Note that with Blender 2.79, this interactive rendering of silhouette shading and transparency is rather bad, but the situation is significantly better for Blender 2.80 and later.)
 
 To preview the real rendering, another approach is to render only every `n` frames (e.g., `n` of 24 would render on frame per second of final animation, for the default 24 frames per second).  The `render.py` script supports this approach with the `-j n` (or `--frame-jump n`) argument.
 
@@ -389,7 +389,7 @@ The object for `anchorPSD` has two keys, but `neuVid` supports additional keys t
 - "Capacity" refers to the amount of data (i.e., neuron meshes, ROI meshes) that the renderer can handle.  Octane's capacity is limited by GPU memory.  Cycles can use either the CPU or the GPU, and the CPU often can handle more data.  On a machine with 32 GB of memory, for example, it has rendered a scene with almost one-quarter billion mesh faces.
 
 - Rendering with Cycles:
-  - `--cycles-render` (or `-cyc`) argument for `render.py`
+  - The default choice.
   - If black spots appear on fading objects (i.e., objects with alpha less than one), try a `--transparent-max-bounces` (or `-tmb`) value greater than the default of 32.
   - Uses only the CPU by default.  To use the GPU, use one of the following flags, to choose the options [described in the Blender documantion](https://docs.blender.org/manual/en/latest/render/cycles/gpu_rendering.html):
     - `--optix` (or `-optix`)
@@ -402,6 +402,9 @@ The object for `anchorPSD` has two keys, but `neuVid` supports additional keys t
   - `-oct` or `--octane` argument for `render.py`
   - `--roi` argument `render.py`
   - `compRoisAndNeurons.py` script
+
+- Rendering with Eevee:
+  - `-ee` or `--eevee` argument for `render.py`
 
 ## Neuroglancer
 
