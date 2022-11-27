@@ -84,6 +84,31 @@ def argmin(l):
         if l[i] == m:
             return i
 
+def get_clipboard():
+    clip = None
+    if platform.system() == "Darwin" or platform.system() == "Linux":
+        try:
+            import subprocess
+            if platform.system() == "Darwin":
+                p = subprocess.Popen(["pbpaste"], stdout=subprocess.PIPE)
+            else:
+                p = subprocess.Popen(["xclip", "-selection", "clipboard", "-o"], stdout=subprocess.PIPE)
+            if p.wait() == 0:
+                data = p.stdout.read()
+                clip = str(data)[2:-1]
+            else:
+                print("Could not access clipboard")
+        except:
+            print("Could not access clipboard")
+    elif platform.system() == "Windows":
+        import subprocess
+        # PowerShell should be installed by default on all Windows systems since Windows 7.
+        ret = subprocess.getoutput("powershell.exe -Command Get-Clipboard")
+        return ret
+    if clip:
+        print("Clipboard starts with '{}'".format(clip[:32]))
+    return clip
+
 # Transforms input like this:
 #  URL of NG state A
 #  1
@@ -826,6 +851,7 @@ if __name__ == "__main__":
         argv = argv[1:]
 
     parser = argparse.ArgumentParser()
+    parser.set_defaults(input="")
     parser.add_argument("--input", "-i", dest="input", help="path to the file of Neuroglancer links")
     parser.add_argument("--output", "-o", dest="output", help="path to output JSON file")
     parser.set_defaults(split_groups=True)
@@ -838,17 +864,26 @@ if __name__ == "__main__":
     parser.add_argument("--synconf", "-sc", type=float, dest="synapse_confidence", help="synapse confidence [0, 1]")
     args = parser.parse_args(argv)
 
-    print("Using input file: {}".format(args.input))
+    if not args.input:
+        print("Using clipboard input")
+        clip = get_clipboard()
+        if clip:
+            input_lines = [clip]
+        else:
+            print("Cannot access clipboard")
+            quit()
+    else:
+        print("Using input file: {}".format(args.input))
+        input_lines = ""
+        with open(args.input, "r") as f:
+            input_lines = f.readlines()
+
     output = args.output
     if output == None:
         output = os.path.splitext(args.input)[0] + ".json"
     print("Using output file: {}".format(output))
 
     store_synapse_params(args)
-
-    input_lines = ""
-    with open(args.input, "r") as f:
-        input_lines = f.readlines()
 
     lines = normalize_input(input_lines)
     time = 0
