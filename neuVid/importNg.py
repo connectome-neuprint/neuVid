@@ -801,6 +801,8 @@ if __name__ == "__main__":
     parser.add_argument("--nosplit", "-ns", dest="split_groups", action="store_false", help="do NOT split groups of segments (which allows individual animation)")
     parser.set_defaults(match_camera=False)
     parser.add_argument("--matchcam", "-mc", dest="match_camera", action="store_true", help="match the initial NG camera (instead of using the standard view)")    parser.add_argument("--synrad", "-sr", type=float, dest="synapse_radius", help="synapse ball radius")
+    parser.set_defaults(synapse_radius=60.0)
+    parser.add_argument("--synrad", "-sr", type=float, dest="synapse_radius", help="synapse ball radius")
     parser.set_defaults(synapse_confidence=0.0)
     parser.add_argument("--synconf", "-sc", type=float, dest="synapse_confidence", help="synapse confidence [0, 1]")
     args = parser.parse_args()
