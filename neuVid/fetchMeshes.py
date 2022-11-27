@@ -287,7 +287,7 @@ if __name__ == "__main__":
     time_start = datetime.datetime.now()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--inputJson", "-ij", dest="input_json_file", help="path to the JSON file describing the input")
+    parser.add_argument("--inputJson", "-ij", "-i", dest="input_json_file", help="path to the JSON file describing the input")
     parser.set_defaults(decim_fraction=0.5)
     parser.add_argument("--decim", "-d", type=float, dest="decim_fraction", help="mesh decimation fraction")
     parser.set_defaults(lod=3)

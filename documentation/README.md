@@ -32,18 +32,18 @@ Here is a `neuVid` input file for the simplest video:
 The video then would be generated using these steps, described in more detail in the [Basic Usage](../README.md#basic-usage) documentation:
 
 ```
-blender --background --python neuVid/importMeshes.py -- -ij /tmp/simplest.json -o /tmp/simplest.blend
-blender --background --python neuVid/addAnimation.py -- -ij /tmp/simplest.json -ib /tmp/simplest.blend -o /tmp/simplestAnim.blend
+blender --background --python neuVid/importMeshes.py -- -i /tmp/simplest.json -o /tmp/simplest.blend
+blender --background --python neuVid/addAnimation.py -- -i /tmp/simplest.json -ib /tmp/simplest.blend -o /tmp/simplestAnim.blend
 blender --background --python neuVid/render.py -- -ib /tmp/simplestAnim.blend -o /tmp/framesFinal
 blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
 ```
 
-The `-o` and `-ib` arguments may be omitted with their values being inferred from `-ij /tmp/simplest.json`, allowing this more concise version:
+The `-o` and `-ib` arguments may be omitted with their values being inferred from `-i /tmp/simplest.json`, allowing this more concise version:
 
 ```
-blender --background --python neuVid/importMeshes.py -- -ij /tmp/simplest.json
-blender --background --python neuVid/addAnimation.py -- -ij /tmp/simplest.json
-blender --background --python neuVid/render.py -- -ij /tmp/simplest.json -o /tmp/framesFinal
+blender --background --python neuVid/importMeshes.py -- -i /tmp/simplest.json
+blender --background --python neuVid/addAnimation.py -- -i /tmp/simplest.json
+blender --background --python neuVid/render.py -- -i /tmp/simplest.json -o /tmp/framesFinal
 blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
 ```
 
@@ -337,10 +337,10 @@ Even with this fading, smaller synapse sets may be hard to notice, especially if
 As described in more detail in the [Usage with Synapses](../README.md#usage-with-synapses) documentation, animations with synapses require the running of an extra script, `buildSynapses.py`.  This script queries the synapse locations from the `neuPrint` server mentioned in the `source` URL.  The full set of steps to generate the animation are as follows:
 
 ```
-python neuVid/buildSynapses.py -ij /tmp/synapses.json
-blender --background --python neuVid/importMeshes.py -- -ij /tmp/synapses.json
-blender --background --python neuVid/addAnimation.py -- -ij /tmp/synapses.json
-blender --background --python neuVid/render.py -- -ij /tmp/synapses.json -o /tmp/framesFinal
+python neuVid/buildSynapses.py -i /tmp/synapses.json
+blender --background --python neuVid/importMeshes.py -- -i /tmp/synapses.json
+blender --background --python neuVid/addAnimation.py -- -i /tmp/synapses.json
+blender --background --python neuVid/render.py -- -i /tmp/synapses.json -o /tmp/framesFinal
 blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
 ```
 
