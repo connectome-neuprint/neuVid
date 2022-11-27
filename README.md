@@ -2,7 +2,7 @@
 
 ## Summary
 
-These Python scripts generate simple anatomical videos in [Blender](https://www.blender.org/), following the conventions common in neuroscience research on the *Drosophila* fruit fly.  The input is a [JSON](https://en.wikipedia.org/wiki/JSON) file giving a high-level description of anatomical elements (e.g., neurons, regions of interest, synapses) and how they are animated (e.g., the camera frames on some neurons, then those neurons fade out while the camera orbits around them).  Renderings of medium quality can be done relatively quickly using the default Blender renderer, and high-quality renderings can be done more slowly with a path-tracing renderer: Blender's Cycles, or the [OTOY Octane renderer](https://home.otoy.com/render/octane-render/) (which requires a commercial license).  Here is a video scripted with `neuVid` and rendered with Octane (with titles added separately in [iMovie](https://www.apple.com/imovie/)):
+These Python scripts generate simple anatomical videos in [Blender](https://www.blender.org/), following the conventions common in neuroscience research on the *Drosophila* fruit fly.  The input is a [JSON](https://en.wikipedia.org/wiki/JSON) file giving a high-level description of anatomical elements (e.g., neurons, regions of interest, synapses) and how they are animated (e.g., the camera frames on some neurons, then those neurons fade out while the camera orbits around them).  Renderings of high quality can be done with a path-tracing renderer: Blender's Cycles, or the [OTOY Octane renderer](https://home.otoy.com/render/octane-render/) (which requires a commercial license).  Here is a video scripted with `neuVid` and rendered with Octane (with titles added separately in [iMovie](https://www.apple.com/imovie/)):
 
 [![Watch the video](https://img.youtube.com/vi/nu0b_tjCGxQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=nu0b_tjCGxQ)
 
@@ -22,7 +22,7 @@ blender --background --python neuVid/importMeshes.py -- -ij /tmp/example1.json
 blender --background --python neuVid/addAnimation.py -- -ij /tmp/example1.json
 ```
 7. If desired, preview the animation by opening the second blender file (`/tmp/example1Anim.blender`) in a normal interactive (not background) Blender session.
-8. Run the script to render the animation with the default Blender renderer (Eevee for Blender 2.80 and later).  This step takes the longest, about 30-40 minutes on a modern desktop or laptop computer.
+8. Run the script to render the animation with Blender's Cycles renderer.  This step takes the longest, about 30-40 minutes on a modern desktop or laptop computer.
 ```
 blender --background --python neuVid/render.py -- -ij /tmp/example1.json -o /tmp/framesFinal
 ```

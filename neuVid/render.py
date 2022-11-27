@@ -69,12 +69,13 @@ parser.set_defaults(willComp=True)
 parser.add_argument("--nocomp", "-nc", dest="willComp", action="store_false", help="create a final PNG, not a comp layer")
 parser.set_defaults(useOctane=False)
 parser.add_argument("--octane", "-oct", dest="useOctane", action="store_true", help="use the Octane renderer")
-parser.set_defaults(useCycles=False)
+parser.set_defaults(useCycles=True)
 # The Blender documentation claims that the double dashes (`--`) in the command line arguments "end option processing, 
 # following arguments passed unchanged."  But in fact, Blender does look after the double dashes for some arguments
 # that start with `--cycles`.  So this script cannot specify `--cycles` as its argument, and instead it must specify
 # something more awkward like `--cycles-render`.  As a user, it is simplest to use the short form, `-cyc`.
 parser.add_argument("--cycles-render", "-cyc", dest="useCycles", action="store_true", help="use the Cycles renderer")
+parser.add_argument("--eevee", "-ee", dest="useCycles", action="store_false", help="use the Eevee renderer")
 parser.set_defaults(transparentMaxBounces=32)
 parser.add_argument("--transparent-max-bounces", "-tmb", type=int, dest="transparentMaxBounces", help="max ray bounces when alpha < 1")
 
