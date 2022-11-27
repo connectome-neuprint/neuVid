@@ -1,5 +1,7 @@
-# Runs with standard Python (not through Blender), as in:
-# $ python fetchMeshes.py -ij from-neuroglancer.json
+# Can be run any of a number of ways.
+
+# $ python3 fetchMeshes.py -i from-ng.json
+# $ blender --background --python importNg.py -- -i from-ng.json
 
 # To fetch only meshes (e.g., synapses) from a neuPrint.janelia.org Neuroglancer session,
 # no additional dependencies are required.
@@ -286,15 +288,24 @@ def fetch_synapses(json_synapses):
 if __name__ == "__main__":
     time_start = datetime.datetime.now()
 
+    argv = sys.argv
+    if "--" in argv:
+        # Running as `blender --background --python fetchMeshes.py -- <more arguments>`
+        argv = argv[argv.index("--") + 1:]
+    else:
+        # Running as `python fetchMeshes.py <more arguments>`
+        argv = argv[1:]
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--inputJson", "-ij", "-i", dest="input_json_file", help="path to the JSON file describing the input")
     parser.set_defaults(decim_fraction=0.5)
     parser.add_argument("--decim", "-d", type=float, dest="decim_fraction", help="mesh decimation fraction")
     parser.set_defaults(lod=3)
     parser.add_argument("--lod", "-l", type=int, dest="lod", help="mesh LOD (level of detail), 1 is highest resolution")
+    # TODO: Update the handling of "force", since even without it synapses are forced, for safety with importNg.py reusing synapse groups names?
     parser.set_defaults(force=False)
     parser.add_argument("--force", "-fo", dest="force", action="store_true", help="force downloading of already-present OBJs")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     print(f"Using input file: {args.input_json_file}")
     print(f"Using decimation fraction: {args.decim_fraction}")
