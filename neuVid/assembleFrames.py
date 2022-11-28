@@ -41,16 +41,20 @@ if args.inputDir == None:
     parser.print_help()
     quit()
 
+inputDir = args.inputDir
+input, ext = os.path.splitext(inputDir)
+if ext.lower() == ".json":
+    inputDir = input + "-frames"
+
 outputDir = args.outputDir
 if outputDir == None:
-    outputDir = args.inputDir
+    outputDir = inputDir
 if outputDir[:-1] != "/":
     outputDir += "/"
 print("Using output directory: '{}'".format(outputDir))
 
 seqEd = bpy.context.scene.sequence_editor_create()
 
-inputDir = args.inputDir
 pngs = [f for f in os.listdir(inputDir) if os.path.splitext(f)[1] == ".png"]
 pngs.sort()
 
