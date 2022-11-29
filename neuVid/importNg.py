@@ -550,12 +550,6 @@ def add_initial_alphas():
             if alpha != 1.0:
                 add_set_value(group, "alpha", alpha, 0)
 
-def add_initial_colors():
-    items = list(reversed(synapses.items()))
-    for (group, spec) in items:
-        color = "#ffff00" if group.endswith("Pre") else "#303030"
-        add_set_value("synapses." + group, "color", color, 0)
-
 def add_animation(end_time):
     global result_json, animation
     compress_time_advances()
@@ -911,7 +905,6 @@ if __name__ == "__main__":
         print("Using a standard view: run with --matchcam (or -mc) to instead match the Neuroglancer camera")
     add_initial_frame_camera()
     add_initial_alphas()
-    add_initial_colors()
     add_animation(time)
 
     result_json_formatted = formatted()

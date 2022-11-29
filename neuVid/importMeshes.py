@@ -410,8 +410,12 @@ synapseSets = [o for o in bpy.data.objects.keys() if o.startswith("Synapses.")]
 for synapseSet in synapseSets:
     obj = bpy.data.objects[synapseSet]
 
-    # Make each synapse white by default, to be changed when animation is added.
-    color = (1, 1, 1, 1)
+    if "pre" in obj.name.lower():
+        color = (1, 1, 0, 1)
+    elif "post" in obj.name.lower():
+        color = (0.19, 0.19, 0.19, 1)
+    else:
+        color = (1, 1, 1, 1)
 
     matName = "Material." + obj.name
     mat = newGlowingMaterial(matName, color)
