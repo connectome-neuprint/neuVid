@@ -380,7 +380,7 @@ if "synapses" in jsonData:
         if synapseSetName == "source":
             continue
 
-        objPath = fileToImportForSynapses(source, synapseSetName, inputJsonDir)
+        objPath = fileToImportForSynapses(source, synapseSetName, synapseSetSpec, inputJsonDir)
         if not os.path.isfile(objPath):
             print("Skipping missing file {}".format(objPath))
             missingSynapseSetObjs.append(synapseSetName)

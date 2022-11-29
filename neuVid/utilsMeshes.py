@@ -10,6 +10,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsNg import dir_name_from_ng_source, is_ng_source
+from utilsSynapses import download_synapses;
 
 def fileToImportForNeuron(source, bodyId, parentForDownloadDir):
     if source.startswith("http"):
@@ -89,20 +90,23 @@ def fileToImportForRoi(source, roiName, parentForDownloadDir):
             dir += "/"
         return dir + roiName + ".obj"
 
-def fileToImportForSynapses(source, synapseSetName, parentForDownloadDir):
+def fileToImportForSynapses(source, synapseSetName, synapseSetSpec, parentForDownloadDir):
     if source.startswith("http"):
-        # Assume buildSynapses.py has been run already.  It is not run directly here,
-        # for now, because it depends on neuprint-python, obtained from Conda, and
-        # making Blender work with Conda is a topic for future work.
-
         dirName = "neuVidSynapseMeshes/"
         downloadDir = parentForDownloadDir
         if downloadDir[-1] != "/":
             downloadDir += "/"
         downloadDir += dirName
 
-        fileName = downloadDir + synapseSetName + ".obj"
-        return fileName
+        try:
+            if not os.path.exists(downloadDir):
+                os.mkdir(downloadDir)
+            fileName = downloadDir + synapseSetName + ".obj"
+            download_synapses(source, synapseSetSpec, fileName)
+            return fileName
+        except OSError as e:
+            print("Error: writing synapses '{}' from source URL '{}' failed: {}".format(synapseSetName, source, str(e)))
+            return None
     else:
         dir = source
         if dir[-1] != "/":
