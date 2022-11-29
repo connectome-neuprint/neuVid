@@ -27,8 +27,8 @@ import tempfile
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsJson import decode_id, parseNeuronsIds, removeComments
-from utilsMeshesBasic import icosohedron
 from utilsNg import dir_name_from_ng_source, is_ng_source, source_to_url
+from utilsSynapses import download_synapses
 
 def get_mesh_info(source):
     url = source_to_url(source)
@@ -221,67 +221,16 @@ def fetch_directly(source, mesh_info, ids, lod, decim_fraction, input_json_dir, 
     if len(failed) > 0:
         print(f"Failed: {failed}")
 
-def synapse_type_matches(response_synapse, spec):
-    type = spec["type"] if "type" in spec else None
-    if not type:
-        return True
-    if "Kind" in response_synapse:
-        kind = response_synapse["Kind"].lower()
-        return kind.startswith(type)
-    return True
-
-def synapse_confidence_matches(response_synapse, spec):
-    spec_conf = spec["confidence"] if "confidence" in spec else None
-    if not spec_conf:
-        return True
-    if "Prop" in response_synapse:
-        prop = response_synapse["Prop"]
-        if "conf" in prop:
-            conf = float(prop["conf"])  
-            return conf >= spec_conf
-    return True
-
-def synapse_radius(spec):
-    if "radius" in spec:
-        return spec["radius"]
-    return 60
-
 def fetch_synapses(json_synapses):
     if not "source" in json_synapses:
         return
     source = json_synapses["source"]
-    if not source.startswith("http"):
-        return
-    output_dir = ensure_dir(input_json_dir, "neuVidSynapseMeshes")
-    for (group_name, group_spec) in json_synapses.items():
-        if isinstance(group_spec, dict):
-            positions = []
-            if "neurons" in group_spec:
-                neuron_ids = group_spec["neurons"]
-                for id in neuron_ids:
-                    url = f"{source}/label/{id}"
-
-                    print(f"Fetching synapses from {url}")
-
-                    response = requests.get(url)
-                    response.raise_for_status()
-                    for synapse in response.json():
-                        if "Pos" in synapse:
-                            pos = synapse["Pos"]
-                            if synapse_type_matches(synapse, group_spec):
-                                if synapse_confidence_matches(synapse, group_spec):
-                                    positions.append(pos)
-
-                radius = synapse_radius(group_spec)
-                output_path = os.path.join(output_dir, group_name) + ".obj"
-                try:
-                    print("Writing {} ...".format(output_path))
-                    with open(output_path, "w") as f:
-                        for i in range(len(positions)):
-                            f.write(icosohedron(positions[i], radius, i))
-                    print("Done")
-                except OSError as e:
-                    print("Error: writing synapses '{}' failed: {}\n".format(group_name, str(e)))
+    if is_ng_source(source):
+        url = source_to_url(source)
+        output_dir = ensure_dir(input_json_dir, "neuVidSynapseMeshes")
+        for (synapse_set_name, synapse_set_spec) in json_synapses.items():
+            output_path = os.path.join(output_dir, synapse_set_name) + ".obj"
+            download_synapses(url, synapse_set_spec, output_path)
 
 #
 
@@ -345,7 +294,6 @@ if __name__ == "__main__":
     if "synapses" in json_data:
         json_synapses = json_data["synapses"]
         fetch_synapses(json_synapses)
-
 
     time_end = datetime.datetime.now()
     print()

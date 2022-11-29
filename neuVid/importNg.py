@@ -184,7 +184,7 @@ def layer_is_synapses(layer):
     if "type" in layer:
         if layer["type"] == "annotation":
             if "name" in layer:
-                if layer["name"].endswith("synapses"):
+                if "synapses" in layer["name"].lower():
                     return True
     return False
 
