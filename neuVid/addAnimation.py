@@ -38,7 +38,7 @@ args = parser.parse_args(argv)
 
 if args.inputJsonFile == None:
     parser.print_help()
-    quit()
+    sys.exit()
 
 inputBlenderFile = args.inputBlenderFile
 if inputBlenderFile == None:
@@ -54,7 +54,7 @@ jsonData = json.loads(removeComments(args.inputJsonFile))
 
 if jsonData == None:
     print("Loading JSON file {} failed".format(args.inputJsonFile))
-    quit()
+    sys.exit()
 
 if "neurons" in jsonData:
     jsonNeurons = jsonData["neurons"]
@@ -70,7 +70,7 @@ if "synapses" in jsonData:
 
 if not "animation" in jsonData:
     print("JSON contains no 'animation' key, whose value is lists of commands specifying the animation")
-    quit()
+    sys.exit()
 jsonAnim = jsonData["animation"]
 
 def meshObjs(name):
@@ -272,7 +272,10 @@ def keysAtFrame(obj, dataPath, frame):
 
 #
 
-def advanceTime(args):
+# The Python function implementing command `x` must be named `xCmd`.  The `Cmd` suffix simplifies  
+# printing all the supported commands when an erroneous command is parsed.
+
+def advanceTimeCmd(args):
     global time, tentativeEndTime
     if "by" in args:
         by = args["by"]
@@ -284,7 +287,7 @@ def advanceTime(args):
     else:
         print("Error: advanceTime: missing argument 'by'")
 
-def setValue(args):
+def setValueCmd(args):
     # Makes an instantaneous change, so mostly useful for setting an initial value.
     if "meshes" in args:
         meshes = args["meshes"]
@@ -342,7 +345,7 @@ def bboxAxisForViewVector(v):
     # TODO: Pick the axis with maximal projection?
     return 2
 
-def frameCamera(args):
+def frameCameraCmd(args):
     global time, tentativeEndTime, lastCameraCenter
     camera = bpy.data.objects["Camera"]
     duration = 0
@@ -397,7 +400,7 @@ def frameCamera(args):
     else:
         print("Error: frameCamera: unknown bound object '{}'".format(args["bound"]))
 
-def fade(args):
+def fadeCmd(args):
     global time, tentativeEndTime
     startingValue = 1
     type = "alpha"
@@ -535,7 +538,7 @@ def fade(args):
             setMaterialValue(mat, "alpha", endingAlpha)
             insertMaterialKeyframe(mat, "alpha", frame(time + duration))
 
-def pulse(args):
+def pulseCmd(args):
     global time, tentativeEndTime, colors
     duration = 1
     if "duration" in args:
@@ -582,7 +585,7 @@ def orbitAxis(args):
     except:
         return None
 
-def orbitCamera(args):
+def orbitCameraCmd(args):
     # If arg "around" is "a.b" then orbiting will be around the location of
     # "Bounds.a.b".
     global time, tentativeEndTime, lastCameraCenter, lastOrbitEndingAngle
@@ -605,7 +608,8 @@ def orbitCamera(args):
     # Mostly for debugging.
     axis = orbitAxis(args)
     if axis == None:
-        exit("Unrecognized axis in '{}'".format(args));
+        print("Unrecognized axis in '{}'".format(args))
+        sys.exit()
 
     startingAngle = lastOrbitEndingAngle[axis]
     startingEuler = mathutils.Euler((0, 0, 0), "XYZ")
@@ -688,7 +692,7 @@ def orbitCamera(args):
 
     updateCameraClip(camera.name)
 
-def centerCamera(args):
+def centerCameraCmd(args):
     global time, tentativeEndTime, lastCameraCenter
     camera = bpy.data.objects["Camera"]
     duration = 1
@@ -700,7 +704,7 @@ def centerCamera(args):
         if isinstance(args["position"], list):
             position = args["position"]
         else:
-            # TODO: This code is shared with fade().  Refactor,
+            # TODO: This code is shared with fadeCmd().  Refactor,
             positionSteps = args["position"].split(".")
             json = jsonData
             for i in range(len(positionSteps)):
@@ -732,7 +736,7 @@ def centerCamera(args):
 
             lastCameraCenter = center
 
-def showPictureInPicture(args):
+def showPictureInPictureCmd(args):
     global time, tentativeEndTime
     duration = 3
     if "duration" in args:
@@ -801,7 +805,7 @@ def showPictureInPicture(args):
 
             print("  frame_start {}, frame_duration {}".format(tex.image_user.frame_start, tex.image_user.frame_duration))
 
-def showSlice(args):
+def showSliceCmd(args):
     global time, tentativeEndTime
     duration = 3
     if "duration" in args:
@@ -914,6 +918,24 @@ def removeUnused():
             elif category == "Synapses" and name not in groupToSynapseSetNames:
                 bpy.data.objects.remove(obj, do_unlink=True)
 
+def toJsonQuotes(x):
+    return str(x).replace("'", "\"")
+
+def invalidLineMsg(line):
+    return "Invalid animation line:\n  {}".format(toJsonQuotes(line))
+
+def properCmdStructure():
+    return 'An animation command must have the structure:\n  ["cmd-name", {"arg-name-1": arg-value-1, ..., "arg-name-N": arg-value-N}]'
+
+def cmdNamePublic(cmd):
+    # Remove the "Cmd" suffix.
+    return cmd[:-3]
+
+def supportedCmds():
+    cmds = [cmdNamePublic(cmd) for cmd in globals().keys() if cmd.endswith("Cmd")]
+    cmds.sort()
+    return cmds
+
 bpy.ops.wm.open_mainfile(filepath=inputBlenderFile)
 
 bpy.context.scene.render.fps = fps
@@ -928,13 +950,34 @@ camera.rotation_euler = mathutils.Euler((math.radians(-90), 0, 0), "XYZ")
 removeUnused()
 
 for step in jsonAnim:
+    if not isinstance(step, list) or len(step) != 2:
+        print(invalidLineMsg(step))
+        print("Invalid animation command structure")
+        print(properCmdStructure())
+        sys.exit()
     cmdName = step[0]
+    if not isinstance(cmdName, str):
+        print(invalidLineMsg(step))
+        print("Invalid animation command name: '{}'".format(toJsonQuotes(cmdName)))
+        print(properCmdStructure())
+        sys.exit()
     args = step[1]
+    if not isinstance(args, dict):
+        print(invalidLineMsg(step))
+        print("Invalid animation command arguments: '{}'".format(toJsonQuotes(args)))
+        print(properCmdStructure())
+        sys.exit()
+    # The Python function implementing command `x` must be named `xCmd`.  The `Cmd` suffix simplifies  
+    # printing all the supported commands when an erroneous command is parsed.
+    cmdName += "Cmd"
     if cmdName in globals():
         cmd = globals()[cmdName]
         cmd(args)
     else:
-        print("Skipping unrecognized animation command '{}'".format(cmdName))
+        print("Invalid animation step:\n  {}".format(step))
+        print("Unrecognized animation command: '{}'".format(cmdNamePublic(cmdName)))
+        print("Supported animation commands: {}".format(", ".join(supportedCmds())))
+        sys.exit()
 
 bpy.context.scene.frame_set(1)
 
