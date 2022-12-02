@@ -103,8 +103,7 @@ def get_clipboard():
     elif platform.system() == "Windows":
         import subprocess
         # PowerShell should be installed by default on all Windows systems since Windows 7.
-        ret = subprocess.getoutput("powershell.exe -Command Get-Clipboard")
-        return ret
+        clip = subprocess.getoutput("powershell.exe -Command Get-Clipboard")
     if clip:
         print("Clipboard starts with '{}'".format(clip[:32]))
     return clip
