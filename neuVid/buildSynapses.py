@@ -28,7 +28,7 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from utilsJson import removeComments
+from utilsJson import guess_extraneous_comma, removeComments
 from utilsMeshesBasic import icosohedron
 
 parser = argparse.ArgumentParser()
@@ -49,7 +49,12 @@ if args.inputJsonFile == None:
 
 inputJsonDir = os.path.dirname(os.path.realpath(args.inputJsonFile))
 
-jsonData = json.loads(removeComments(args.inputJsonFile))
+try:
+    jsonData = json.loads(removeComments(args.inputJsonFile))
+except json.JSONDecodeError as exc:
+    print("Error reading JSON, line {}, column {}: {}".format(exc.lineno, exc.colno, exc.msg))
+    guess_extraneous_comma(args.inputJsonFile)
+    sys.exit()
 
 if jsonData == None:
     print("Loading JSON file {} failed\n".format(args.inputJsonFile))

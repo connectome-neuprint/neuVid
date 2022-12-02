@@ -26,7 +26,7 @@ import tempfile
 # to allow the simplest use with neuPrint (to get synapses) with no need for Conda.
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from utilsJson import decode_id, parseNeuronsIds, removeComments
+from utilsJson import decode_id, guess_extraneous_comma, parseNeuronsIds, removeComments
 from utilsNg import dir_name_from_ng_source, is_ng_source, source_to_url
 from utilsSynapses import download_synapses
 
@@ -260,7 +260,14 @@ if __name__ == "__main__":
     print(f"Using decimation fraction: {args.decim_fraction}")
 
     input_json_dir = os.path.dirname(os.path.realpath(args.input_json_file))
-    json_data = json.loads(removeComments(args.input_json_file))
+
+    try:
+        json_data = json.loads(removeComments(args.input_json_file))
+    except json.JSONDecodeError as exc:
+        print("Error reading JSON, line {}, column {}: {}".format(exc.lineno, exc.colno, exc.msg))
+        guess_extraneous_comma(args.input_json_file)
+        sys.exit()
+
     if json_data == None:
         print(f"Loading JSON file {args.input_json_file} failed")
         quit()

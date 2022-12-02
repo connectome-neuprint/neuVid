@@ -20,7 +20,7 @@ timeStart = datetime.datetime.now()
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsColors import colors, getColor, shuffledColorsForSmallDataSets
 from utilsGeneral import newObject
-from utilsJson import decode_id, parseNeuronsIds, parseRoiNames, removeComments
+from utilsJson import decode_id, guess_extraneous_comma, parseNeuronsIds, parseRoiNames, removeComments
 from utilsMaterials import newBasicMaterial, newGlowingMaterial, newSilhouetteMaterial
 from utilsMeshes import fileToImportForRoi, fileToImportForNeuron, fileToImportForSynapses
 
@@ -52,7 +52,12 @@ print("Using output Blender file: '{}'".format(outputFile))
 
 inputJsonDir = os.path.dirname(os.path.realpath(args.inputJsonFile))
 
-jsonData = json.loads(removeComments(args.inputJsonFile))
+try:
+    jsonData = json.loads(removeComments(args.inputJsonFile))
+except json.JSONDecodeError as exc:
+    print("Error reading JSON, line {}, column {}: {}".format(exc.lineno, exc.colno, exc.msg))
+    guess_extraneous_comma(args.inputJsonFile)
+    sys.exit()
 
 if jsonData == None:
     print("Loading JSON file {} failed".format(args.inputJsonFile))

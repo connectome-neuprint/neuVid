@@ -47,9 +47,9 @@ blender --background --python neuVid/render.py -- -i /tmp/simplest.json -o /tmp/
 blender --background --python neuVid/assembleFrames.py -- -i /tmp/framesFinal -o /tmp
 ```
 
-It is easiest to edit a JSON file in a modern text editor that understands and visually highlights the JSON file format; a good candidate that works on most platforms is [`atom`](https://atom.io/).  By default, JSON does not allow comments.  In `neuVid`, comment lines starting with `#` or `//` are allowed, as they are stripped before further JSON processing.  The visually highlighting in `atom` does get confused by such comments, though.
+It is easiest to edit a JSON file in a modern text editor that understands and visually highlights the JSON file format; a good candidate that works on most platforms is [Visual Studio Code](https://code.visualstudio.com).  By default, JSON does not allow comments.  In `neuVid`, comment lines starting with `#` or `//` are allowed, as they are stripped before further JSON processing.  To prevent Visual Studio Code from getting confused by such comments, use the "Select Language Mode" button at the bottom of the window to switch from "JSON" to "JSON with Comments".
 
-Be careful not to add a comma after the last item in a JSON array (e.g., use `[1, 2, 3]`, not `[1, 2, 3,]`).  This common mistake produces a somewhat cryptic error message (e.g., `json.decoder.JSONDecodeError: Expecting value: line 17 column 3 (char 495)` if there is an extra comma on line 16).
+Be careful not to add a comma after the last item in a JSON block, like an array (e.g., use `[1, 2, 3]`, not `[1, 2, 3,]`).  This common mistake produces an error when `neuVid` parses the JSON file, but usually `neuVid` is able to give an error message indicating the location of the extraneous comma.
 
 ## The Simplest Video, Deconstructed
 

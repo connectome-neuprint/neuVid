@@ -1,5 +1,30 @@
 # Utility functions related to JSON and parsing.
 
+def guess_extraneous_comma(json_input_file):
+    i = 1
+    found_comma = False
+    line_with_comma = ""
+    line_number_with_comma = 0
+    with open(json_input_file, "r") as f:
+        for line in f:
+            line_stripped = line.lstrip()
+            if line_stripped.startswith("#") or line_stripped.startswith("//"):
+                i +=1
+                continue
+            for c in line:
+                if found_comma and (c == "]" or c == "}"):
+                    print("Possible extraneous comma in line {}:\n{}".format(line_number_with_comma, line_with_comma))
+                    return
+                elif c == ",":
+                    found_comma = True
+                    line_with_comma = line
+                    line_number_with_comma = i
+                elif c != " " and c != "\t" and c != "\n":
+                    found_comma = False
+                    line_with_comma = ""
+                    line_number_with_comma = 0
+            i += 1
+
 def encode_id(id, source_index):
     return "{}_{}".format(id, source_index)
 
@@ -173,4 +198,3 @@ def removeComments(file):
             else:
                 output += line
     return output
-

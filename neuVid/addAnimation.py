@@ -22,7 +22,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsColors import colors, getColor
 from utilsGeneral import newObject
 from utilsMaterials import getMaterialValue, insertMaterialKeyframe, newShadelessImageMaterial, setMaterialValue
-from utilsJson import parseNeuronsIds, parseRoiNames, parseSynapsesSetNames, removeComments
+from utilsJson import guess_extraneous_comma, parseNeuronsIds, parseRoiNames, parseSynapsesSetNames, removeComments
 
 argv = sys.argv
 if "--" not in argv:
@@ -50,7 +50,12 @@ if outputFile == None:
     outputFile = os.path.splitext(args.inputJsonFile)[0] + "Anim.blend"
 print("Using output Blender file: '{}'".format(outputFile))
 
-jsonData = json.loads(removeComments(args.inputJsonFile))
+try:
+    jsonData = json.loads(removeComments(args.inputJsonFile))
+except json.JSONDecodeError as exc:
+    print("Error reading JSON, line {}, column {}: {}".format(exc.lineno, exc.colno, exc.msg))
+    guess_extraneous_comma(args.inputJsonFile)
+    sys.exit()
 
 if jsonData == None:
     print("Loading JSON file {} failed".format(args.inputJsonFile))

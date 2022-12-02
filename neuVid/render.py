@@ -21,7 +21,7 @@ import tempfile
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsGeneral import newObject
 from utilsMaterials import getMaterialFcurve, getMaterialValue, setMaterialValue
-from utilsJson import removeComments
+from utilsJson import guess_extraneous_comma, removeComments
 
 USE_OPTIX1 = "--optix"
 USE_OPTIX2 = "-optix"
@@ -183,7 +183,13 @@ jsonLightRotationY = 0.0
 jsonLightRotationX = 0.0
 
 if args.inputJsonFile:
-    jsonData = json.loads(removeComments(args.inputJsonFile))
+    try:
+        jsonData = json.loads(removeComments(args.inputJsonFile))
+    except json.JSONDecodeError as exc:
+        print("Error reading JSON, line {}, column {}: {}".format(exc.lineno, exc.colno, exc.msg))
+        guess_extraneous_comma(args.inputJsonFile)
+        sys.exit()
+
     if "lightPowerScale" in jsonData:
         jsonLightPowerScale = jsonData["lightPowerScale"]
         print("Using lightPowerScale: {}".format(jsonLightPowerScale))
