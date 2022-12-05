@@ -277,10 +277,20 @@ def keysAtFrame(obj, dataPath, frame):
 
 #
 
+def validateCmdArgs(cmdName, supportedArgs, actualArgs):
+    for arg in actualArgs.keys():
+        if not arg in supportedArgs:
+            supportedArgs.sort()
+            print("For animation command: {}\nUnrecognized argument: {}".format(cmdName, arg))
+            print("Supported arguments: {}".format(", ".join(supportedArgs)))
+            sys.exit()
+
 # The Python function implementing command `x` must be named `xCmd`.  The `Cmd` suffix simplifies  
 # printing all the supported commands when an erroneous command is parsed.
 
 def advanceTimeCmd(args):
+    validateCmdArgs("advanceTime", ["by"], args)
+
     global time, tentativeEndTime
     if "by" in args:
         by = args["by"]
@@ -293,6 +303,8 @@ def advanceTimeCmd(args):
         print("Error: advanceTime: missing argument 'by'")
 
 def setValueCmd(args):
+    validateCmdArgs("setValue", ["meshes", "alpha", "color", "stagger"], args)
+
     # Makes an instantaneous change, so mostly useful for setting an initial value.
     if "meshes" in args:
         meshes = args["meshes"]
@@ -351,6 +363,8 @@ def bboxAxisForViewVector(v):
     return 2
 
 def frameCameraCmd(args):
+    validateCmdArgs("frameCamera", ["bound", "scale", "duration"], args)
+
     global time, tentativeEndTime, lastCameraCenter
     camera = bpy.data.objects["Camera"]
     duration = 0
@@ -406,6 +420,9 @@ def frameCameraCmd(args):
         print("Error: frameCamera: unknown bound object '{}'".format(args["bound"]))
 
 def fadeCmd(args):
+    validateCmdArgs("fade", ["meshes", "image", "source", "startingAlpha", "endingAlpha", "startingColor", "endingColor", 
+                             "startingLocation", "endingLocation", "stagger", "duration"], args)
+
     global time, tentativeEndTime
     startingValue = 1
     type = "alpha"
@@ -544,6 +561,8 @@ def fadeCmd(args):
             insertMaterialKeyframe(mat, "alpha", frame(time + duration))
 
 def pulseCmd(args):
+    validateCmdArgs("pulse", ["meshes", "toColor", "rate", "duration"], args)
+
     global time, tentativeEndTime, colors
     duration = 1
     if "duration" in args:
@@ -591,6 +610,8 @@ def orbitAxis(args):
         return None
 
 def orbitCameraCmd(args):
+    validateCmdArgs("orbitCamera", ["around", "axis", "endingRelativeAngle", "scale", "duration"], args)
+
     # If arg "around" is "a.b" then orbiting will be around the location of
     # "Bounds.a.b".
     global time, tentativeEndTime, lastCameraCenter, lastOrbitEndingAngle
@@ -698,6 +719,8 @@ def orbitCameraCmd(args):
     updateCameraClip(camera.name)
 
 def centerCameraCmd(args):
+    validateCmdArgs("centerCamera", ["position", "fraction", "duration"], args)
+
     global time, tentativeEndTime, lastCameraCenter
     camera = bpy.data.objects["Camera"]
     duration = 1
@@ -742,6 +765,8 @@ def centerCameraCmd(args):
             lastCameraCenter = center
 
 def showPictureInPictureCmd(args):
+    validateCmdArgs("showPictureInPicture", ["image", "duration"], args)
+
     global time, tentativeEndTime
     duration = 3
     if "duration" in args:
@@ -811,6 +836,8 @@ def showPictureInPictureCmd(args):
             print("  frame_start {}, frame_duration {}".format(tex.image_user.frame_start, tex.image_user.frame_duration))
 
 def showSliceCmd(args):
+    validateCmdArgs("showSlice", ["image", "bound", "euler", "scale", "distance", "delay", "fade", "duration"], args)
+
     global time, tentativeEndTime
     duration = 3
     if "duration" in args:
