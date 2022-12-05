@@ -19,10 +19,12 @@ timeStart = datetime.datetime.now()
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsColors import colors, getColor, shuffledColorsForSmallDataSets
-from utilsGeneral import newObject
+from utilsGeneral import newObject, report_version
 from utilsJson import decode_id, guess_extraneous_comma, parseNeuronsIds, parseRoiNames, removeComments
 from utilsMaterials import newBasicMaterial, newGlowingMaterial, newSilhouetteMaterial
 from utilsMeshes import fileToImportForRoi, fileToImportForNeuron, fileToImportForSynapses
+
+report_version()
 
 argv = sys.argv
 if "--" not in argv:

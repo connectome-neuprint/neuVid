@@ -29,6 +29,7 @@ import sys
 # Draco encoded meshes, using extra Python packages that are easy to add with Conda but
 # difficult to add to Blender's internal verison of Python.
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from utilsGeneral import report_version
 from utilsMath import Vector, Quaternion
 
 rois = {}
@@ -835,6 +836,8 @@ def formatted():
     return result_str
 
 if __name__ == "__main__":
+    report_version()
+    
     argv = sys.argv
     if "--" in argv:
         # Running as `blender --background --python importNg.py -- <more arguments>`

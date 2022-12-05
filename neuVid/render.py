@@ -19,7 +19,7 @@ import sys
 import tempfile
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from utilsGeneral import newObject
+from utilsGeneral import newObject, report_version
 from utilsMaterials import getMaterialFcurve, getMaterialValue, setMaterialValue
 from utilsJson import guess_extraneous_comma, removeComments
 
@@ -48,6 +48,8 @@ def suggest_optimizations(args):
             print("--------------------------------------------------------------")
 
 timeStart = datetime.datetime.now()
+
+report_version()
 
 argv = sys.argv
 if "--" not in argv:

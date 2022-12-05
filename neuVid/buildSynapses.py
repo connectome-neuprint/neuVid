@@ -28,8 +28,11 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from utilsGeneral import report_version
 from utilsJson import guess_extraneous_comma, removeComments
 from utilsMeshesBasic import icosohedron
+
+report_version()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--inputJson", "-ij", "-i", dest="inputJsonFile", help="path to the JSON file describing the input")
