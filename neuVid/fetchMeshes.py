@@ -26,9 +26,12 @@ import tempfile
 # to allow the simplest use with neuPrint (to get synapses) with no need for Conda.
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from utilsGeneral import report_version
 from utilsJson import decode_id, guess_extraneous_comma, parseNeuronsIds, removeComments
 from utilsNg import dir_name_from_ng_source, is_ng_source, source_to_url
 from utilsSynapses import download_synapses
+
+report_version()
 
 def get_mesh_info(source):
     url = source_to_url(source)

@@ -11,6 +11,11 @@ import shutil
 import sys
 import tempfile
 
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from utilsGeneral import report_version
+
+report_version()
+
 argv = sys.argv
 if "--" not in argv:
     argv = []
