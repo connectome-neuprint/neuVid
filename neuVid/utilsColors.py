@@ -54,10 +54,5 @@ def shuffledColorsForSmallDataSets(groupToNeuronIds):
     for ids in groupToNeuronIds.values():
         n += len(ids)
     if n <= len(colors):
-        newColors = colors
-        newColors[0] = colors[2]
-        newColors[2] = colors[0]
-        newColors[3] = colors[4]
-        newColors[4] = colors[3]
-        return newColors
+        return [colors[2], colors[1], colors[0], colors[4], colors[3], colors[5]]
     return colors
