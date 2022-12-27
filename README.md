@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/232590929.svg)](https://zenodo.org/badge/latestdoi/232590929)
+
 # neuVid
 
 ## Summary
