@@ -1,5 +1,7 @@
 # Utility functions related to JSON and parsing.
 
+import json
+
 def guess_extraneous_comma(json_input_file):
     i = 1
     found_comma = False
@@ -198,3 +200,40 @@ def removeComments(file):
             else:
                 output += line
     return output
+
+def fix_end(line):
+    if line.endswith(",\n"):
+        return line[:-2] + "\n"
+    return line
+
+def formatted(json_data):
+    result_str = "{\n"
+
+    indent = "  "
+    for (key0, val0) in json_data.items():
+        if isinstance(val0, dict):
+            result_str += indent + "{}: {{\n".format(json.dumps(key0))
+            indent += "  "
+
+            for (key1, val1) in val0.items():
+                result_str += indent + "{}: {},\n".format(json.dumps(key1), json.dumps(val1))
+
+            indent = indent[:-2]
+            result_str = fix_end(result_str)
+            result_str += indent + "},\n"
+        elif isinstance(val0, list):
+            result_str += indent + "{}: [\n".format(json.dumps(key0))
+            indent += "  "
+
+            for item in val0:
+                result_str += indent + json.dumps(item) + ",\n"
+
+            indent = indent[:-2]
+            result_str = fix_end(result_str)
+            result_str += indent + "],\n"
+        else:
+            result_str += json.dumps(val0) + ",\n"
+
+    result_str = result_str = fix_end(result_str)
+    result_str += "}\n"
+    return result_str

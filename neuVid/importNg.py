@@ -30,6 +30,7 @@ import sys
 # difficult to add to Blender's internal verison of Python.
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsGeneral import report_version
+from utilsJson import formatted
 from utilsMath import Vector, Quaternion
 
 rois = {}
@@ -797,44 +798,6 @@ def process_ng_state(ng_state, time, time_next, split):
     process_ng_state_alphas(ng_state, time, time_next)
     process_ng_state_orbit(ng_state, time, time_next)
 
-def fix_end(line):
-    if line.endswith(",\n"):
-        return line[:-2] + "\n"
-    return line
-
-def formatted():
-    global result_json
-    result_str = "{\n"
-
-    indent = "  "
-    for (key0, val0) in result_json.items():
-        if isinstance(val0, dict):
-            result_str += indent + "{}: {{\n".format(json.dumps(key0))
-            indent += "  "
-
-            for (key1, val1) in val0.items():
-                result_str += indent + "{}: {},\n".format(json.dumps(key1), json.dumps(val1))
-
-            indent = indent[:-2]
-            result_str = fix_end(result_str)
-            result_str += indent + "},\n"
-        elif isinstance(val0, list):
-            result_str += indent + "{}: [\n".format(json.dumps(key0))
-            indent += "  "
-
-            for item in val0:
-                result_str += indent + json.dumps(item) + ",\n"
-
-            indent = indent[:-2]
-            result_str = fix_end(result_str)
-            result_str += indent + "],\n"
-        else:
-            result_str += json.dumps(val0) + ",\n"
-
-    result_str = result_str = fix_end(result_str)
-    result_str += "}\n"
-    return result_str
-
 if __name__ == "__main__":
     report_version()
     
@@ -909,7 +872,7 @@ if __name__ == "__main__":
     add_initial_alphas()
     add_animation(time)
 
-    result_json_formatted = formatted()
+    result_json_formatted = formatted(result_json)
 
     print("Writing {}...".format(output))
     with open(output, "w") as f:
