@@ -104,6 +104,7 @@ For the default values `duration` = 4 and `advanceTime` = 1, the formula reduces
 ```
 totalDuration = volumeCount + 3
 ```
+
 Here is a summary of how the total duration relates to several argument values:
 
 | `duration` | `advanceTime` | totalDuration       |
@@ -112,6 +113,7 @@ Here is a summary of how the total duration relates to several argument values:
 | 4          | 1             | volumeCount + 3     |
 | 2.5        | 0.5           | volumeCount / 2 + 2 |   
 | 3.5        | 0.5           | volumeCount / 2 + 3 |
+| 4          | 2             | 2 * volumeCount + 2 |
 
 These formulas are useful for making camera motion fit into the pattern of appearing volumes.  In the following example, the camera rocks back and forth for one cycle, with three segments of lengths _t_, _2 * t_ and _t_.  This motion fits best if the total duration is divisible by 4, hence the example uses a volume count of 13 (and hence a total duration of 13 + 3 = 16). 
 
