@@ -15,7 +15,16 @@ Rendered with [VVDViewer](https://github.com/takashi310/VVD_Viewer), a high-perf
 
 The `"volumes"` section of the JSON file associates volume files with names to be used in the `"animation"` section.
 
-Currently only [H5J format](https://github.com/JaneliaSciComp/workstation/blob/master/docs/H5JFileFormat.md) is supported
+The `"source"` indicates where to find the volume files.  It can be an absolute path, or a local path, but A local path must start with `./`.  For example, the following specifies a volume file in the `Davis-etal-2020/JRC_SS04438-20151118_31_F1` subdirectory (folder) of the directory containing the generated VVDViewer project (.vrp) file:
+
+```json
+  "volumes": {
+    "source": "./Davis-etal-2020",
+    "JRC_SS04438-20151118_31_F1": "JRC_SS04438-20151118_31_F1/JRC2018_Unisex_20x_HR (CMTK)-REG_UNISEX_20x_HR.h5j"
+  }
+```
+
+Currently only [H5J format](https://github.com/JaneliaSciComp/workstation/blob/master/docs/H5JFileFormat.md) volume files are supported.
 
 Currently, the volume's first channel ("Channel_0") is used.
 
@@ -122,7 +131,7 @@ This example starts with a `zoomCamera` of `duration` = 0, which sets the initia
 ```json
 {
   "volumes": {
-    "source": "Davis-2020",
+    "source": "./Davis-etal-2020",
     "JRC_SS04438-20151118_31_F1": "JRC_SS04438-20151118_31_F1/JRC2018_Unisex_20x_HR (CMTK)-REG_UNISEX_20x_HR.h5j",
     "JRC_SS23757-20160621_31_C5": "JRC_SS23757-20160621_31_C5/JRC2018_Unisex_20x_HR (CMTK)-REG_UNISEX_20x_HR.h5j",
     "SS00116-20150123_43_G5": "SS00116-20150123_43_G5/JRC2018_Unisex_20x_HR (CMTK)-REG_UNISEX_20x_HR.h5j",
@@ -173,7 +182,7 @@ Note the use of the `advanceTime` commands to control when each operation starts
 ```json
 {
     "volumes": {
-      "source": "Davis-etal-2020",
+      "source": "./Davis-etal-2020",
       "SS00355-20130604_33_E1": "SS00355-20130604_33_E1/JRC2018_Unisex_20x_HR (CMTK)-REG_UNISEX_20x_HR.h5j",
       "SS00657-20130618_31_I5": "SS00657-20130618_31_I5/JRC2018_Unisex_20x_HR (CMTK)-REG_UNISEX_20x_HR.h5j",
       "SS00657-20140425_32_A5": "SS00657-20140425_32_A5/JRC2018_Unisex_20x_HR (CMTK)-REG_UNISEX_ColorMIP_HR.h5j",

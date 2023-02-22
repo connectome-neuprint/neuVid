@@ -131,7 +131,7 @@ Neuroglancer synapse layers from `neuPrint` are imported as described above, but
 
 For volumetric data sets lacking a segmentation, use the following approach.  Only macOS and Windows are supported, for now at least.
 
-[![Fly Central Complex Circuitry](https://img.youtube.com/vi/OE9icXDM8q8/maxresdefault.jpg)](https://www.youtube.com/watch?v=OE9icXDM8q8)
+[![Representative Expression Patterns in the Drosophila Visual System](https://img.youtube.com/vi/OE9icXDM8q8/maxresdefault.jpg)](https://www.youtube.com/watch?v=OE9icXDM8q8)
 
 1. Install [VVDViewer](https://github.com/takashi310/VVD_Viewer).  The simplest approach is to download an installer from the [releases page](https://github.com/takashi310/VVD_Viewer/releases).
 
