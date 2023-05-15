@@ -185,7 +185,7 @@ def layer_is_synapses(layer):
     if "type" in layer:
         if layer["type"] == "annotation":
             if "name" in layer:
-                if "synapses" in layer["name"].lower():
+                if "synapse" in layer["name"].lower():
                     return True
     return False
 
@@ -193,6 +193,11 @@ def layer_is_visible(layer):
     if "visible" in layer:
         return layer["visible"]
     return True
+
+def layer_is_archived(layer):
+    if "archived" in layer:
+        return layer["archived"]
+    return False
 
 def layer_alpha(layer):
     if not layer_is_visible(layer):
@@ -207,9 +212,12 @@ def layer_alpha(layer):
     return alpha
 
 def layer_name(layer):
+    '''
     if "name" in layer:
         return layer["name"].replace(" ", "-").replace("(", "").replace(")", "")
     raise KeyError
+    '''
+    return layer["name"]
 
 def set_layer_name(layer, name):
     layer["name"] = name
@@ -268,6 +276,17 @@ def layer_source(layer):
                     url = s["url"]
             elif isinstance(s, str):
                 url = s
+            if url.startswith("dvid"):
+                url2 = url[7:]
+                url3 = url2.split("?")[0] if "?" in url2 else url2
+                if "api/node" in url3:
+                    url4 = url3
+                else:
+                    colon = url3.find(":")
+                    slash = url3.find("/", colon + 3)
+                    url4 = url3[:slash] + "/api/node" + url3[slash:]
+                url5 = url4 + "_meshes" if url4.endswith("segmentation") else url4
+                return url5
             if url.startswith("precomputed://") or url.startswith("http"):
                 return url
     return ""
@@ -336,7 +355,7 @@ def compress_category(category, ids, sources):
         for i in sources_to_omit:
             del sources[i]
 
-def add_category(category, ids, sources):
+def add_category(category, ids, sources, sort=False):
     global result_json
     if len(ids) > 0:
         result_json[category] = {}
@@ -344,7 +363,12 @@ def add_category(category, ids, sources):
             result_json[category]["source"] = sources[0]
         else:
             result_json[category]["source"] = sources
-    for key in ids.keys():
+
+    keys = ids.keys()
+    if sort:
+        keys = sorted(keys, key=lambda k: str(ids[k][0]) + k.lower())
+
+    for key in keys:
         if isinstance(ids[key], dict):
             result_json[category][key] = ids[key]
         elif isinstance(ids[key], list):
@@ -361,7 +385,7 @@ def add_categories():
     global result_json
     compress_category("rois", rois, roi_sources)
     compress_category("neurons", neurons, neuron_sources)
-    add_category("rois", rois, roi_sources)
+    add_category("rois", rois, roi_sources, sort=True)
     add_category("neurons", neurons, neuron_sources)
     add_category("synapses", synapses, synapse_sources)
 
@@ -578,71 +602,86 @@ def sort_containing_first(layers):
     return result
 
 # TODO: Find an alternative to this special-case processing.
+def process_layer_source_hemibrain(layer, url_mid):
+    # TODO: Reirecting to a DVID server would not be needed if this script could load meshes in the
+    # multi-resolution, chunked, shared format:
+    # https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/meshes.md
+    if "v1.0" in url_mid:
+        url_base = "https://hemibrain-dvid.janelia.org/api/node/52a13/"
+    else:
+        url_base = "https://hemibrain-dvid.janelia.org/api/node/31597/"
+    if layer_is_roi(layer):
+        url_base += "roisSmoothedDecimated"
+        # When redirecting to DVID for ROIs, the ROI ID numbers must be remaped to ROI names.  Although such
+        # a hard-coded remapping table seems undesirable, the mapping should not change because the data has
+        # been released for use general use, and additionally, the neuVid input JSON files are more readable
+        # and maintainable when they contain references like "EB" and "FB" instead of "17" and "20".
+        roiIdToName = [
+            "", "AB(L)", "AB(R)", "AL(L)", "AL(R)", "AME(R)", "AOTU(R)", "ATL(L)", "ATL(R)", "AVLP(R)", 
+            "BU(L)", "BU(R)", "CA(L)", "CA(R)", "CAN(R)", "CRE(L)", "CRE(R)", "EB", "EPA(L)", "EPA(R)", 
+            "FB", "FLA(R)", "GNG", "GOR(L)", "GOR(R)", "IB", "ICL(L)", "ICL(R)", "IPS(R)", "LAL(L)", 
+            "LAL(R)", "LH(R)", "LO(R)", "LOP(R)", "ME(R)", "NO", "PB", "PED(R)", "PLP(R)", "PRW", 
+            "PVLP(R)", "SAD", "SCL(L)", "SCL(R)", "SIP(L)", "SIP(R)", "SLP(R)", "SMP(L)", "SMP(R)", "SPS(L)",
+            "SPS(R)", "VES(L)", "VES(R)", "WED(R)", "a'L(L)", "a'L(R)", "aL(L)", "aL(R)", "b'L(L)", "b'L(R)",
+            "bL(L)", "bL(R)", "gL(L)", "gL(R)"
+        ]
+        segments = layer_segments(layer)
+        segments_processed = []
+        for id in segments:
+            if 0 < id and id < len(roiIdToName):
+                segments_processed.append(roiIdToName[id])
+        set_layer_segments(layer, segments_processed)
+    elif layer_is_segmentation(layer):
+        url_base += "segmentation_meshes"
+    elif layer_is_synapses(layer):
+        url_base += "synapses"
+
+    set_layer_source(layer, url_base)
+
 def process_layer_source(layer):
     src = layer_source(layer)
     print("Processing layer source '{}'".format(src))
+
     GS_PREFIX = "precomputed://gs://"
+    GOOGLEAPIS_PREFIX = "https://storage.googleapis.com/"
     if src.startswith(GS_PREFIX):
         url_mid = src.split(GS_PREFIX)[1]
-
         if url_mid.startswith("neuroglancer-janelia-flyem-hemibrain/v1"):
-            # TODO: Reirecting to a DVID server would not be needed if this script could load meshes in the
-            # multi-resolution, chunked, shared format:
-            # https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/meshes.md
-            if "v1.0" in url_mid:
-                url_base = "https://hemibrain-dvid.janelia.org/api/node/52a13/"
-            else:
-                url_base = "https://hemibrain-dvid.janelia.org/api/node/31597/"
-            if layer_is_roi(layer):
-                url_base += "roisSmoothedDecimated"
-                # When redirecting to DVID for ROIs, the ROI ID numbers must be remaped to ROI names.  Although such
-                # a hard-coded remapping table seems undesirable, the mapping should not change because the data has
-                # been released for use general use, and additionally, the neuVid input JSON files are more readable
-                # and maintainable when they contain references like "EB" and "FB" instead of "17" and "20".
-                roiIdToName = [
-                    "", "AB(L)", "AB(R)", "AL(L)", "AL(R)", "AME(R)", "AOTU(R)", "ATL(L)", "ATL(R)", "AVLP(R)", 
-                    "BU(L)", "BU(R)", "CA(L)", "CA(R)", "CAN(R)", "CRE(L)", "CRE(R)", "EB", "EPA(L)", "EPA(R)", 
-                    "FB", "FLA(R)", "GNG", "GOR(L)", "GOR(R)", "IB", "ICL(L)", "ICL(R)", "IPS(R)", "LAL(L)", 
-                    "LAL(R)", "LH(R)", "LO(R)", "LOP(R)", "ME(R)", "NO", "PB", "PED(R)", "PLP(R)", "PRW", 
-                    "PVLP(R)", "SAD", "SCL(L)", "SCL(R)", "SIP(L)", "SIP(R)", "SLP(R)", "SMP(L)", "SMP(R)", "SPS(L)",
-                    "SPS(R)", "VES(L)", "VES(R)", "WED(R)", "a'L(L)", "a'L(R)", "aL(L)", "aL(R)", "b'L(L)", "b'L(R)",
-                    "bL(L)", "bL(R)", "gL(L)", "gL(R)"
-                ]
-                segments = layer_segments(layer)
-                segments_processed = []
-                for id in segments:
-                    if 0 < id and id < len(roiIdToName):
-                        segments_processed.append(roiIdToName[id])
-                set_layer_segments(layer, segments_processed)
-            elif layer_is_segmentation(layer):
-                url_base += "segmentation_meshes"
-            elif layer_is_synapses(layer):
-                url_base += "synapses"
-
+            process_layer_source_hemibrain(layer, url_mid)
+            return
         elif layer_is_roi(layer):
-            import requests
-            url_base = "https://storage.googleapis.com/" + url_mid + "/mesh/"
-            segments = layer_segments(layer)
-            segments_processed = []
-            for id in segments:
-                url = url_base + str(id) + ":0"
-                try:
-                    r = requests.get(url)
-                    r.raise_for_status()
-                    if "fragments" in r.json():
-                        fragments = r.json()["fragments"]
-                        if isinstance(fragments, list) and len(fragments) == 1:
-                            key = fragments[0]
-                            segments_processed.append(key)
-                except requests.exceptions.RequestException as e:
-                    print("Error: request URL '{}' failed: {}".format(url, str(e)))
-            set_layer_segments(layer, segments_processed)
+            url_base = GOOGLEAPIS_PREFIX + url_mid + "/mesh/"
         elif url_mid.startswith("flyem"):
-            url_base = "https://storage.googleapis.com/" + url_mid + "/"
+            url_base = GOOGLEAPIS_PREFIX + url_mid + "/"
         else:
             url_base = src
+    else:
+        url_base = src
 
-        set_layer_source(layer, url_base)
+    if layer_is_roi(layer) and url_base.startswith(GOOGLEAPIS_PREFIX):
+        import requests        
+        segments = layer_segments(layer)
+        segments_processed = []
+        for id in segments:
+            url = url_base + str(id) + ":0"
+            try:
+                r = requests.get(url)
+                r.raise_for_status()
+                if "fragments" in r.json():
+                    fragments = r.json()["fragments"]
+                    if isinstance(fragments, list) and len(fragments) == 1:
+                        key = fragments[0]
+                        segments_processed.append(key)
+                        name = key
+                        if name.endswith(".ngmesh"):
+                            name = name[:-7]
+            except requests.exceptions.RequestException as e:
+                print("Error: request URL '{}' failed: {}".format(url, str(e)))
+        set_layer_segments(layer, segments_processed)
+        if len(segments) == 1:
+            set_layer_name(layer, name)
+
+    set_layer_source(layer, url_base)
     
 # `type` is "Pre" or "Post"
 def add_synapses_for_neurons(synapses_category, type, neuron_group_name, neuron_ids):
@@ -657,15 +696,17 @@ def add_synapses_for_neurons(synapses_category, type, neuron_group_name, neuron_
 
 def split_groups(ng_state):
     result = []
+    i = 0
     for layer in ng_state["layers"]:
         if layer_is_segmentation(layer):
             segments = layer_segments(layer)
-            for i in range(len(segments)):
+            for j in range(len(segments)):
                 new_layer = layer.copy()
                 # Simpler names: "n" for neurons, "r" for ROIs.
                 new_name = layer_category_name(layer)[0] + str(i + 1)
+                i += 1
                 set_layer_name(new_layer, new_name)
-                set_layer_segments(new_layer, [str(segments[i])])
+                set_layer_segments(new_layer, [str(segments[j])])
                 result.append(new_layer)
         else:
             result.append(layer)
@@ -679,7 +720,7 @@ def process_ng_state_sources(ng_state, time, time_next, split):
     layers = split_groups(ng_state) if split else ng_state["layers"]
 
     for layer in layers:
-        if layer_is_visible(layer):
+        if layer_is_visible(layer) and not layer_is_archived(layer):
             name = layer_name(layer)
             if layer_is_segmentation(layer) or layer_is_synapses(layer):
                 category, sources = layer_category(layer)
@@ -687,10 +728,14 @@ def process_ng_state_sources(ng_state, time, time_next, split):
                 # declared in advance, so their declarations have to be added as they are found and used.
                 if not name in category:
                     process_layer_source(layer)
+                    # In case the preceding function made the name more sensible.
+                    name = layer_name(layer)
                     src = layer_source(layer)
                     if not src in sources:
                         sources.append(src)
                     if layer_is_segmentation(layer):
+                        if name in category:
+                            name += "." + str(len(sources) - 1)
                         category[name] = [sources.index(src), layer_segments(layer)]
                     elif layer_is_synapses(layer):
                         for (neuron_group_name, neuron_ids) in neurons.items():
@@ -705,7 +750,7 @@ def process_ng_state_alphas(ng_state, time, time_next):
     layers = sort_containing_first([layer for layer in ng_state["layers"]])
     for layer in layers:
         group = layer_group_name(layer)
-        if layer_is_visible(layer) and group:
+        if layer_is_visible(layer) and not layer_is_archived(layer) and group:
             alpha = layer_alphas[group]
             alpha_next = layer_alpha(layer)
             duration = time_next - time
