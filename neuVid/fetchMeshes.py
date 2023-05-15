@@ -1,7 +1,7 @@
 # Can be run any of a number of ways.
 
 # $ python3 fetchMeshes.py -i from-ng.json
-# $ blender --background --python importNg.py -- -i from-ng.json
+# $ blender --background --python fetchMeshes.py -- -i from-ng.json
 
 # To fetch only meshes (e.g., synapses) from a neuPrint.janelia.org Neuroglancer session,
 # no additional dependencies are required.
@@ -62,8 +62,17 @@ def already_fetched(id, download_dir):
 
 def fetch_with_cloudvolume(source, ids, decim_fraction, input_json_dir, force):
     print("Fetching with CloudVolume")
-    from meshparty import trimesh_io
-    import trimesh
+    try:
+        from meshparty import trimesh_io
+        import trimesh
+    except:
+        print("Failed to import meshparty and/or trimesh.")
+        try:
+            import bpy
+            print("Run this script with Python, not with Blender.")
+        except:
+            print("Run this script in a Conda environment with meshparty and open3d.")
+        sys.exit()
 
     try:
         download_dir = ensure_dir(input_json_dir, dir_name_from_ng_source(source))
