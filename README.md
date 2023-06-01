@@ -133,7 +133,7 @@ For volumetric data sets lacking a segmentation, use the following approach.  On
 
 [![Representative Expression Patterns in the Drosophila Visual System](https://img.youtube.com/vi/OE9icXDM8q8/maxresdefault.jpg)](https://www.youtube.com/watch?v=OE9icXDM8q8)
 
-1. Install [VVDViewer](https://github.com/takashi310/VVD_Viewer).  The simplest approach is to download an installer from the [releases page](https://github.com/takashi310/VVD_Viewer/releases).
+1. Install [VVDViewer](https://github.com/JaneliaSciComp/VVDViewer).  The simplest approach is to download an installer from the [releases page](https://github.com/takashi310/VVD_Viewer/releases).
 
 2. Install `animateVvd` by downloading an executable from the [releases page of this repository](https://github.com/connectome-neuprint/neuVid/releases).  It will be a compressed (.zip) file, so extract it by double-clicking on macOS or right-clicking on Windows and choosing "Extract All" or an item from the "7-Zip" menu; then move it to a standard place, like `/Applications` on macOS and `C:\Program Files\newVid` on Windows.
 
