@@ -78,8 +78,11 @@ When optional arguments are unspecified, the are given the values of the previou
 ### `orbitCamera`
 
 Optional arguments:
-- `endingRelativeAngle` (default: -360)
+- `endingRelativeAngle` (default: 360)
+- `axis` (default: `"-y"`): Can be `"x"`, `"-x"`, `"y"`, `"-y"`, `"z"`, `"-z"`, or a vector like `[1, 0, 1]`.
 - `duration` (default: 1)
+
+Currently, there is no support for multiple `orbitCamera` commands overlap in time.
 
 ### `zoomCamera`
 
@@ -208,4 +211,4 @@ Note the use of the `advanceTime` commands to control when each operation starts
 
 ## Tips
 
-After loading thep project (.vrp) file, avoid doing anything in the VVDViewer user interface other than switching to the "Record/Export" panel's "Advanced" tab and pressing the "Save..." button.  Other operations might change the project in a way that would affect the video rendering.
+After loading the project (.vrp) file, avoid doing anything in the VVDViewer user interface other than switching to the "Record/Export" panel's "Advanced" tab and pressing the "Save..." button.  Other operations might change the project in a way that would affect the video rendering.

@@ -1,8 +1,9 @@
 # $ conda create --name neuvid
 # $ conda activate neuvid
 # $ conda install h5py
-# $ python animateVvd -i <directory of H5J files> -o example.json
-# $ python animateVvd -i example.json
+# $ python animateVvd.py -i <directory of H5J files> -o example.json
+# or
+# $ python animateVvd.py -i example.json
 # $ VVDViewer example.vrp
 # In VVDViewer's "Record/Export" panel, change to the "Advanced" tab.
 # Close other VVDViewer panels to make the 3D view bigger.
@@ -17,7 +18,6 @@ import h5py
 import json
 import math
 import os
-import platform
 import sys
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
@@ -28,6 +28,15 @@ def quaternion_tuple(axis, angle):
     s = math.sin(angle / 2)
     w = math.cos(angle / 2)
     return (axis[0] * s, axis[1] * s, axis[2] * s, w)
+
+def quaternion_product(q1, q2):
+    x1, y1, z1, w1 = q1
+    x2, y2, z2, w2 = q2
+    x = x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2
+    y = -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2
+    z = x1 * y2 - y1 * x2 + z1 * w2 + w1 * z2
+    w = -x1 * x2 - y1 * y2 - z1 * z2 + w1 * w2
+    return (x, y, z, w)
 
 # In VVDViewer, a key for the first frame seems to be at `t=0`.
 # Then a frame at 1 second is at `t=30`, assuming 30 frames per second, 
@@ -124,17 +133,21 @@ def advanceTime_cmd(state, args):
     state["max_time"] = state["current_time"]
 
 class Orbiter:
-    def __init__(self, starting_time, duration, starting_angle, ending_angle, fps):
+    def __init__(self, starting_time, duration, starting_angle, ending_angle, axis, current_angle, current_quaternion, fps):
         self.starting_time = starting_time
         self.duration = duration
         self.frame0 = frame_from_time(starting_time, fps)
         self.frame1 = frame_from_time(starting_time + duration, fps)
         self.starting_angle = normalize_angle(starting_angle)
         self.ending_angle = normalize_angle(ending_angle)
-        # TODO: Support rotation axes other than -Y.
-        self.axis = (0, -1, 0)
+        self.axis = axis
 
-        print("{} - {}: orbit, angle {} to {}".format(self.frame0, self.frame1, self.starting_angle, self.ending_angle))
+        print("{} - {}: orbit, angle {} to {} around axis {}".format(self.frame0, self.frame1, self.starting_angle, self.ending_angle, self.axis))
+
+        current = normalize_angle(current_angle)
+        self.starting_angle -= current
+        self.ending_angle -= current
+        self.starting_quaterion = current_quaternion
 
     def keys(self, frame, id_interpolator, id_key):
         if self.duration > 0:
@@ -144,6 +157,10 @@ class Orbiter:
         else:
             angle_eased = self.ending_angle
         quaternion = quaternion_tuple(self.axis, math.radians(angle_eased))
+
+        # Note that this approach, of simply adding in the effect of the cumulative rotations
+        # up to the start of this orbit, works only if there are no orbits that overlap in time.
+        quaternion = quaternion_product(self.starting_quaterion, quaternion)
 
         result  = "[interpolator/{}/keys/{}]\n".format(id_interpolator, id_key)
         result += "type=2\n"
@@ -159,25 +176,55 @@ class Orbiter:
 
     def key_count(self, frame):
         return 1
+    
+    def ending_quaternion(self):
+        quaternion = quaternion_tuple(self.axis, math.radians(self.ending_angle))
+        return quaternion_product(self.starting_quaterion, quaternion)
 
 def orbitCamera_cmd(state, args):
-    validate_cmd_args("orbitCamera", ["duration", "endingRelativeAngle"], args)
+    validate_cmd_args("orbitCamera", ["duration", "endingRelativeAngle", "axis"], args)
     animators = state["animators"]
     fps = state["fps"]
     current_time = state["current_time"]
+
+    axis = (0, -1, 0)
+    if "axis" in args:
+        axis = args["axis"]
+        axes = {"x": (1,0,0), "-x": (-1,0,0), "y": (0,1,0), "-y": (0,-1,0), "z": (0,0,1), "-z": (0,0,-1)}
+        if type(axis) == str and axis.lower() in axes:
+            axis = axes[axis]
+        elif type(axis) == list and len(axis) == 3:
+            d = math.sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2])
+            axis = [a / d for a in axis]
+        else:
+            print("Invalid 'orbitCamera' command: unrecognized 'axis' {}".format(axis))
+            sys.exit()
+
     current_angle = 0
-    if "camera_current_angle" in state:
-        current_angle = state["camera_current_angle"]
+    current_angles = {}
+    current_angle_key = str(axis)
+    if "camera_current_angles" in state:
+        current_angles = state["camera_current_angles"]
+        current_angle_key = str(axis)
+        if current_angle_key in current_angles:
+            current_angle = current_angles[current_angle_key]
+    current_quaternion = (0, 0, 0, 1)
+    if "current_quaternion" in state:
+        current_quaternion = state["current_quaternion"]
 
     starting_time = current_time
     duration = args["duration"]
     starting_angle = current_angle
-    ending_angle = starting_angle + args["endingRelativeAngle"]
-    orbiter = Orbiter(starting_time, duration, starting_angle, ending_angle, fps)
+    ending_angle = 360
+    if "endingRelativeAngle" in args:
+        ending_angle = starting_angle + args["endingRelativeAngle"]
+
+    orbiter = Orbiter(starting_time, duration, starting_angle, ending_angle, axis, current_angle, current_quaternion, fps)
     animators["camera_rotation"].append(orbiter)
 
-    current_angle = ending_angle
-    state["camera_current_angle"] = ending_angle
+    current_angles[current_angle_key] = ending_angle
+    state["camera_current_angles"] = current_angles
+    state["current_quaternion"] = orbiter.ending_quaternion()
 
     state["max_time"] = current_time + duration
 
