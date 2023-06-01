@@ -9,7 +9,7 @@ Examples:
 * [Janelia FlyLight Split-GAL4 driver collection](https://splitgal4.janelia.org/cgi-bin/splitgal4.cgi)
 * [Janelia FlyLight Generation 1 MCFO collection](https://gen1mcfo.janelia.org/cgi-bin/gen1mcfo.cgi)
 
-Rendered with [VVDViewer](https://github.com/takashi310/VVD_Viewer), a high-performance system for [direct volume rendering](https://en.wikipedia.org/wiki/Volume_rendering) of fluorescence microscopy volumes.
+Rendered with [VVDViewer](https://github.com/JaneliaSciComp/VVDViewer), a high-performance system for [direct volume rendering](https://en.wikipedia.org/wiki/Volume_rendering) of fluorescence microscopy volumes.
 
 ## Volumes
 
