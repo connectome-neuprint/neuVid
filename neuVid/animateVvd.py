@@ -601,7 +601,7 @@ def init_state(fps):
     state["current_time"] = 0
     return state
 
-def add_volumes(state, json_data):
+def add_volumes(state, json_data, default_channel):
     if not "volumes" in json_data:
         print("Invalid JSON: no 'volumes' section")
         sys.exit()
@@ -621,19 +621,26 @@ def add_volumes(state, json_data):
     for key, value in json_volumes.items():
         if key != "source":
             full_vol_name = "volumes." + key
-            vol_path = source_base + "/" + value
-            volumes[full_vol_name] = vol_path
+            if type(value) == list:
+                vol_file = value[0]
+                channel = value[1]
+            else:
+                vol_file = value
+                channel = default_channel
+            vol_path = source_base + "/" + vol_file
+            volumes[full_vol_name] = (vol_path, channel)
     state["volumes"] = volumes
 
     bbox_overall = (0, 0, 0)
-    for vol_name, vol_path in volumes.items():
+    for vol_name, vol_tuple in volumes.items():
+        vol_path, channel = vol_tuple
         bbox = get_vol_bbox(vol_path)
         bbox_overall = (max(bbox[0], bbox_overall[0]), max(bbox[1], bbox_overall[1]), max(bbox[2], bbox_overall[2]))
     state["bbox_overall"] = bbox_overall
 
     print("bbox overall: {}".format(bbox_overall))
 
-def add_animators(state, json_data, channel, fps):
+def add_animators(state, json_data, fps):
     if not "animation" in json_data:
         print("Invalid JSON: no 'animation' section")
         sys.exit()
@@ -687,14 +694,14 @@ def get_color(i):
     colors = [(c[0]/255.0, c[1]/255.0, c[2]/255.0) for c in colors]
     return colors[i % len(colors)]
 
-# TODO: Better handling of channel
-def describe_volumes(state, channel):
+def describe_volumes(state):
     num = len(state["volumes"])
     result = "[data]\n"
     result += "[data/volume]\n"
     result += "num={}\n".format(num)
     i = 0
-    for full_vol_name, vol_path in state["volumes"].items():
+    for full_vol_name, vol_tuple in state["volumes"].items():
+        vol_path, channel = vol_tuple
         result += "[data/volume/{}]\n".format(i)
         result += "name={}\n".format(full_vol_name)
         result += "path={}\n".format(vol_path)
@@ -715,7 +722,7 @@ def describe_volumes(state, channel):
 
     return result
 
-def describe_views(state, channel):
+def describe_views(state):
     volumes = state["volumes"]
     result  = "[views]\n"
     result += "num=1\n"
@@ -788,13 +795,13 @@ def describe_interpolators(state, fps):
 
     return result
 
-def describe_project(json_data, channel):
+def describe_project(json_data, default_channel):
     # TODO: Support "fps" in the JSON.
     fps = 30
 
     state = init_state(fps)
-    add_volumes(state, json_data)
-    add_animators(state, json_data, channel, fps)
+    add_volumes(state, json_data, default_channel)
+    add_animators(state, json_data, fps)
 
     # For keys at N frames, there need to be N `[interpolator/<i>]` statements, 0 < i < N.
     # Each `[interpolator/<i>]` section has a `t=<frame>` statement for the specific <frame>.
@@ -804,8 +811,8 @@ def describe_project(json_data, channel):
     # Then it has a `[interpolator/<i>/keys/<j>]` subsection, 0 < j < M, for those keys.
 
     result = describe_header()
-    result += describe_volumes(state, channel)
-    result += describe_views(state, channel)
+    result += describe_volumes(state)
+    result += describe_views(state)
     result += describe_interpolators(state, fps)
 
     return result
@@ -858,10 +865,8 @@ if __name__ == "__main__":
     parser.set_defaults(count=-1)
     parser.add_argument("--count", "-c", type=int, dest="count", help="limit on the number of files to load")
     parser.add_argument("--output", "-o", dest="output", help="path to output VVDViewer project file (.vrp)")
-
-    # TODO: Add better handling of channels.
     parser.set_defaults(channel=0)
-    parser.add_argument("--channel", "-ch", type=int, dest="channel", help="channel from the H5J file")
+    parser.add_argument("--channel", "-ch", type=int, dest="channel", help="default channel from the H5J file")
 
     args = parser.parse_args()
 
@@ -885,7 +890,7 @@ if __name__ == "__main__":
             output = os.path.splitext(args.input)[0] + ".vrp"
         print("Using output file: {}".format(output))
 
-        print("Using channel: {}".format(args.channel))
+        print("Using default channel: {}".format(args.channel))
 
         json_data = parse_json(args.input)
         project = describe_project(json_data, args.channel)

@@ -26,7 +26,15 @@ The `"source"` indicates where to find the volume files.  It can be an absolute 
 
 Currently only [H5J format](https://github.com/JaneliaSciComp/workstation/blob/master/docs/H5JFileFormat.md) volume files are supported.
 
-Currently, the volume's first channel ("Channel_0") is used.
+By default, the first channel ("Channel_0") is used for all volumes.  This default channel can be changed with the command-line argument `--channel` (`-ch`).  The channel for an individual volume can be specified with an array, as in the following example, which specifies the fourth channel ("Channel_3"):
+```json
+  "volumes": {
+    "source": "./Davis-etal-2020",
+    "JRC_SS04438-20151118_31_F1-ch3": ["JRC_SS04438-20151118_31_F1/JRC2018_Unisex_20x_HR (CMTK)-REG_UNISEX_20x_HR.h5j", 3]
+  }
+```
+
+Note that channels are "zero-based", so the first channel is 0.
 
 ## Commands
 
