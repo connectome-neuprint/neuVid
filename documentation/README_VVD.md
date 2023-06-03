@@ -15,7 +15,7 @@ Rendered with [VVDViewer](https://github.com/JaneliaSciComp/VVDViewer), a high-p
 
 The `"volumes"` section of the JSON file associates volume files with names to be used in the `"animation"` section.
 
-The `"source"` indicates where to find the volume files.  It can be an absolute path, or a local path, but A local path must start with `./`.  For example, the following specifies a volume file in the `Davis-etal-2020/JRC_SS04438-20151118_31_F1` subdirectory (folder) of the directory containing the generated VVDViewer project (.vrp) file:
+The `"source"` indicates where to find the volume files.  It can be an absolute path, or a local path, but note that a local path must start with `./`.  For example, the following specifies a volume file in the `Davis-etal-2020/JRC_SS04438-20151118_31_F1` subdirectory (folder) of the directory containing the generated VVDViewer project (.vrp) file:
 
 ```json
   "volumes": {
@@ -35,6 +35,34 @@ By default, the first channel ("Channel_0") is used for all volumes.  This defau
 ```
 
 Note that channels are "zero-based", so the first channel is 0.
+
+## Fetching Volumes
+
+If local copies of the volume files are not yet available, the companion `fetchVvd` program can fetch them from a cloud data source, like `https://s3.amazonaws.com/janelia-flylight-imagery` where the [Janelia FlyLight Split-GAL4 driver collection](https://splitgal4.janelia.org/cgi-bin/splitgal4.cgi) and [Janelia FlyLight Generation 1 MCFO collection](https://gen1mcfo.janelia.org/cgi-bin/gen1mcfo.cgi) are stored.  The fetched volume files are stored in a directory `neuVidVolumes` located as a sibling of the input JSON file.
+
+To use `fetchVvd`, download it from the [releases page](https://github.com/JaneliaSciComp/VVDViewer/releases).
+
+The input to `fetchVvd` is a JSON file with a `"volumes"` section of a particular format, as in the following example:
+```json
+  "volumes": {
+    "source": "https://s3.amazonaws.com/janelia-flylight-imagery",
+    "R10A06": {"line": "R10A06"},
+    "R10A12": {"line": "R10A12"},
+    "R10A12_ref": [{"line": "R10A12"}, 3]
+  }
+```
+
+ The `"source"` is the URL of the cloud data source.  The other items specify a pattern to use when searching for the volume in the cloud data source.  The most basic pattern has the line name.  More advanced patterns can include the region or sex:
+ ```json
+  "volumes": {
+    "source": "https://s3.amazonaws.com/janelia-flylight-imagery",
+    "R10A06": {"line": "R10A06", "region": "vnc"},
+    "R10A12": {"line": "R10A12", "region": "(central|brain)", "sex": "male"}
+  }
+```
+The `"(central|brain)"` pattern element matches either `central` or `brain` in the volume file name on the cloud data source.
+
+By default `fetchVvd` rewrites the input JSON file with a new `"volumes"` section that refers to the local copies of the volume files.  Use the `--output` (`-o`) command-line option to specify a different file for the output (leaving the input file unmodified).
 
 ## Commands
 
@@ -100,10 +128,50 @@ Required arguments:
 Optional arguments:
 - `duration` (default: 1)
 
+A `zoomCamera` command may overlap in time with an `orbitCamera` command, making the camera move in a spiral.
+
 ## Examples
 
-These examples use the names of some volumes from the  "Optic lobe TAPIN-Seq 2020" release of the 
-[Janelia FlyLight Split-GAL4 driver collection](https://splitgal4.janelia.org/cgi-bin/splitgal4.cgi).  Citation: Fred P. Davis et al., "A genetic, genomic, and computational resource for exploring neural circuit function," _eLife_, 2020; https://doi.org/10.7554/eLife.50901.
+The first example references volumes to be downloaded with `fetchVvd`:
+```json
+{
+    "volumes": {
+        "source": "https://s3.amazonaws.com/janelia-flylight-imagery",
+        "Ref": [{"line": "R10A06", "region": "vnc"}, 3],
+        "R10A06": {"line": "R10A06", "region": "vnc"},
+        "R10A12": {"line": "R10A12", "region": "vnc"},
+        "R10B01": {"line": "R10B01", "region": "vnc"},
+        "R10B02": {"line": "R10B02", "region": "vnc"}
+    },
+    "animation": [
+        ["zoomCamera", {"to": 100, "duration": 0}],
+
+        ["fade", {"volume": "volumes.Ref", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+        ["advanceTime", {"by": 1}],
+        ["advanceTime", {"by": 1}],
+        ["fade", {"volume": "volumes.Ref", "startingAlpha": 1, "endingAlpha": 0, "duration": 1}],
+        ["fade", {"volume": "volumes.R10A06", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+        ["advanceTime", {"by": 1}],
+        ["fade", {"volume": "volumes.R10A12", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+        ["advanceTime", {"by": 1}],
+        ["fade", {"volume": "volumes.R10B01", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+        ["advanceTime", {"by": 1}],
+        ["fade", {"volume": "volumes.R10B02", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+        ["advanceTime", {"by": 1}],
+
+        ["orbitCamera", {"axis": "z", "endingRelativeAngle": -90, "duration": 2}],
+        ["advanceTime", {"by": 2}],
+
+        ["zoomCamera", {"to": 200, "duration": 4}],
+        ["orbitCamera", {"axis": "y", "duration": 4}],
+        ["advanceTime", {"by": 4}],
+        ["advanceTime", {"by": 1}]
+    ]
+}
+```
+
+The next two examples use the names of some volumes from the  "Optic lobe TAPIN-Seq 2020" release of the 
+[Janelia FlyLight Split-GAL4 driver collection](https://splitgal4.janelia.org/cgi-bin/splitgal4.cgi).  Citation: Fred P. Davis et al., "A genetic, genomic, and computational resource for exploring neural circuit function," _eLife_, 2020; https://doi.org/10.7554/eLife.50901.  These volumes must be downloaded to a directory `Davis-etal-2020` that is a sibling of the JSON file.
 
 When building a basic JSON file from a directory (folder) of volumes, `animateVvd` creates a sequence of `flash` commands that show each volume in turn, with a little overlap.  With the default values of `duration` = 4, `advanceTime` = 1, at most 4 volumes will be visible at once, as illustrated by this timing diagram for volumes `A` through `F`:
 
@@ -186,7 +254,7 @@ This example starts with a `zoomCamera` of `duration` = 0, which sets the initia
 }
 ```
 
-The second example shows fewer volumes but has more camera motion.  After a bit of orbiting around the center of the volumes, the camera pans over to be centered on the middle of the right half of the volumes.  Then it zooms in and orbits back, with the orbit using the new camera center. 
+The next example shows fewer volumes but has more camera motion.  After a bit of orbiting around the center of the volumes, the camera pans over to be centered on the middle of the right half of the volumes.  Then it zooms in and orbits back, with the orbit using the new camera center. 
 
 Note the use of the `advanceTime` commands to control when each operation starts. Note also that the visibility of only two volumes is ever explicitly mentioned, in the `fade` command that makes those two become invisible.  All other volumes stay visible for the entire video by default.
 
