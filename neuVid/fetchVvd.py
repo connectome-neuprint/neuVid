@@ -112,18 +112,15 @@ def fetch_volumes(input, json_data):
 
         prefixes = fetch_s3_bucket_prefixes(json_source)
 
-        dir = os.path.dirname(input)
+        dir = os.path.dirname(output)
         vols_path = os.path.join(dir, "neuVidVolumes")
         if not os.path.exists(vols_path):
             os.mkdir(vols_path)
-        if os.path.abspath(dir) == os.getcwd():
-            vols_rel_path = os.path.join(".", vols_path)
-        else:
-            vols_rel_path = os.path.relpath(vols_path)
+        vols_path_output = "./neuVidVolumes"
 
         for key, val in json_volumes.items():
             if key == "source":
-                result[key] = vols_rel_path
+                result[key] = vols_path_output
                 continue
 
             if type(val) == list:

@@ -601,7 +601,7 @@ def init_state(fps):
     state["current_time"] = 0
     return state
 
-def add_volumes(state, json_data, default_channel):
+def add_volumes(input, state, json_data, default_channel):
     if not "volumes" in json_data:
         print("Invalid JSON: no 'volumes' section")
         sys.exit()
@@ -616,6 +616,7 @@ def add_volumes(state, json_data, default_channel):
     source_base = ""
     if "source" in json_volumes:
         source_base = json_volumes["source"]
+    input_dir = os.path.dirname(input)
 
     volumes = {}
     for key, value in json_volumes.items():
@@ -634,6 +635,7 @@ def add_volumes(state, json_data, default_channel):
     bbox_overall = (0, 0, 0)
     for vol_name, vol_tuple in volumes.items():
         vol_path, channel = vol_tuple
+        vol_path = os.path.join(input_dir, vol_path)
         bbox = get_vol_bbox(vol_path)
         bbox_overall = (max(bbox[0], bbox_overall[0]), max(bbox[1], bbox_overall[1]), max(bbox[2], bbox_overall[2]))
     state["bbox_overall"] = bbox_overall
@@ -795,12 +797,12 @@ def describe_interpolators(state, fps):
 
     return result
 
-def describe_project(json_data, default_channel):
+def describe_project(input, json_data, default_channel):
     # TODO: Support "fps" in the JSON.
     fps = 30
 
     state = init_state(fps)
-    add_volumes(state, json_data, default_channel)
+    add_volumes(input, state, json_data, default_channel)
     add_animators(state, json_data, fps)
 
     # For keys at N frames, there need to be N `[interpolator/<i>]` statements, 0 < i < N.
@@ -893,6 +895,6 @@ if __name__ == "__main__":
         print("Using default channel: {}".format(args.channel))
 
         json_data = parse_json(args.input)
-        project = describe_project(json_data, args.channel)
+        project = describe_project(args.input, json_data, args.channel)
         with open(output, "w") as f:
             f.write(project)
