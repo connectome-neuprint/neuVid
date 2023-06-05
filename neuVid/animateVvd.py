@@ -628,7 +628,7 @@ def add_volumes(input, state, json_data, default_channel):
             else:
                 vol_file = value
                 channel = default_channel
-            vol_path = source_base + "/" + vol_file
+            vol_path = os.path.join(source_base, vol_file)
             volumes[full_vol_name] = (vol_path, channel)
     state["volumes"] = volumes
 
@@ -704,6 +704,16 @@ def describe_volumes(state):
     i = 0
     for full_vol_name, vol_tuple in state["volumes"].items():
         vol_path, channel = vol_tuple
+
+        # VVDViewer seems to accept only absolute paths and paths that start with "./"
+        # So even relative paths like "../elsewhere" need to be "./../elsewhere", oddly.
+        if not os.path.isabs(vol_path):
+            vol_path = os.path.join(".", vol_path)
+
+        # On Windows, the output of os.path.join does not seem to work for paths in
+        # VVDViewer project files.  But forward slashes do work.
+        vol_path = vol_path.replace(os.sep, "/")
+
         result += "[data/volume/{}]\n".format(i)
         result += "name={}\n".format(full_vol_name)
         result += "path={}\n".format(vol_path)
@@ -820,10 +830,10 @@ def describe_project(input, json_data, default_channel):
     return result
 
 # Builds a very simple neuVid description (JSON) file from the volumes in `input_dir`.
-def collect_volumes(input_dir, count=-1):
+def collect_volumes(input_dir, output_dir_rel, count=-1):
     result = {
         "volumes": {
-            "source": os.path.realpath(args.input)
+            "source": output_dir_rel
         },
         "animation": [
         ]
@@ -876,12 +886,18 @@ if __name__ == "__main__":
         print("Using input directory: {}".format(args.input))
         output = args.output
         if not output:
-            output = os.path.splitext(args.input)[0] + ".json"
+            output = args.input
+            if output.endswith(os.sep):
+                output = output[:-1]
+            output += ".json"
         if args.count > 0:
             print("Limiting to count: {}".format(args.count))
         print("Using output file: {}".format(output))
 
-        json_data = collect_volumes(args.input, args.count)
+        input_dir = os.path.abspath(args.input)
+        output_dir = os.path.dirname(output)
+        output_dir_rel = os.path.relpath(input_dir, output_dir)
+        json_data = collect_volumes(input_dir, output_dir_rel, args.count)
         json_str = formatted(json_data)
         with open(output, "w") as f:
             f.write(json_str)
