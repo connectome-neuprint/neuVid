@@ -95,7 +95,7 @@ def find_in_keys(pattern_elements, keys):
 #   "b": [{"line": "b"}, 2],
 #   "c": [{"line": "c", "sex": "male"}, 2]
 # }
-def fetch_volumes(input, json_data):
+def fetch_volumes(json_data, output):
     if not "volumes" in json_data:
         return {}
     json_volumes = json_data["volumes"]
@@ -116,6 +116,8 @@ def fetch_volumes(input, json_data):
         vols_path = os.path.join(dir, "neuVidVolumes")
         if not os.path.exists(vols_path):
             os.mkdir(vols_path)
+        # Even on Windows, forward slashes work better as path separators for
+        # paths to be stored as JSON strings.
         vols_path_output = "./neuVidVolumes"
 
         for key, val in json_volumes.items():
@@ -150,7 +152,7 @@ def fetch_volumes(input, json_data):
                 sys.exit()
 
             vol_name = vol_name.replace(" ", "+")
-            url = os.path.join(json_source, vol_name)
+            url = json_source + "/" + vol_name
             print("Fetching {}.".format(url))
             try:
                 response = requests.get(url)
@@ -218,7 +220,7 @@ if __name__ == "__main__":
         output = args.input
 
     json_data = parse_json(args.input)
-    updates = fetch_volumes(args.input, json_data)
+    updates = fetch_volumes(json_data, output)
     updated = update_input(args.input, updates)
 
     with open(output, "w") as f:
