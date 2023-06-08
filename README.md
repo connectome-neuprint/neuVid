@@ -129,15 +129,15 @@ Neuroglancer synapse layers from `neuPrint` are imported as described above, but
 
 ## Usage with VVDViewer
 
-For volumetric data sets lacking a segmentation, use the following approach.  Only macOS and Windows are supported, for now at least.
+For volumetric data sets lacking a segmentation, use the following approach.  
 
 [![Representative Expression Patterns in the Drosophila Visual System](https://img.youtube.com/vi/OE9icXDM8q8/maxresdefault.jpg)](https://www.youtube.com/watch?v=OE9icXDM8q8)
 
 1. Install [VVDViewer](https://github.com/JaneliaSciComp/VVDViewer).  The simplest approach is to download an installer from the [releases page](https://github.com/JaneliaSciComp/VVDViewer/releases).
 
-2. Install `animateVvd` by downloading an executable from the [releases page of this repository](https://github.com/connectome-neuprint/neuVid/releases).  It will be a compressed (.zip) file, so extract it by double-clicking on macOS or right-clicking on Windows and choosing "Extract All" or an item from the "7-Zip" menu; then move it to a standard place, like `/Applications` on macOS and `C:\Program Files\newVid` on Windows.
+2. Install `animateVvd` by downloading an executable from the [releases page of this repository](https://github.com/connectome-neuprint/neuVid/releases).  It will be a compressed (.zip) file, so extract it on macOS by double-clicking; or extract it on Windows by right-clicking and choosing "Extract All" or an item from the "7-Zip" menu; or extract it on Linux with the `unzip` command.  Move the executable to a standard place, like `/Applications` on macOS, or `C:\Program Files\newVid` on Windows, or `~/bin` on Linux.
 
-3. To get a head start on the animation, `animateVvd` can build a basic JSON from a directory of volumes in [H5J format](https://github.com/JaneliaSciComp/workstation/blob/master/docs/H5JFileFormat.md), say, `exampleVolumes`.  In a shell (terminal), run the following, where `animateVvd` is shorthand for the actual platform-specific path to the executable: something like `/Applications/animateVvd.app/Contents/MacOS/animateVvd` on macOS; something like `"C:\Program Files\neuVid\animateVvd.exe"` on Windows.
+3. To get a head start on the animation, `animateVvd` can build a basic JSON from a directory of volumes in [H5J format](https://github.com/JaneliaSciComp/workstation/blob/master/docs/H5JFileFormat.md), say, `exampleVolumes`.  In a shell (terminal), run the following, where `animateVvd` is shorthand for the actual platform-specific path to the executable (something like `/Applications/animateVvd.app/Contents/MacOS/animateVvd` on macOS; or like `"C:\Program Files\neuVid\animateVvd.exe"` on Windows, where the quotes are significant since the path contains a space; or like `~/bin/animateVvd.bin` on Linux).
 
         animateVvd -i exampleVolumes
 
