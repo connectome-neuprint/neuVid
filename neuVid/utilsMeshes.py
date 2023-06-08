@@ -117,7 +117,8 @@ def downloadMesh(source, key):
     url = source
     if url[-1] != "/":
         url += "/"
-    if "dvid" in url or "janelia.org" in url:
+    # DVID source
+    if "api/node" in url:
         url += "key/"
     url += key
     try:
