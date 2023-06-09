@@ -493,6 +493,16 @@ def add_initial_orient_camera(lines):
                     add_orbit_camera(None, angle, duration, axis=axis, index=0)
             break
 
+def add_initial_orient_camera_hacks(lines):
+    for line in lines:
+        if "//manc-" in line:
+            # Keep the MANC from appearing upside down.
+            axis = "y"
+            angle = 180
+            duration = 0
+            add_orbit_camera(None, angle, duration, axis=axis, index=0)
+            return
+
 def compress_time_advances():
     global animation
     to_delete = []
@@ -603,7 +613,7 @@ def sort_containing_first(layers):
 
 # TODO: Find an alternative to this special-case processing.
 def process_layer_source_hemibrain(layer, url_mid):
-    # TODO: Reirecting to a DVID server would not be needed if this script could load meshes in the
+    # TODO: Redirecting to a DVID server would not be needed if this script could load meshes in the
     # multi-resolution, chunked, shared format:
     # https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/meshes.md
     if "v1.0" in url_mid:
@@ -638,6 +648,21 @@ def process_layer_source_hemibrain(layer, url_mid):
 
     set_layer_source(layer, url_base)
 
+# TODO: Find an alternative to this special-case processing.
+def process_layer_source_manc(layer, url_mid):
+    # TODO: Redirecting to a DVID server would not be needed if this script could load meshes in the
+    # multi-resolution, chunked, shared format:
+    # https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/meshes.md
+
+    # TODO: Check the version and redirect appropriately instead of assuming v1.0.
+    url_base = "https://manc-dvid.janelia.org/api/node/v1.0/"
+    if layer_is_segmentation(layer):
+        url_base += "segmentation_meshes"
+    elif layer_is_synapses(layer):
+        url_base += "synapses"
+
+    set_layer_source(layer, url_base)
+
 def process_layer_source(layer):
     src = layer_source(layer)
     print("Processing layer source '{}'".format(src))
@@ -646,6 +671,9 @@ def process_layer_source(layer):
     GOOGLEAPIS_PREFIX = "https://storage.googleapis.com/"
     if src.startswith(GS_PREFIX):
         url_mid = src.split(GS_PREFIX)[1]
+        if url_mid.startswith("manc-seg"):
+            process_layer_source_manc(layer, url_mid)
+            return
         if url_mid.startswith("neuroglancer-janelia-flyem-hemibrain/v1"):
             process_layer_source_hemibrain(layer, url_mid)
             return
@@ -912,6 +940,7 @@ if __name__ == "__main__":
     if args.match_camera:
         add_initial_orient_camera(lines)
     else:
+        add_initial_orient_camera_hacks(lines)
         print("Using a standard view: run with --matchcam (or -mc) to instead match the Neuroglancer camera")
     add_initial_frame_camera()
     add_initial_alphas()
