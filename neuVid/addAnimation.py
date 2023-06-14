@@ -462,15 +462,28 @@ def fadeCmd(args):
         startingTime = time
         deltaTime = []
         stagger = False
+        accelerating = False
         if len(objs) >= 6:
             nStaggerSubgroup = min(5, round(len(objs) / 6))
         else:
             nStaggerSubgroup = len(objs)
 
+        # Accelerating pace: `"stagger": true`
+        # Constant pace: `"stagger": "constant"` or `"stagger": "const"`, etc.
+        # All at once: `"stagger": false` or no mention of "stagger"
         if "stagger" in args:
             stagger = args["stagger"]
-        if stagger:
             if len(objs) >= 6:
+                if not isinstance(stagger, str) or not stagger.lower().startswith("const"):
+                    accelerating = True
+
+        # For stagger and not accelerating, each item fades on/off in this many frames.
+        FADE_FRAMES_NOT_ACCEL = 3
+
+        if stagger:
+            if len(objs) < 6:
+                deltaTime.append(duration / nStaggerSubgroup)
+            elif accelerating:
                 n0 = nStaggerSubgroup
                 n1 = 2 * n0
                 n2 = len(objs) - (n0 + n1)
@@ -481,11 +494,15 @@ def fadeCmd(args):
                 deltaTime.append(duration / 3 / n1)
                 deltaTime.append(duration / 3 / n2)
             else:
-                deltaTime.append(duration / nStaggerSubgroup)
+                durationWithoutLastFade = duration - FADE_FRAMES_NOT_ACCEL * (1 / fps)
+                dt = durationWithoutLastFade / len(objs)
+                for i in range(len(objs)):
+                    deltaTime.append(dt)
+                nStaggerSubgroup = 1
 
             print("{}, {}: fade, meshes '{}', {} {} to {}".
                 format(frame(), frame(time + duration), meshes, type, startingValue, endingValue))
-            if len(deltaTime) > 1:
+            if accelerating and len(deltaTime) > 1:
                 print(" stagger: {} x {}, {} x {}, {} x {}".
                     format(n0, frame(deltaTime[0]), n1, frame(deltaTime[1]), n2, frame(deltaTime[2])))
             else:
@@ -519,13 +536,14 @@ def fadeCmd(args):
 
             else:
                 setMaterialValue(mat, "diffuse_color", endingValue)
-            endingFrame = max(frame(startingTime + deltaTime[0]), startingFrame + 1)
+            minimum = FADE_FRAMES_NOT_ACCEL if stagger and not accelerating else 1
+            endingFrame = max(frame(startingTime + deltaTime[0]), startingFrame + minimum)
             if type == "location":
                 obj.keyframe_insert(type, frame=endingFrame)
             else:
                 insertMaterialKeyframe(mat, type, endingFrame)
             i += 1
-            if len(deltaTime) > 1 and (i == nStaggerSubgroup or i == 3 * nStaggerSubgroup):
+            if len(deltaTime) > 1 and (not accelerating or i == nStaggerSubgroup or i == 3 * nStaggerSubgroup):
                 deltaTime.pop(0)
 
             if stagger:
