@@ -576,7 +576,7 @@ Required arguments:
 
 Optional arguments:
 - `duration` (default: 1)
-- `stagger`
+- `stagger` (default: `false`) : `true` means meshes change alpha/color one by one at an accelerating rate; `"constant"` means they change one by one at a constant rate
 
 ### `frameCamera`
 
