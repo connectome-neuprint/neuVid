@@ -351,6 +351,11 @@ def newSilhouetteMaterial(name, exp=5):
         matLinks = mat.node_tree.links
 
         alphaNode, diffuseColorNode = setupMaterialAttributeNodes(mat)
+
+        expNode = matNodes.new("ShaderNodeValue")
+        expNode.name = "exponent"
+        expNode.label = "exponent"
+        expNode.outputs["Value"].default_value = exp
         
         if exp > 0:
             matNodes.remove(matNodes["Principled BSDF"])
@@ -380,7 +385,7 @@ def newSilhouetteMaterial(name, exp=5):
             powNode.name = "pow"
             powNode.operation = "POWER"
             matLinks.new(negNode.outputs["Value"], powNode.inputs[0])
-            powNode.inputs[1].default_value = exp
+            matLinks.new(expNode.outputs["Value"], powNode.inputs[1])
 
             lightPathNode = matNodes.new("ShaderNodeLightPath")
             lightPathNode.name = "lightPath"

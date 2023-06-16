@@ -305,7 +305,7 @@ def advanceTimeCmd(args):
         print("Error: advanceTime: missing argument 'by'")
 
 def setValueCmd(args):
-    validateCmdArgs("setValue", ["meshes", "alpha", "color", "stagger"], args)
+    validateCmdArgs("setValue", ["meshes", "alpha", "color", "exponent", "stagger"], args)
 
     # Makes an instantaneous change, so mostly useful for setting an initial value.
     if "meshes" in args:
@@ -329,6 +329,9 @@ def setValueCmd(args):
                 # "Stagger" here means to assign the meshes variations on the basic color.
                 colorHSV0 = colorsys.rgb_to_hsv(color[0], color[1], color[2])
                 colorHSV = (colorHSV0[0], colorHSV0[1] * (1 - staggerFrac), colorHSV0[2] * (1 - staggerFrac))
+        elif "exponent" in args:
+            exp = args["exponent"]
+            print("{}: setValue meshes '{}' exponent {}".format(frame(), meshes, exp))
         else:
             print("Error: setValue: unsupported arguments {}".format(args))
             return
@@ -352,13 +355,20 @@ def setValueCmd(args):
             if "alpha" in args:
                 setMaterialValue(mat, "alpha", alpha)
                 insertMaterialKeyframe(mat, "alpha", frame())
-            else:
+            elif "color" in args:
                 if staggerFrac:
                     color = colorsys.hsv_to_rgb(colorHSV[0], colorHSV[1], colorHSV[2])
                     colorHSV = (colorHSV[0], colorHSV[1] + deltaS, colorHSV[2] + deltaV)
 
                 setMaterialValue(mat, "diffuse_color", color)
                 insertMaterialKeyframe(mat, "diffuse_color", frame=frame())
+            elif "exponent" in args:
+                try:
+                    setMaterialValue(mat, "exponent", exp)
+                    insertMaterialKeyframe(mat, "exponent", frame())
+                except:
+                    print("'{}' does not support 'exponent'.".format(matName))
+                    sys.exit()
 
 def bboxAxisForViewVector(v):
     # TODO: Pick the axis with maximal projection?
