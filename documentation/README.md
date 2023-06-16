@@ -609,7 +609,7 @@ Optional arguments:
 
 Required arguments:
 - `meshes`
-- `alpha` or `color`
+- `alpha` or `color` or `exponent` (for ROI silhouette shading)
 
 ### `showPictureInPicture`
 
