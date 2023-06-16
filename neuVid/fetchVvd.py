@@ -138,12 +138,18 @@ def fetch_volumes(json_data, output):
             if not "sex" in val:
                 val["sex"] = "unisex"
 
-            keys = None
+            candidate_keys = []
             for release in prefixes:
                 keys = fetch_s3_bucket_keys(json_source, release, line)
                 if len(keys) > 0:
+                    print("Preparing to check {} in release '{}'".format(val, release))
+                    candidate_keys.append(keys)
+            
+            vol_name = None
+            for keys in candidate_keys:
+                vol_name = find_in_keys(val, keys)
+                if vol_name:
                     break
-            vol_name = find_in_keys(val, keys)
             if vol_name == None:
                 print("Cannot find volume matching '{}' at source '{}'".format(str(val), json_source))
                 print("Choices:")
