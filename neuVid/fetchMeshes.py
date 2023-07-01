@@ -27,7 +27,7 @@ import tempfile
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsGeneral import report_version
-from utilsJson import decode_id, guess_extraneous_comma, parseNeuronsIds, removeComments
+from utilsJson import decode_id, guess_extraneous_comma, parseNeuronsIds, parseRoiNames, removeComments
 from utilsNg import dir_name_from_ng_source, is_ng_source, source_to_url
 from utilsSynapses import download_synapses
 
@@ -284,31 +284,32 @@ if __name__ == "__main__":
         print(f"Loading JSON file {args.input_json_file} failed")
         quit()
 
-    if "neurons" in json_data:
-        json_neurons = json_data["neurons"]
-        if "source" in json_neurons:
-            source = json_neurons["source"]
-            if isinstance(source, str):
-                neuron_sources = [source]
-            else:
-                neuron_sources = source
+    for category in ["neurons", "rois"]:
+        if category in json_data:
+            json_category = json_data[category]
+            if "source" in json_category:
+                source = json_category["source"]
+                if isinstance(source, str):
+                    neuron_sources = [source]
+                else:
+                    neuron_sources = source
 
-            neuron_ids, _, _, _ = parseNeuronsIds(json_neurons)
+                if category == "neurons":
+                    ids, _, _, _ = parseNeuronsIds(json_category)
+                else:
+                    ids, _, _ = parseRoiNames(json_category)
 
-            for i in range(len(neuron_sources)):
-                source = neuron_sources[i]
+                for i in range(len(neuron_sources)):
+                    source = neuron_sources[i]
 
-                if is_ng_source(source):
-                    if len(neuron_sources) == 1:
-                        print(f"Fetching {len(neuron_ids[i])} neuron meshes from source {source}")
-                    else:
-                        print(f"Fetching {len(neuron_ids[i])} neuron meshes for source index {i}: {source}")
+                    if is_ng_source(source):
+                        print(f"Fetching {len(ids[i])} {category} meshes from source {source}")
+                        mesh_info = get_mesh_info(source)
+                        if is_cloudvolume_accessible(mesh_info):
+                            fetch_with_cloudvolume(source, ids[i], args.decim_fraction, input_json_dir, args.force)
+                        else:
+                            fetch_directly(source, mesh_info, ids[i], args.lod, args.decim_fraction, input_json_dir, args.force)
 
-                    mesh_info = get_mesh_info(source)
-                    if is_cloudvolume_accessible(mesh_info):
-                        fetch_with_cloudvolume(source, neuron_ids[i], args.decim_fraction, input_json_dir, args.force)
-                    else:
-                        fetch_directly(source, mesh_info, neuron_ids[i], args.lod, args.decim_fraction, input_json_dir, args.force)
 
     if "synapses" in json_data:
         json_synapses = json_data["synapses"]

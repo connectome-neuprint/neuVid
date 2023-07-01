@@ -31,7 +31,9 @@ def encode_id(id, source_index):
     return "{}_{}".format(id, source_index)
 
 def decode_id(id):
-    return id.split("_")[0]
+    if type(id) == str and "_" in id:
+        return id.split("_")[0]
+    return id
 
 def parseNeuronsIds(jsonNeurons, limit=0):
     # neuronIds[i] is the set of neuron IDs for source i.
@@ -150,9 +152,8 @@ def parseRoiNames(jsonRois):
             groupToMeshesSourceIndex[key] = iMeshesPath
 
             for x in jsonList:
-                if isinstance(x, str):
-                    roiNames[iMeshesPath].add(x)
-                    groupToRoiNames[key].append(x)
+                roiNames[iMeshesPath].add(x)
+                groupToRoiNames[key].append(x)
 
         # A key for a group name has a value that is a dictionary.
         # E.g., "nerveRois" here:

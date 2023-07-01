@@ -84,6 +84,13 @@ def fileToImportForRoi(source, roiName, parentForDownloadDir):
             except OSError as e:
                 print("Error: writing roi '{}' from source URL '{}' failed: {}".format(roiName, source, str(e)))
                 return None
+
+    elif is_ng_source(source):
+        # Try to use OBJ files downloaded by fetchMeshes.py.
+        download_dir = dir_name_from_ng_source(source)
+        path = os.path.join(parentForDownloadDir, download_dir)
+        return os.path.join(path, roiName + ".obj")
+
     else:
         dir = source
         if dir[-1] != "/":

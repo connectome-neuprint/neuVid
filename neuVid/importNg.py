@@ -44,6 +44,7 @@ animation = []
 contains_groups = {}
 layer_alphas = {}
 initial_layer_alphas = {}
+initial_orbit_axis = "z"
 orbit_look_at_last = None
 orbit_look_from_last = None
 orbit_axis_last = None
@@ -172,7 +173,10 @@ def store_synapse_params(args):
 def layer_is_roi(layer):
     if "source" in layer:
         if "url" in layer["source"]:
-            return "roi" in layer["source"]["url"]
+            if "roi" in layer["source"]["url"]:
+                return True
+        if "flywire_neuropil_meshes" in layer["source"]:
+            return True
     return False
 
 def layer_is_segmentation(layer):
@@ -253,13 +257,10 @@ def state_camera_look_at(ng_state):
 
 def layer_segments(layer):
     seg_strs = layer["segments"] if "segments" in layer else []
-    result = []
-    for seg_str in seg_strs:
-        if seg_str.isnumeric():
-            result.append(int(seg_str))
-        else:
-            result.append(seg_str)
-    return result
+    if layer_is_roi(layer):
+        return seg_strs
+    else:
+        return [int(s) if s.isnumeric() else s for s in seg_strs]
 
 def set_layer_segments(layer, segments):
     layer["segments"] = segments
@@ -494,6 +495,7 @@ def add_initial_orient_camera(lines):
             break
 
 def add_initial_orient_camera_hacks(lines):
+    global initial_orbit_axis
     for line in lines:
         if "//manc-" in line:
             # Keep the MANC from appearing upside down.
@@ -502,6 +504,12 @@ def add_initial_orient_camera_hacks(lines):
             duration = 0
             add_orbit_camera(None, angle, duration, axis=axis, index=0)
             return
+        if line.startswith("https://ngl.cave-explorer.org/"):
+            axis = "x"
+            angle = -90
+            duration = 0
+            add_orbit_camera(None, angle, duration, axis=axis, index=0)
+            initial_orbit_axis = "y"
 
 def compress_time_advances():
     global animation
@@ -586,11 +594,11 @@ def add_initial_alphas():
                 add_set_value(group, "alpha", alpha, 0)
 
 def add_animation(end_time):
-    global result_json, animation
+    global result_json, animation, initial_orbit_axis
     compress_time_advances()
 
     if end_time == 0:
-        add_orbit_camera()
+        add_orbit_camera(axis=initial_orbit_axis)
 
     result_json["animation"] = animation
 
@@ -678,7 +686,13 @@ def process_layer_source(layer):
             process_layer_source_hemibrain(layer, url_mid)
             return
         elif layer_is_roi(layer):
-            url_base = GOOGLEAPIS_PREFIX + url_mid + "/mesh/"
+            if url_mid.startswith("flywire"):
+                url_base = src
+                segments = layer_segments(layer)
+                segments_processed = [str(s) for s in segments]
+                set_layer_segments(layer, segments_processed)
+            else:
+                url_base = GOOGLEAPIS_PREFIX + url_mid + "/mesh/"
         elif url_mid.startswith("flyem"):
             url_base = GOOGLEAPIS_PREFIX + url_mid + "/"
         else:
@@ -746,6 +760,7 @@ def process_ng_state_sources(ng_state, time, time_next, split):
         return
 
     layers = split_groups(ng_state) if split else ng_state["layers"]
+    ng_state["layers"] = layers
 
     for layer in layers:
         if layer_is_visible(layer) and not layer_is_archived(layer):
