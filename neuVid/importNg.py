@@ -460,6 +460,11 @@ def update_orbit_camera(endRelAngle, duration, axis, index):
 
             print("updated previous orbit camera to have axis '{}', ending relative angle {}, duration {}".format(axis, angle, duration))
 
+def add_light_rotation(angle, axis):
+    global result_json
+    key = f"lightRotation{axis.upper()}"
+    result_json[key] = angle
+
 def add_initial_frame_camera():
     global rois, neurons
     if len(neurons) > len(rois):
@@ -503,6 +508,7 @@ def add_initial_orient_camera_hacks(lines):
             angle = 180
             duration = 0
             add_orbit_camera(None, angle, duration, axis=axis, index=0)
+            add_light_rotation(angle, axis)
             return
         if line.startswith("https://ngl.cave-explorer.org/"):
             axis = "x"
@@ -510,6 +516,7 @@ def add_initial_orient_camera_hacks(lines):
             duration = 0
             add_orbit_camera(None, angle, duration, axis=axis, index=0)
             initial_orbit_axis = "y"
+            add_light_rotation(angle, axis)
 
 def compress_time_advances():
     global animation
