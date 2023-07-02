@@ -233,7 +233,7 @@ def formatted(json_data):
             result_str = fix_end(result_str)
             result_str += indent + "],\n"
         else:
-            result_str += json.dumps(val0) + ",\n"
+            result_str += indent + "{}: {},\n".format(json.dumps(key0), json.dumps(val0))
 
     result_str = result_str = fix_end(result_str)
     result_str += "}\n"
