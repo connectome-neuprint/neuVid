@@ -175,13 +175,15 @@ def updateCameraClip(camName):
     # But the previous is still needed if scene.frame_set(t) was not called.
     camLoc2 = camObj.matrix_world.translation
 
-    bnd = bpy.data.objects["Bound.neurons"]
-    ctr = bnd.location
-    d = max((camLoc1 - ctr).magnitude, (camLoc2 - ctr).magnitude)
-    d += bnd["Radius"]
-    if d > cam.clip_end:
-        cam.clip_end = d
-        print("Updating '{}' clip_end to {}".format(camName, cam.clip_end))
+    for which in ["Bound.neurons", "Bound.rois"]:
+        if which in bpy.data.objects:
+            bnd = bpy.data.objects[which]
+            ctr = bnd.location
+            d = max((camLoc1 - ctr).magnitude, (camLoc2 - ctr).magnitude)
+            d += bnd["Radius"]
+            if d > cam.clip_end:
+                cam.clip_end = d
+                print("Updating '{}' clip_end to {}".format(camName, cam.clip_end))
 
 #
 
