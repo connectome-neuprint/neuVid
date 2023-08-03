@@ -8,6 +8,8 @@ These Python scripts generate simple anatomical videos in [Blender](https://www.
 
 [![Fly Central Complex Circuitry](https://img.youtube.com/vi/nu0b_tjCGxQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=nu0b_tjCGxQ)
 
+See more examples in [the neuVid gallery](https://github.com/connectome-neuprint/neuVid/tree/master/documentation/gallery.md).
+
 These scripts also support volumetric data sets with no explicit segmentation. An example is the [H5J format](https://github.com/JaneliaSciComp/workstation/blob/master/docs/H5JFileFormat.md) volumes in the [Janelia FlyLight Split-GAL4 driver collection](https://splitgal4.janelia.org/cgi-bin/splitgal4.cgi).  This kind of data is rendered with direct volume rendering by [VVDViewer](https://github.com/JaneliaSciComp/VVDViewer).
 
 ## Usage with `neuPrint`
