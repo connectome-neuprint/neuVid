@@ -50,10 +50,15 @@ inputDir = args.inputDir
 input, ext = os.path.splitext(inputDir)
 if ext.lower() == ".json":
     inputDir = input + "-frames"
+print("Using input directory: '{}'".format(inputDir))
 
 outputDir = args.outputDir
 if outputDir == None:
     outputDir = inputDir
+
+# Necesary in some cases on Windows.
+outputDir = os.path.abspath(outputDir)
+
 if outputDir[:-1] != "/":
     outputDir += "/"
 print("Using output directory: '{}'".format(outputDir))
