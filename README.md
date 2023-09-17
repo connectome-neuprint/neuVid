@@ -23,7 +23,7 @@ Here are the steps:
 2. Open a terminal (shell) and clone this repository.
 3. Find some neurons (and synapses if desired) in `neuPrint`, and switch to `neuPrint`'s [Neuroglancer](https://github.com/google/neuroglancer) tab.
 4. Press the "Copy view URL to clipboard" button (icon: two overlapping squares) at right side of the Neuroglancer header bar.
-5. Run the script to read the clipboard and output the JSON file that specifies the video.  In the following, `blender` is shorthand for the actual platform-specific path to the Blender executable: `/Applications/Blender.app/Contents/MacOS/Blender` on macOS; something like `"C:\Program Files\Blender Foundation\Blender 3.4\blender.exe"` on Windows, with the quotes being necessary due to the spaces in the path; something like `/usr/local/blender/blender-3.4.1-linux-x64/blender` on Linux.
+5. Run the script to read the clipboard and output the JSON file that specifies the video.  In the following, `blender` is shorthand for the actual platform-specific path to the Blender executable: `/Applications/Blender.app/Contents/MacOS/Blender` on macOS; something like `/usr/local/blender/blender-3.4.1-linux-x64/blender` on Linux; something like `"C:\Program Files\Blender Foundation\Blender 3.4\blender.exe"` on Windows, with the quotes being necessary due to the spaces in the path.  Note also that with Windows PowerShell, the executable must be preceded by `&`, as in `& "C:\Program Files\Blender Foundation\Blender 3.4\blender.exe"`.
 
         blender --background --python neuVid/neuVid/importNg.py -- -o ex1.json
 

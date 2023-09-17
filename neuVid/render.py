@@ -133,6 +133,10 @@ else:
     if not input:
         input = args.inputBlenderFile
     output = os.path.splitext(input)[0] + "-frames"
+
+    # Necesary in some cases on Windows.
+    output = os.path.abspath(output)
+
 # Ensure a final path separator, which is important for how Blender generates output file names
 # from frame numbers.
 output = os.path.join(output, "")
