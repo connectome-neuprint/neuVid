@@ -30,6 +30,9 @@ def getColor(colorId, colors):
             return tuple([int(colorId[i:i+2], 16) / 255 for i in (1, 3, 5)])
 
         else:
+            if colorId.lower() == "white":
+                return (1, 1, 1, 1)
+
             # The colorId is a color name, so check for a match with the names in
             # the palette.  Do a little processing so there is a successful match for
             # "light-blue", "lightblue", "LightBlue", etc.
