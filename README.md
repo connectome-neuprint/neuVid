@@ -29,6 +29,8 @@ Here are the steps:
 
     Note that on Windows, the path to the Blender executable may well contain spaces, as in `C:\Program Files\Blender Foundation\Blender 3.3\blender.exe`.  To run it in the command shell, put quotes around the path, as in `"C:\Program Files\Blender Foundation\Blender 3.3\blender.exe" --background --python ...`.
 
+    Experimental option `-t` (or `--typesplit`): groups imported neurons by type, where available.
+
 6. Run the script to download meshes and create the basic Blender file (without animation) in the same directory as the JSON file.  This stage also creates directories for downloaded mesh files (`neuVidNeuronMeshes`,  `neuVidRoiMeshes`, `neuVidSynapseMeshes`) in the same directory as the JSON file.
 
         blender --background --python neuVid/neuVid/importMeshes.py -- -i ex1.json
