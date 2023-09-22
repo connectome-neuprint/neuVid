@@ -288,6 +288,7 @@ if useSeparateNeuronFiles:
 #
 
 roiExponents = {}
+roiThresholds = {}
 
 if "rois" in jsonData:
     jsonRois = jsonData["rois"]
@@ -316,6 +317,21 @@ if "rois" in jsonData:
             if groupName in groupToRoiNames:
                 for roiName in groupToRoiNames[groupName]:
                     roiExponents["Roi." + roiName] = groupToExponent[groupName]
+
+        if "thresholds" in jsonRois:
+            groupToThreshold = jsonRois["thresholds"]
+
+            # The threshold for the "*" key applies to all ROI groups that are not
+            # mentioned by other keys.  So apply "*" first, then the others.
+            if "*" in groupToThreshold.keys():
+                for groupName in groupToRoiNames.keys():
+                    for roiName in groupToRoiNames[groupName]:
+                        roiThresholds["Roi." + roiName] = groupToThreshold["*"]
+
+            for groupName in groupToThreshold.keys():
+                if groupName in groupToRoiNames:
+                    for roiName in groupToRoiNames[groupName]:
+                        roiThresholds["Roi." + roiName] = groupToThreshold[groupName]
 
     for i in range(len(roiSources)):
         if len(roiSources) == 1:
@@ -359,7 +375,11 @@ for roi in rois:
     if roi in roiExponents:
         exp = roiExponents[roi]
 
-    mat = newSilhouetteMaterial(matName, exp)
+    threshold = 100
+    if roi in roiThresholds:
+        threshold = roiThresholds[roi]
+
+    mat = newSilhouetteMaterial(matName, exp, threshold)
     obj.data.materials.clear()
     obj.data.materials.append(mat)
 

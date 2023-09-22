@@ -250,7 +250,7 @@ def newGlowingMaterial(name, color):
         setupAlphaScaledSpecular(mat)
     return mat
 
-def newSilhouetteMaterial(name, exp=5):
+def newSilhouetteMaterial(name, exp=5, threshold=100):
     mat = bpy.data.materials.new(name=name)
     if bpy.app.version < (2, 80, 0):
         # Enable the transparency of the ROI away from its silhouette.
@@ -357,6 +357,11 @@ def newSilhouetteMaterial(name, exp=5):
         expNode.label = "exponent"
         expNode.outputs["Value"].default_value = exp
         
+        thresholdNode = matNodes.new("ShaderNodeValue")
+        thresholdNode.name = "threshold"
+        thresholdNode.label = "threshold"
+        thresholdNode.outputs["Value"].default_value = threshold
+
         if exp > 0:
             matNodes.remove(matNodes["Principled BSDF"])
             outputNode = matNodes["Material Output"]
@@ -417,6 +422,20 @@ def newSilhouetteMaterial(name, exp=5):
             matLinks.new(alphaXPowXLightPathNode.outputs["Value"], mixNode.inputs["Fac"])
             matLinks.new(backgroundNode.outputs["BSDF"], mixNode.inputs[1])
             matLinks.new(diffuseColorNode.outputs["Color"], mixNode.inputs[2])
+
+            depthLessThanNode = matNodes.new("ShaderNodeMath")
+            depthLessThanNode.name = "depthLessThan"
+            depthLessThanNode.operation = "LESS_THAN"
+            matLinks.new(lightPathNode.outputs["Transparent Depth"], depthLessThanNode.inputs[0])
+            matLinks.new(thresholdNode.outputs["Value"], depthLessThanNode.inputs[1])
+
+            multDepthNode = matNodes.new("ShaderNodeMath")
+            multDepthNode.name = "multDepth"
+            multDepthNode.operation = "MULTIPLY"
+            matLinks.new(alphaXPowXLightPathNode.outputs["Value"], multDepthNode.inputs[0])
+            matLinks.new(depthLessThanNode.outputs["Value"], multDepthNode.inputs[1])
+
+            matLinks.new(multDepthNode.outputs["Value"], mixNode.inputs["Fac"])
 
             matLinks.new(mixNode.outputs["Shader"], outputNode.inputs["Surface"])
         else:
