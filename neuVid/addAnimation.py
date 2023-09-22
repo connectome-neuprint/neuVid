@@ -307,7 +307,7 @@ def advanceTimeCmd(args):
         print("Error: advanceTime: missing argument 'by'")
 
 def setValueCmd(args):
-    validateCmdArgs("setValue", ["meshes", "alpha", "color", "exponent", "stagger"], args)
+    validateCmdArgs("setValue", ["meshes", "alpha", "color", "exponent", "threshold", "stagger"], args)
 
     # Makes an instantaneous change, so mostly useful for setting an initial value.
     if "meshes" in args:
@@ -334,6 +334,9 @@ def setValueCmd(args):
         elif "exponent" in args:
             exp = args["exponent"]
             print("{}: setValue meshes '{}' exponent {}".format(frame(), meshes, exp))
+        elif "threshold" in args:
+            threshold = args["threshold"]
+            print("{}: setValue meshes '{}' threshold {}".format(frame(), meshes, threshold))
         else:
             print("Error: setValue: unsupported arguments {}".format(args))
             return
@@ -370,6 +373,13 @@ def setValueCmd(args):
                     insertMaterialKeyframe(mat, "exponent", frame())
                 except:
                     print("'{}' does not support 'exponent'.".format(matName))
+                    sys.exit()
+            else:
+                try:
+                    setMaterialValue(mat, "threshold", threshold)
+                    insertMaterialKeyframe(mat, "threshold", frame())
+                except:
+                    print("'{}' does not support 'threshold'.".format(matName))
                     sys.exit()
 
 def bboxAxisForViewVector(v):
