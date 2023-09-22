@@ -743,20 +743,60 @@ def add_synapses_for_neurons(synapses_category, type, neuron_group_name, neuron_
     }
     synapses_category[synapses_group_name] = spec
 
-def split_groups(ng_state):
+def source_for_type_names(source):
+    result = None
+    if source.startswith("http") and "segmentation_meshes" in source:
+        new_part = "segmentation_annotations/key/ID?app=neuVid&fields=type"
+        result = source.replace("segmentation_meshes", new_part)
+    return result
+
+def id_type_name(id, source):
+    import requests
+    try:
+        url = source_for_type_names(source)
+        url = url.replace("ID", str(id))
+        r = requests.get(url)
+        r.raise_for_status()
+        r_json = r.json()
+        try:
+            for key in ["instance", "class", "type"]:
+                if key in r_json:
+                    return r_json[key]
+            return "TBD"
+        except:
+            return None
+    except requests.exceptions.RequestException as e:
+        print("Error: request URL '{}' failed: {}".format(url, str(e)))
+
+def split_groups(ng_state, split):
     result = []
     i = 0
     for layer in ng_state["layers"]:
+        source = layer_source(layer)
         if layer_is_segmentation(layer):
-            segments = layer_segments(layer)
-            for j in range(len(segments)):
-                new_layer = layer.copy()
-                # Simpler names: "n" for neurons, "r" for ROIs.
-                new_name = layer_category_name(layer)[0] + str(i + 1)
-                i += 1
-                set_layer_name(new_layer, new_name)
-                set_layer_segments(new_layer, [str(segments[j])])
-                result.append(new_layer)
+            if layer_is_roi(layer) or not source_for_type_names(source) or split == "BASIC":
+                segments = layer_segments(layer)
+                for j in range(len(segments)):
+                    new_layer = layer.copy()
+                    # Simpler names: "n" for neurons, "r" for ROIs.
+                    new_name = layer_category_name(layer)[0] + str(i + 1)
+                    i += 1
+                    set_layer_name(new_layer, new_name)
+                    set_layer_segments(new_layer, [str(segments[j])])
+                    result.append(new_layer)
+            else:
+                type_name_to_ids = {}
+                segments = layer_segments(layer)
+                for id in segments:
+                    type_name = id_type_name(id, source)
+                    if not type_name in type_name_to_ids:
+                        type_name_to_ids[type_name] = []
+                    type_name_to_ids[type_name].append(id)
+                for type_name, ids in type_name_to_ids.items():
+                    new_layer = layer.copy()
+                    set_layer_name(new_layer, type_name)
+                    set_layer_segments(new_layer, [str(j) for j in ids])
+                    result.append(new_layer)
         else:
             result.append(layer)
     return result
@@ -766,7 +806,10 @@ def process_ng_state_sources(ng_state, time, time_next, split):
     if not "layers" in ng_state:
         return
 
-    layers = split_groups(ng_state) if split else ng_state["layers"]
+    for layer in ng_state["layers"]:
+        process_layer_source(layer)
+
+    layers = ng_state["layers"] if split == "OFF" else split_groups(ng_state, split)
     ng_state["layers"] = layers
 
     for layer in layers:
@@ -777,7 +820,6 @@ def process_ng_state_sources(ng_state, time, time_next, split):
                 # "Categories" (e.g., which bodies are in which named ROI or neuron groups) are not
                 # declared in advance, so their declarations have to be added as they are found and used.
                 if not name in category:
-                    process_layer_source(layer)
                     # In case the preceding function made the name more sensible.
                     name = layer_name(layer)
                     src = layer_source(layer)
@@ -910,6 +952,11 @@ if __name__ == "__main__":
     parser.add_argument("--output", "-o", dest="output", help="path to output JSON file")
     parser.set_defaults(split_groups=True)
     parser.add_argument("--nosplit", "-ns", dest="split_groups", action="store_false", help="do NOT split groups of segments (which allows individual animation)")
+
+    # EXPERIMENTAL
+    parser.set_defaults(split_groups_by_type=False)
+    parser.add_argument("--typesplit", "-t", dest="split_groups_by_type", action="store_true", help="split groups by type")
+
     parser.set_defaults(match_camera=False)
     parser.add_argument("--matchcam", "-mc", dest="match_camera", action="store_true", help="match the initial NG camera (instead of using the standard view)")
     parser.set_defaults(synapse_radius=60.0)
@@ -937,6 +984,9 @@ if __name__ == "__main__":
         output = os.path.splitext(args.input)[0] + ".json"
     print("Using output file: {}".format(output))
 
+    if args.split_groups_by_type:
+        print("Splitting groups by type")
+
     store_synapse_params(args)
 
     lines = normalize_input(input_lines)
@@ -951,7 +1001,11 @@ if __name__ == "__main__":
             time_next = time + dt
         else:
             ng_state = parse_nglink(line)
-            process_ng_state(ng_state, time, time_next, args.split_groups)
+
+            split = "OFF"
+            if args.split_groups:
+                split = "TYPE" if args.split_groups_by_type else "BASIC"
+            process_ng_state(ng_state, time, time_next, split)
 
             # We have just processed a command that spans the period from `time` to `time_next`.
             # So now we can advance `time` to `time_next`.
