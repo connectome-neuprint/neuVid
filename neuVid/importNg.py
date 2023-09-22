@@ -499,7 +499,7 @@ def add_initial_orient_camera(lines):
                     add_orbit_camera(None, angle, duration, axis=axis, index=0)
             break
 
-def add_initial_orient_camera_hacks(lines):
+def add_initial_orient_camera_hacks(lines, cns):
     global initial_orbit_axis
     for line in lines:
         if "//manc-" in line:
@@ -510,13 +510,14 @@ def add_initial_orient_camera_hacks(lines):
             add_orbit_camera(None, angle, duration, axis=axis, index=0)
             add_light_rotation(angle, axis)
             return
-        if line.startswith("https://ngl.cave-explorer.org/"):
+        if line.startswith("https://ngl.cave-explorer.org/") or cns:
             axis = "x"
             angle = -90
             duration = 0
             add_orbit_camera(None, angle, duration, axis=axis, index=0)
             initial_orbit_axis = "y"
             add_light_rotation(angle, axis)
+            return
 
 def compress_time_advances():
     global animation
@@ -956,6 +957,8 @@ if __name__ == "__main__":
     # EXPERIMENTAL
     parser.set_defaults(split_groups_by_type=False)
     parser.add_argument("--typesplit", "-t", dest="split_groups_by_type", action="store_true", help="split groups by type")
+    parser.set_defaults(cns=False)
+    parser.add_argument("--cns", "-cns", dest="cns", action="store_true", help="use CNS orientation correction")
 
     parser.set_defaults(match_camera=False)
     parser.add_argument("--matchcam", "-mc", dest="match_camera", action="store_true", help="match the initial NG camera (instead of using the standard view)")
@@ -1016,7 +1019,7 @@ if __name__ == "__main__":
     if args.match_camera:
         add_initial_orient_camera(lines)
     else:
-        add_initial_orient_camera_hacks(lines)
+        add_initial_orient_camera_hacks(lines, args.cns)
         print("Using a standard view: run with --matchcam (or -mc) to instead match the Neuroglancer camera")
     add_initial_frame_camera()
     add_initial_alphas()
