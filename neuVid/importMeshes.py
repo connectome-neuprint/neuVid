@@ -205,7 +205,7 @@ for i in range(len(neuronSources)):
         print("{}: {} / {} ({:.2f} secs)".format(i, j, len(neuronIds[i]), elapsedSecs))
         j += 1
 
-        if not os.path.isfile(objPath):
+        if not objPath or not os.path.isfile(objPath):
             print("Skipping missing file {}".format(objPath))
             missingNeuronObjs.append(neuronId)
             continue
@@ -264,12 +264,12 @@ for i in range(len(neuronSources)):
     for groupName in groupToNeuronIds.keys():
         if groupToMeshesSourceIndex[groupName] == i:
             groupNeuronIds = groupToNeuronIds[groupName]
-            objs = [bpy.data.objects["Neuron." + id] for id in groupNeuronIds]
+            objs = [bpy.data.objects["Neuron." + id] for id in groupNeuronIds if "Neuron." + id in bpy.data.objects]
             bboxCenter, bboxMin, bboxMax = computeBbox(objs)
             radius = computeBsphere(objs, bboxCenter)
             groupToBBox[groupName] = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
 
-    objs = [bpy.data.objects["Neuron." + id] for id in neuronIds[i]]
+    objs = [bpy.data.objects["Neuron." + id] for id in neuronIds[i] if "Neuron." + id in bpy.data.objects]
     bboxCenter, bboxMin, bboxMax = computeBbox(objs)
     radius = computeBsphere(objs, bboxCenter)
     meshesSourceIndexToBBox[i] = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
@@ -341,7 +341,7 @@ if "rois" in jsonData:
 
         for roiName in roiNames[i]:
             objPath = fileToImportForRoi(roiSources[i], roiName, inputJsonDir)
-            if not os.path.isfile(objPath):
+            if not objPath or not os.path.isfile(objPath):
                 print("Skipping missing file {}".format(objPath))
                 missingRoiObjs.append(roiName)
                 continue
@@ -473,7 +473,7 @@ for groupName in groupToNeuronIds.keys():
 if "rois" in jsonData:
     for groupName in groupToRoiNames.keys():
         roiNames = groupToRoiNames[groupName]
-        objs = [bpy.data.objects["Roi." + name] for name in roiNames]
+        objs = [bpy.data.objects["Roi." + name] for name in roiNames if "Roi." + name in bpy.data.objects]
         bboxCenter, bboxMin, bboxMax = computeBbox(objs)
         radius = computeBsphere(objs, bboxCenter)
         data = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
@@ -598,14 +598,12 @@ print("Importing ended at {}".format(timeEnd))
 
 if len(missingNeuronObjs) > 0:
     print()
-    print("ERROR: could not find mesh .obj files for the following neurons:")
-    for x in missingNeuronObjs:
-        print(x)
+    print("ERROR: could not download/find mesh .obj files for the following neurons:")
+    print([int(id) for id in missingNeuronObjs])
 if len(missingRoiObjs) > 0:
     print()
-    print("ERROR: could not find mesh .obj files for the following rois:")
-    for x in missingRoiObjs:
-        print(x)
+    print("ERROR: could not download/find mesh .obj files for the following rois:")
+    print(missingRoiObjs)
 if len(missingSynapseSetObjs) > 0:
     print()
     print("ERROR: could not find mesh .obj files for the following synapses:")
