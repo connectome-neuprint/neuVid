@@ -22,7 +22,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsColors import colors, getColor
 from utilsGeneral import newObject, report_version
 from utilsMaterials import getMaterialValue, insertMaterialKeyframe, newShadelessImageMaterial, setMaterialValue
-from utilsJson import guess_extraneous_comma, parseNeuronsIds, parseRoiNames, parseSynapsesSetNames, removeComments
+from utilsJson import guess_extraneous_comma, parseFov, parseNeuronsIds, parseRoiNames, parseSynapsesSetNames, removeComments
 
 report_version()
 
@@ -647,7 +647,7 @@ def orbitAxis(args):
     if "axis" in args:
         axis = args["axis"].lower()
     try:
-        return {"x" : 0, "y": 1, "z" :2}[axis]
+        return {"x": 0, "y": 1, "z": 2}[axis]
     except:
         return None
 
@@ -1020,6 +1020,21 @@ lastViewVector = mathutils.Vector((0, 1, 0))
 
 camera = bpy.data.objects["Camera"]
 camera.rotation_euler = mathutils.Euler((math.radians(-90), 0, 0), "XYZ")
+
+cameraData = bpy.data.cameras["Camera"]
+width = bpy.context.scene.render.resolution_x
+height = bpy.context.scene.render.resolution_y
+fovx, fovy = parseFov(jsonData, width, height)
+aspect = width / height
+if aspect > 1:
+    if fovx:
+        cameraData.lens_unit = "FOV"
+        cameraData.angle = math.radians(fovx)
+else:
+    if fovy:
+        cameraData.lens_unit = "FOV"
+        cameraData.angle = math.radians(fovy)
+print("Using FOV horizontal {}, FOV vertical {}".format(fovx, fovy))
 
 removeUnused()
 
