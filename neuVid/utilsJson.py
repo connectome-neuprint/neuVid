@@ -1,6 +1,7 @@
 # Utility functions related to JSON and parsing.
 
 import json
+import math
 
 def guess_extraneous_comma(json_input_file):
     i = 1
@@ -26,6 +27,22 @@ def guess_extraneous_comma(json_input_file):
                     line_with_comma = ""
                     line_number_with_comma = 0
             i += 1
+
+def parseFov(jsonData, width, height):
+    fovx = None
+    fovy = None
+    for key, value in jsonData.items():
+        if key.lower().startswith("fovhoriz"):
+            fovx = math.radians(value)
+            fovy = 2 * math.atan((0.5 * height) / (0.5 * width / math.tan(0.5 * fovx)))
+        if key.lower().startswith("fovvert"):
+            fovy = math.radians(value)
+            fovx = 2 * math.atan((0.5 * width) / (0.5 * height / math.tan(0.5 * fovy)))
+    if fovx:
+        fovx = math.degrees(fovx)
+    if fovy:
+        fovy = math.degrees(fovy)
+    return fovx, fovy
 
 def encode_id(id, source_index):
     return "{}_{}".format(id, source_index)

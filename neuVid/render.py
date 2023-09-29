@@ -21,7 +21,7 @@ import tempfile
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsGeneral import newObject, report_version
 from utilsMaterials import getMaterialFcurve, getMaterialValue, setMaterialValue
-from utilsJson import guess_extraneous_comma, removeComments
+from utilsJson import guess_extraneous_comma, parseFov, removeComments
 
 USE_OPTIX1 = "--optix"
 USE_OPTIX2 = "-optix"
@@ -1312,6 +1312,18 @@ def render(renderIntervalsClipped, hideRenderTrueFrames, justPrint=False):
 
 bpy.context.scene.render.resolution_x = args.resX
 bpy.context.scene.render.resolution_y = args.resY
+
+fovx, fovy = parseFov(jsonData, args.resX, args.resY)
+aspect = args.resX / args.resY
+if aspect > 1:
+    if fovx:
+        camera.lens_unit = "FOV"
+        camera.angle = math.radians(fovx)
+else:
+    if fovy:
+        camera.lens_unit = "FOV"
+        camera.angle = math.radians(fovy)
+print("Using FOV horizontal {}, FOV vertical {}".format(fovx, fovy))
 
 if not disableStandardOutput:
     bpy.context.scene.render.filepath = output

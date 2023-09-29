@@ -494,8 +494,12 @@ Current limitations of importing Neuroglancer into `neuVid`:
   - `lightSizeScale`
   - `lightDistanceScale`
   - `lightColor`
+  - `lightRotationX` in degrees
+  - `lightRotationY` in degrees
+  - `lightRotationZ` in degrees
   - `useShadows`
   - `useSpecular`
+  - `fovHorizontal` or `fovVertical` in degrees (also used by `addAnimation.py`, for interactive preview)
 - Too much mesh data to load at once:
   - `neurons` category `sources` can be an array, for multiple levels of detail
   - `neurons` category `idSources` is a directory for files that list neuron identifiers
