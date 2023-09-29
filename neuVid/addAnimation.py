@@ -23,6 +23,7 @@ from utilsColors import colors, getColor
 from utilsGeneral import newObject, report_version
 from utilsMaterials import getMaterialValue, insertMaterialKeyframe, newShadelessImageMaterial, setMaterialValue
 from utilsJson import guess_extraneous_comma, parseFov, parseNeuronsIds, parseRoiNames, parseSynapsesSetNames, removeComments
+from utilsNg import ng_camera_look_from, quat_ng_to_blender
 
 report_version()
 
@@ -968,6 +969,73 @@ def showSliceCmd(args):
             tex = mat.node_tree.nodes["texImage"]
         if tex:
             tex.image_user.frame_start = frame(time + delay)
+
+def poseCameraCmd(args):
+    # The "target" is what Neuroglancer calls "position", what the camera is looking at.
+    # The "orientation" is a quaternion, in Neuroglancer format (x, y, z, w).
+    # The "distance" also matches Neuroglancer's camera state, the distance from the 
+    # "position" ("target") to the camera's location, where it is looking from.
+    validateCmdArgs("poseCamera", ["target", "orientation", "distance", "duration"], args)
+
+    global time, tentativeEndTime, lastCameraCenter
+    camera = bpy.data.objects["Camera"]
+
+    distance = 0
+    if "distance" in args:
+        distance = args["distance"]
+    # Quaternion, Blender format: (w, x, y, z), Neuroglancer format: (x, y, z, w)
+    quaternionBlenderFormat = [1, 0, 0, 0]
+    if "orientation" in args:
+        quaternionNgFormat = args["orientation"]
+        quaternionBlenderFormat = mathutils.Quaternion(quat_ng_to_blender(quaternionNgFormat))
+    duration = 0
+    if "duration" in args:
+        duration = args["duration"]
+        tentativeEndTime = max(time + duration, tentativeEndTime)
+    target = None
+    warn = False
+    if "target" in args:
+        if isinstance(args["target"], list):
+            target = args["target"]
+        else:
+            bboxCenter, _, _, bboxRadius = bounds(args["target"])
+            target = bboxCenter
+            warn = (distance < bboxRadius)
+
+    if target:
+        position = mathutils.Vector(target)
+        cameraFrom = ng_camera_look_from(position, distance, quaternionBlenderFormat)
+        cameraFrom = mathutils.Vector(cameraFrom)
+
+        startFrame = frame()
+        if len(keysAtFrame(camera, "location", startFrame)) > 0:
+            startFrame += 1
+
+        p = [position.x, position.y, position.z]
+        print("{}, {}: poseCamera target {} orientation {} distance {}".format(startFrame, frame(time + duration), p, quaternionNgFormat, distance))
+        if warn:
+            print("  Camera is within the target bounding box")
+
+        camera.keyframe_insert("location", frame=startFrame)
+
+        camera.location = (cameraFrom.x, cameraFrom.y, cameraFrom.z)
+        camera.keyframe_insert("location", frame=frame(time + duration))
+
+        camera.keyframe_insert("rotation_euler", frame=startFrame)
+
+        e1 = quaternionBlenderFormat.to_euler("XYZ")
+        # The following probably helps prevent the animation from rotating "the wrong way around".
+        # But animation still has a strange "swoopy" quality.
+        e0 = camera.rotation_euler
+        e1.make_compatible(e0)
+
+        camera.rotation_euler = e1
+        camera.keyframe_insert("rotation_euler", frame=frame(time + duration))
+
+        updateCameraClip(camera.name)
+        lastCameraCenter = position
+    else:
+        print("Error: poseCamera: missing argument 'target'")
 
 def removeUnused():
     for obj in bpy.data.objects:

@@ -599,6 +599,16 @@ Optional arguments:
 - `duration` (default: 1)
 - `scale` (default: 1) : non-default values give a "spiral" effect
 
+### `poseCamera`
+
+Required arguments:
+- `target` : corresponds to Neuroglancer view state `position`
+- `orientation` : corresponds to Neuroglancer view state `projectionOrientation`
+- `distance` : corresonds to Neuroglancer view state `projectionScale`
+
+Optional arguments:
+- `duration` (default: 0) : note that animation to a pose, or between poses, can loop around in surprising ways
+
 ### `pulse`
 
 Required arguments:
