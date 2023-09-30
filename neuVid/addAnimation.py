@@ -647,13 +647,22 @@ def orbitAxis(args):
     axis = "z"
     if "axis" in args:
         axis = args["axis"].lower()
+    local = False
+    if "localAxis" in args:
+        axis = args["localAxis"].lower()
+        local = True
+
+        if "axis" in args:
+            print("Error: orbitCamera cannot take both 'axis' and 'localAxis' arguments")
+            sys.exit()
+
     try:
-        return {"x": 0, "y": 1, "z": 2}[axis]
+        return {"x": 0, "y": 1, "z": 2}[axis], local
     except:
         return None
 
 def orbitCameraCmd(args):
-    validateCmdArgs("orbitCamera", ["around", "axis", "endingRelativeAngle", "scale", "duration"], args)
+    validateCmdArgs("orbitCamera", ["around", "axis", "localAxis", "endingRelativeAngle", "scale", "duration"], args)
 
     # If arg "around" is "a.b" then orbiting will be around the location of
     # "Bounds.a.b".
@@ -674,13 +683,12 @@ def orbitCameraCmd(args):
             bound = bpy.data.objects[boundName]
             center = bound.location
 
-    # Mostly for debugging.
-    axis = orbitAxis(args)
+    axis, local = orbitAxis(args)
     if axis == None:
         print("Unrecognized axis in '{}'".format(args))
         sys.exit()
 
-    startingAngle = lastOrbitEndingAngle[axis]
+    startingAngle = 0 if local else lastOrbitEndingAngle[axis]
     startingEuler = mathutils.Euler((0, 0, 0), "XYZ")
     startingEuler[axis] = startingAngle
 
@@ -702,14 +710,23 @@ def orbitCameraCmd(args):
 
     orbiterName = "Orbiter.{}-{}".format(startFrame, endFrame)
     orbiter = newObject(orbiterName)
+    target = orbiter
+
+    if local:
+        # This object will be the one rotating (and carrying the camera with it).
+        pivot = newObject("Pivot")
+        pivot.parent = orbiter
+        target = pivot
+        # This orientation makes it so the change to `axis` is in the local space.
+        orbiter.matrix_world = camera.matrix_world
 
     orbiter.location = center
-    orbiter.rotation_euler = startingEuler
-    orbiter.keyframe_insert("rotation_euler", frame=startFrame)
+    target.rotation_euler = startingEuler
+    target.keyframe_insert("rotation_euler", frame=startFrame)
 
     constraint = camera.constraints.new(type="CHILD_OF")
     constraint.name = "Orbit.{}-{}".format(startFrame, endFrame)
-    constraint.target = orbiter
+    constraint.target = target
 
     bpy.context.scene.frame_set(startFrame)
     constraint.inverse_matrix = orbiter.matrix_world.inverted()
@@ -727,8 +744,8 @@ def orbitCameraCmd(args):
     constraint.influence = 1
     constraint.keyframe_insert("influence", frame=startFrame)
 
-    orbiter.rotation_euler = endingEuler
-    orbiter.keyframe_insert("rotation_euler", frame=endFrame)
+    target.rotation_euler = endingEuler
+    target.keyframe_insert("rotation_euler", frame=endFrame)
 
     constraint.influence = 1
     constraint.keyframe_insert("influence", frame=endFrame-1)
@@ -1036,6 +1053,7 @@ def poseCameraCmd(args):
         lastCameraCenter = position
     else:
         print("Error: poseCamera: missing argument 'target'")
+        sys.exit()
 
 def removeUnused():
     for obj in bpy.data.objects:
