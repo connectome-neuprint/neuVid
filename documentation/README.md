@@ -594,7 +594,8 @@ Optional arguments:
 
 Optional arguments:
 - `around` (default: the last camera target)
-- `axis` (default: `z`)
+- `axis` (default: `z`): `x`, `y` or `z`
+- `localAxis`: an alternative to `axis` giving rotation around the camera's local `x`, `y` or `z` (determined by previous orbits)
 - `endingRelativeAngle` (default: -360)
 - `duration` (default: 1)
 - `scale` (default: 1) : non-default values give a "spiral" effect
