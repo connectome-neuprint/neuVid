@@ -2,6 +2,7 @@
 
 import bpy
 import os.path
+import sys
 
 def handleMaterialAttributeNodesException(mat, data_path, exc):
     if data_path == "alpha" or data_path == "diffuse_color":
@@ -127,6 +128,40 @@ def newBasicMaterial(name, color=None):
 
         setupAlphaScaledSpecular(mat)
     return mat
+
+def new_shadeless_material(name, color=None):
+    if bpy.app.version < (2, 80, 0):
+        print("Blender version {} not supported".format(bpy.app.version))
+        sys.exit()
+    else:
+        mat = bpy.data.materials.new(name=name)
+        mat.blend_method = "HASHED"
+        mat.shadow_method = "NONE"
+
+        mat.use_nodes = True
+        mat_nodes = mat.node_tree.nodes
+        mat_links = mat.node_tree.links
+
+        mat_nodes.remove(mat_nodes["Principled BSDF"])
+
+        alpha_node, diffuse_color_node = setupMaterialAttributeNodes(mat)
+
+        if color:
+            diffuse_color_node.outputs["Color"].default_value = color[0:4]
+
+        background_node = mat_nodes.new("ShaderNodeBsdfTransparent")
+        background_node.name = "background"
+
+        mix_node = mat_nodes.new("ShaderNodeMixShader")
+        mix_node.name = "mix"
+        mat_links.new(alpha_node.outputs["Value"], mix_node.inputs["Fac"])
+        mat_links.new(background_node.outputs["BSDF"], mix_node.inputs[1])
+        mat_links.new(diffuse_color_node.outputs["Color"], mix_node.inputs[2])
+
+        output_node = mat_nodes["Material Output"]
+        mat_links.new(mix_node.outputs["Shader"], output_node.inputs["Surface"])
+
+        return mat
 
 # The source is a path to an image file (e.g., .png) or a movie file (e.g., .avi).
 def newShadelessImageMaterial(name, source):

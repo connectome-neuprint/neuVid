@@ -590,6 +590,17 @@ Required arguments:
 Optional arguments:
 - `duration` (default: 1)
 
+### `label`
+
+Required arguments:
+- `text`
+- `duration`
+
+Optional arguments:
+- `size` (default: 0.053): in normalized height units, between 0 and 1
+- `position` (default: `"bottom"`): positional string, like `"top"` or `"bottom"`, or an `[x, y]` position, in normalized units, between 0 and 1
+- `color` (default: `"white"`)
+
 ### `orbitCamera`
 
 Optional arguments:
