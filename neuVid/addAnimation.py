@@ -304,8 +304,10 @@ def advanceTimeCmd(args):
             tentativeEndTime = max(time, tentativeEndTime)
         else:
             print("Error: advanceTime: argument 'by' is not a number")
+            sys.exit()
     else:
         print("Error: advanceTime: missing argument 'by'")
+        sys.exit()
 
 def setValueCmd(args):
     validateCmdArgs("setValue", ["meshes", "alpha", "color", "exponent", "threshold", "stagger"], args)
@@ -1054,6 +1056,23 @@ def poseCameraCmd(args):
     else:
         print("Error: poseCamera: missing argument 'target'")
         sys.exit()
+
+def labelCmd(args):
+    validateCmdArgs("label", ["text", "size", "position", "color", "duration"], args)
+
+    global time, tentativeEndTime, lastCameraCenter
+    duration = 0
+    if "duration" in args:
+        duration = args["duration"]
+        tentativeEndTime = max(time + duration, tentativeEndTime)
+
+    if "text" in args:
+        text = args["text"]
+
+    startFrame = frame()
+    print("{}, {}: label, text '{}'".format(startFrame, frame(time + duration), text))
+
+    # All the work for this command is done in the separate `compLabels.py` script, after standard frames have been rendered.
 
 def removeUnused():
     for obj in bpy.data.objects:

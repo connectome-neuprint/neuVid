@@ -131,6 +131,22 @@ Neuroglancer synapse layers from `neuPrint` are imported as described above, but
         blender --background --python neuVid/neuVid/render.py -- -i ex4.json
         blender --background --python neuVid/neuVid/assembleFrames.py -- -i ex4.json
 
+## Usage with Labels
+
+One way to add textual labels and titles is to add them to the finished video with an interavtive editing application like [iMovie](https://www.apple.com/imovie/) or [Premiere](https://www.adobe.com/products/premiere.html).  Another way is to describe the labels in `neuVid`'s input JSON file and use the `compLabels.py` script to add the labels before assembling the final video with `assembleFrames.py`.  The latter approach makes it simpler to keep track of multiple labels, and to coordinate the timing of the labels with the timing of the animation.  This approach involves the following steps:
+
+1. Use `importNg.py`, `fetchMeshes.py`, `importMeshes.py`, `buildSynapses.py`, `addAnimation.py` and `render.py` as in the other examples.
+2. Define the labels and their timing with `label` commands in the JSON file.
+3. Composite the labels onto the rendered frames:
+
+        blender --background --python neuVid/neuVid/compLabels.py -- -i ex5.json
+
+   The resulting frames will be in the directory (folder) `ex5-frames-labeled`.
+4. If the content or timing of the labels needs revision, edit the `label` commands and run only `compLabels.py` again.  Doing so is much faster than running `render.py`.
+5. Assemble the final video from these frames:
+
+        blender --background --python neuVid/neuVid/assembleFrames.py -- -i ex5-frames-labeled
+
 ## Usage with VVDViewer
 
 For volumetric data sets lacking a segmentation, use the following approach.  
