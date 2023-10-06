@@ -56,6 +56,12 @@ def unnormalize(position_norm, size_norm, image_size):
     # If the final image is taller than it is wide (aspect ratio less than 1)
     # then the camera view has (0, 0.5) at the top center and (0, -0.5) at the bottom center.
 
+    if image_size[0] > image_size[1]:
+        y_range = image_size[1] / image_size[0]
+        size = size_norm * y_range
+    else:
+        size = size_norm
+
     if isinstance(position_norm, str):
         if position_norm.lower() == "top":
             if image_size[0] > image_size[1]:
@@ -64,6 +70,7 @@ def unnormalize(position_norm, size_norm, image_size):
             else:
                 x_max = 0.5 * image_size[0] / image_size[1]
                 position = [-0.8 * x_max, 0.45]
+            position[1] -= size
         elif position_norm.lower() == "bottom":
             if image_size[0] > image_size[1]:
                 y_max = 0.5 * image_size[1] / image_size[0]
@@ -87,12 +94,6 @@ def unnormalize(position_norm, size_norm, image_size):
         x = position_norm[0]
         y = position_norm[1]
         position = [x * x_range - x_range / 2, y * y_range - y_range / 2]
-
-    if image_size[0] > image_size[1]:
-        y_range = image_size[1] / image_size[0]
-        size = size_norm * y_range
-    else:
-        size = size_norm
 
     return position, size
 
