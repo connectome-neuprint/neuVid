@@ -179,6 +179,8 @@ def make_text_object(name, label, z):
 
     color_name = label["color"]
     color = getColor(color_name, colors)
+    if len(color) == 3:
+        color = (color[0], color[1], color[2], 1)
     mat_name = f"Material.{name}"
     mat = new_shadeless_material(mat_name, color)
     obj.data.materials.clear()
@@ -230,6 +232,10 @@ def setup_labels_scene(labels):
     scene.render.image_settings.file_format = "PNG"
     print(f"Using temporary directory for label renderings: {tmp_dir}")
 
+    # Do not use the default "Filmic" tone mapping because the individual frames
+    # should have any desired tone mapping already.
+    scene.view_settings.view_transform = "Standard"
+
     return scene
 
 def setup_comp_scene(output):
@@ -254,6 +260,10 @@ def setup_comp_scene(output):
     output_node.format.file_format = "PNG"
     output_node.base_path = output
     links.new(over_node.outputs[0], output_node.inputs[0])
+
+    # Do not use the default "Filmic" tone mapping because the individual frames
+    # should have any desired tone mapping already.
+    scene.view_settings.view_transform = "Standard"
 
     return scene
 
