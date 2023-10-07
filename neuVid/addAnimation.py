@@ -97,13 +97,14 @@ def meshObjs(name):
         elif x == "-":
             sub = True
         else:
+            dest = addObjNames
+            if sub:
+                dest = subObjNames
             i = x.find(".")
             if i != -1:
+                # x is something like "neurons.a"
                 type = x[0:i]
                 group = x[i + 1:]
-                dest = addObjNames
-                if sub:
-                    dest = subObjNames
                 if type == "neurons":
                     if useSeparateNeuronFiles:
                         # For now, at least, support only the simplest case when using
@@ -122,6 +123,11 @@ def meshObjs(name):
                 elif type == "synapses":
                     for synapseSetName in groupToSynapseSetNames[group]:
                         dest["Synapses." + synapseSetName] = None
+            else:
+                # x is "neurons", "rois" or "synapses"
+                for o in bpy.data.objects:
+                    if o.name.startswith(x[:-1].capitalize()):
+                        dest[o.name] = None
 
     if len(addObjNames) == 0:
         return None
