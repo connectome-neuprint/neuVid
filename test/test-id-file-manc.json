@@ -1,0 +1,26 @@
+{
+  "rois": {
+    "source": "https://storage.googleapis.com/flyem-vnc-roi-d5f392696f7a48e27f49fa1a9db5ee3b/all-vnc-roi/mesh/",
+    "shell": ["all-vnc.ngmesh"]
+  },
+  "neurons": {
+    "source": "https://manc-dvid.janelia.org/api/node/v1.0/segmentation_meshes",
+    "idsSource": "./test-id-files",
+    "n1": {"ids": "test-id-file-manc-1.txt"},
+    "n2": {"ids": "test-id-file-manc-2.txt"},
+    "n3": {"ids": "test-id-file-manc-3.txt"}
+  },
+  "lightRotationY": 180,
+  "animation": [
+    ["orbitCamera", {"axis": "y", "endingRelativeAngle": 180.0, "duration": 0}],
+    ["setValue", {"meshes": "rois.shell", "threshold": 1}],
+    ["setValue", {"meshes": "rois.shell", "alpha": 0.2}],
+    ["frameCamera", {"bound": "rois"}],
+    ["frameCamera", {"bound": "neurons.n1", "duration": 2}],
+    ["advanceTime", {"by": 2}],
+    ["frameCamera", {"bound": "neurons.n2", "duration": 2}],
+    ["advanceTime", {"by": 2}],
+    ["frameCamera", {"bound": "neurons.n3", "duration": 2}],
+    ["advanceTime", {"by": 2}]
+  ]
+}
