@@ -1,0 +1,20 @@
+{
+  "neurons": {
+    "source": "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
+    "ER5(ring)_R": [1230712894, 1230712956, 1230738237]
+  },
+  "rois": {
+    "source": "https://hemibrain-dvid.janelia.org/api/node/31597/roisSmoothedDecimated",
+    "EB": ["EB"],
+    "BU": ["BU(R)"]
+  },
+  "animation": [
+    ["setValue", {"meshes": "rois", "exponent": 6}],
+    ["setValue", {"meshes": "rois", "threshold": 1}],
+    ["setValue", {"meshes": "rois", "alpha": 0.1}],
+    ["frameCamera", {"bound": "neurons"}],
+    ["orbitCamera", {"duration": 8, "scale": 0.75}],
+    ["advanceTime", {"by": 2}],
+    ["fade", {"meshes": "rois", "startingAlpha": 0.1, "endingAlpha": 0, "duration": 2}]
+  ]
+}

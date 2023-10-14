@@ -1,0 +1,31 @@
+{
+  "neurons": {
+    "source": ["./test-neuron-source-0", "./test-neuron-source-1"],
+    "hDeltaC_12_C10": {"ids": [911232821], "sourceIndex": 0},
+    "hDeltaC_03_C3": {"ids": [941141029], "sourceIndex": 1}
+  },
+  "rois": {
+    "source": "./test-roi-source",
+    "FB": ["FB"]
+  },
+  "synapses": {
+    "source": "https://hemibrain-dvid.janelia.org/api/node/31597/synapses",
+    "hDeltaC_12_C10Pre": {"neurons": [911232821], "type": "pre", "confidence": 0.0, "radius": 60.0},
+    "hDeltaC_12_C10Post": {"neurons": [911232821], "type": "post", "confidence": 0.0, "radius": 60.0},
+    "hDeltaC_03_C3Pre": {"neurons": [941141029], "type": "pre", "confidence": 0.0, "radius": 60.0},
+    "hDeltaC_03_C3Post": {"neurons": [941141029], "type": "post", "confidence": 0.0, "radius": 60.0}
+  },
+  "animation": [
+    ["setValue", {"meshes": "rois", "exponent": 6}],
+    ["setValue", {"meshes": "rois", "threshold": 1}],
+    ["setValue", {"meshes": "rois", "alpha": 0.1}],
+    ["frameCamera", {"bound": "rois.FB"}],
+    ["frameCamera", {"bound": "synapses.hDeltaC_12_C10Pre", "duration": 2}],
+    ["advanceTime", {"by": 2}],
+    ["orbitCamera", {"axis": "x", "endingRelativeAngle": 30, "duration": 3}],
+    ["advanceTime", {"by": 3}],
+    ["frameCamera", {"bound": "synapses.hDeltaC_03_C3Pre + synapses.hDeltaC_03_C3Post", "duration": 2}],
+    ["advanceTime", {"by": 2}],
+    ["orbitCamera", {"axis": "x", "endingRelativeAngle": -30, "duration": 3}]
+  ]
+}
