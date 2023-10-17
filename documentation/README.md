@@ -410,7 +410,7 @@ The object for `anchorPSD` has two keys, but `neuVid` supports additional keys t
 
 ## Neuroglancer
 
-_Incomplete_
+*Incomplete*
 
 [Neuroglancer](https://github.com/google/neuroglancer) has its own way of rendering videos.  Documentation for using [Neuroglancer's own video-generation script](https://github.com/google/neuroglancer/blob/master/python/neuroglancer/tool/video_tool.py) consists of the comments at the top of the script.  To use the script, install the necessary support software with [Conda](https://docs.conda.io/en/latest/miniconda.html):
 
@@ -500,7 +500,11 @@ Current limitations of importing Neuroglancer into `neuVid`:
   - `useShadows`
   - `useSpecular`
   - `fovHorizontal` or `fovVertical` in degrees (also used by `addAnimation.py`, for interactive preview)
-- Too much mesh data to load at once:
+
+- Runtime arguments to `render.py`:
+ - `--skipExisting` (`-sk`): do not rerender existing frames in the output directory, frames that have been rendered by earlier sessions
+
+- If there is too much mesh data to load at once:
   - `neurons` category `sources` can be an array, for multiple levels of detail
   - `neurons` category `idSources` is a directory for files that list neuron identifiers
   - `neurons` category name keys have an object value, with `sourcesIndex` choosing from the `sources` array and `ids` listing files from `idSources`

@@ -107,6 +107,9 @@ parser.add_argument("--resX", "-rx", type=int, dest="resX", help="output image X
 parser.set_defaults(resY=1080)
 parser.add_argument("--resY", "-ry", type=int, dest="resY", help="output image Y resolution (height)")
 
+parser.set_defaults(skipExisting=False)
+parser.add_argument("--skipExisting", "-sk", dest="skipExisting", action="store_true", help="skip existing frames, already rendered")
+
 # TODO: Improve on this temporary solution for data sets (e.g., FAFB) that have unit that are orders of magnitude different
 # from the original FlyEM units.
 parser.set_defaults(rescaleFactor=1.0)
@@ -125,6 +128,8 @@ else:
     print("Using Octane renderer: {}".format(args.useOctane))
 print("Using Cycles renderer: {}".format(args.useCycles))
 print("Using fps: {}".format(bpy.context.scene.render.fps))
+if args.skipExisting:
+    print("Skipping rerendering of existing frames")
 
 if args.output != None:
     output = args.output
@@ -1312,6 +1317,9 @@ def render(renderIntervalsClipped, hideRenderTrueFrames, justPrint=False):
 
 bpy.context.scene.render.resolution_x = args.resX
 bpy.context.scene.render.resolution_y = args.resY
+
+if args.skipExisting:
+    bpy.context.scene.render.use_overwrite = False
 
 fovx, fovy = parseFov(jsonData, args.resX, args.resY)
 aspect = args.resX / args.resY
