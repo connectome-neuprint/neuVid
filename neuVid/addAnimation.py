@@ -444,7 +444,6 @@ def frameCameraCmd(args):
         dist = radius / math.sin(angle / 2.0)
         dist *= scale
 
-        # Positive Y points out.
         eye = lastCameraCenter + dist * lastViewVector
         camera.location = eye
         camera.keyframe_insert("location", frame=frame(time + duration))
@@ -1002,7 +1001,7 @@ def poseCameraCmd(args):
     # "position" ("target") to the camera's location, where it is looking from.
     validateCmdArgs("poseCamera", ["target", "orientation", "distance", "duration"], args)
 
-    global time, tentativeEndTime, lastCameraCenter
+    global time, tentativeEndTime, lastCameraCenter, lastViewVector
     camera = bpy.data.objects["Camera"]
 
     distance = 0
@@ -1059,6 +1058,11 @@ def poseCameraCmd(args):
 
         updateCameraClip(camera.name)
         lastCameraCenter = position
+
+        # Default WebGL (Neuroglancer) view pose is a camera located at the origin
+        # looking down the -Z axis with the Y axis up and the X axis to the right.
+        lastViewVector = quaternionBlenderFormat @ mathutils.Vector((0, 0, 1))
+
     else:
         print("Error: poseCamera: missing argument 'target'")
         sys.exit()
@@ -1127,6 +1131,8 @@ bpy.context.scene.render.fps = fps
 
 lastCameraCenter = mathutils.Vector(bpy.data.objects["Bound.neurons"].location)
 lastOrbitEndingAngle = [0, 0, 0]
+# From the camera center ("look at" point) to the camera location("look from" point).
+# Positive Y points out by default.
 lastViewVector = mathutils.Vector((0, 1, 0))
 
 camera = bpy.data.objects["Camera"]
