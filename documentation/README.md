@@ -488,6 +488,9 @@ Current limitations of importing Neuroglancer into `neuVid`:
 
 *Incomplete*
 
+- Runtime arguments to `importMeshes.py`:
+ - `--skipExisting` (`-sk`): do not download existing neuron/ROI/synapse meshes, which have been converted to OBJ files by earlier sessions
+
 - Input JSON arguments for `render.py`:
   - `fps`
   - `lightPowerScale`

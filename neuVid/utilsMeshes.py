@@ -12,8 +12,24 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsNg import dir_name_from_ng_source, is_ng_source
 from utilsSynapses import download_synapses;
 
-def fileToImportForNeuron(source, bodyId, parentForDownloadDir):
+def ensure_directory(parent, dir):
+    path = os.path.join(parent, dir)
+    try:
+        if not os.path.exists(path):
+            os.mkdir(path)
+    except OSError as e:
+        print("Error: cannot create directory {}".format(path))
+        sys.exit()
+    return path
+
+def fileToImportForNeuron(source, bodyId, parentForDownloadDir, skipExisting):
     if source.startswith("http"):
+        downloadDir = ensure_directory(parentForDownloadDir, "neuVidNeuronMeshes")
+        fileName = os.path.join(downloadDir, bodyId + ".obj")
+        if skipExisting and os.path.exists(fileName):
+            print("Skipping downloading of existing file {}".format(fileName))
+            return fileName
+
         meshBin = downloadMesh(source, bodyId + ".ngmesh")
         if meshBin:
             with BytesIO(meshBin) as meshBinStream:
@@ -23,16 +39,7 @@ def fileToImportForNeuron(source, bodyId, parentForDownloadDir):
                 # divide by 8 to convert to DVID coordinates.
                 verticesXYZ = verticesXYZ / 8
 
-            dirName = "neuVidNeuronMeshes/"
-            downloadDir = parentForDownloadDir
-            if downloadDir[-1] != "/":
-                downloadDir += "/"
-            downloadDir += dirName
-
             try:
-                if not os.path.exists(downloadDir):
-                    os.mkdir(downloadDir)
-                fileName = downloadDir + bodyId + ".obj"
                 with open(fileName, "w") as f:
                     write_obj(verticesXYZ, faces,  None, f)
                 return fileName
@@ -50,24 +57,24 @@ def fileToImportForNeuron(source, bodyId, parentForDownloadDir):
         dir = source
         if dir[-1] != "/":
             dir += "/"
-        return dir + bodyId + ".obj"
+        return os.path.join(dir, bodyId + ".obj")
 
-def fileToImportForRoi(source, roiName, parentForDownloadDir):
+def fileToImportForRoi(source, roiName, parentForDownloadDir, skipExisting):
     if source.startswith("http"):
+        downloadDir = ensure_directory(parentForDownloadDir, "neuVidRoiMeshes")
+        roiNameBase = os.path.splitext(roiName)[0]
+        roiNameCleaned = roiNameClean(roiNameBase)
+        fileName = os.path.join(downloadDir, roiNameCleaned + ".obj")
+        if skipExisting and os.path.exists(fileName):
+            print("Skipping downloading of existing file {}".format(fileName))
+            return fileName
+
         mesh = downloadMesh(source, roiName)
         if mesh:
-            dirName = "neuVidRoiMeshes/"
-            downloadDir = parentForDownloadDir
-            if downloadDir[-1] != "/":
-                downloadDir += "/"
-            downloadDir += dirName
-
             try:
                 if not os.path.exists(downloadDir):
                     os.mkdir(downloadDir)
                 if roiName.endswith(".ngmesh"):
-                    fileName = roiName.replace(".ngmesh", "")
-                    fileName = downloadDir + roiNameClean(fileName) + ".obj"
                     with BytesIO(mesh) as meshBinStream:
                         verticesXYZ, faces = read_ngmesh(meshBinStream)
                         # Per the comment in
@@ -77,7 +84,6 @@ def fileToImportForRoi(source, roiName, parentForDownloadDir):
                     with open(fileName, "w") as f:
                         write_obj(verticesXYZ, faces,  None, f)
                 else:
-                    fileName = downloadDir + roiNameClean(roiName) + ".obj"
                     with open(fileName, "w") as f:
                         f.write(mesh.decode("utf-8"))
                 return fileName
@@ -97,18 +103,18 @@ def fileToImportForRoi(source, roiName, parentForDownloadDir):
             dir += "/"
         return dir + roiName + ".obj"
 
-def fileToImportForSynapses(source, synapseSetName, synapseSetSpec, parentForDownloadDir):
+def fileToImportForSynapses(source, synapseSetName, synapseSetSpec, parentForDownloadDir, skipExisting):
     if source.startswith("http"):
-        dirName = "neuVidSynapseMeshes/"
-        downloadDir = parentForDownloadDir
-        if downloadDir[-1] != "/":
-            downloadDir += "/"
-        downloadDir += dirName
+        downloadDir = ensure_directory(parentForDownloadDir, "neuVidSynapseMeshes")
 
         try:
             if not os.path.exists(downloadDir):
                 os.mkdir(downloadDir)
-            fileName = downloadDir + synapseSetName + ".obj"
+            fileName = os.path.join(downloadDir, synapseSetName + ".obj")
+            if skipExisting and os.path.exists(fileName):
+                print("Skipping downloading of existing file {}".format(fileName))
+                return fileName
+
             download_synapses(source, synapseSetSpec, fileName)
             return fileName
         except OSError as e:
@@ -129,6 +135,7 @@ def downloadMesh(source, key):
         url += "key/"
     url += key
     try:
+        print("Downloading mesh from {}".format(url))
         r = requests.get(url)
         r.raise_for_status()
         return r.content

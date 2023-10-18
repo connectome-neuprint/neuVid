@@ -35,6 +35,8 @@ else:
 parser = argparse.ArgumentParser()
 parser.add_argument("--inputJson", "-ij", "-i", dest="inputJsonFile", help="path to the JSON file describing the input")
 parser.add_argument("--output", "-o", dest="outputFile", help="path for the output .blend file")
+parser.set_defaults(skipExisting=False)
+parser.add_argument("--skipExisting", "-sk", dest="skipExisting", action="store_true", help="skip downloading existing neurons/rois/synapses, already downloaded")
 # A limit of 0 means no limit.
 parser.set_defaults(limit=0)
 parser.add_argument("--limit", "-l", type=int, dest="limit", help="limit to the number of IDs from each separate neurons file")
@@ -51,6 +53,9 @@ if outputFile == None:
 if not os.path.dirname(outputFile):
     outputFile = os.path.join(".", outputFile)
 print("Using output Blender file: '{}'".format(outputFile))
+
+if args.skipExisting:
+    print("Skipping downloading of existing neurons/rois/synapses")
 
 inputJsonDir = os.path.dirname(os.path.realpath(args.inputJsonFile))
 
@@ -198,7 +203,7 @@ for i in range(len(neuronSources)):
     j = 0
     for neuronId in neuronIds[i]:
         id = decode_id(neuronId)
-        objPath = fileToImportForNeuron(neuronSources[i], id, inputJsonDir)
+        objPath = fileToImportForNeuron(neuronSources[i], id, inputJsonDir, args.skipExisting)
 
         timeNow = datetime.datetime.now()
         elapsedSecs = (timeNow - timeStart).total_seconds()
@@ -340,7 +345,7 @@ if "rois" in jsonData:
             print("Importing {} ROI meshes for index {}".format(len(roiNames[i]), i))
 
         for roiName in roiNames[i]:
-            objPath = fileToImportForRoi(roiSources[i], roiName, inputJsonDir)
+            objPath = fileToImportForRoi(roiSources[i], roiName, inputJsonDir, args.skipExisting)
             if not objPath or not os.path.isfile(objPath):
                 print("Skipping missing file {}".format(objPath))
                 missingRoiObjs.append(roiName)
@@ -407,7 +412,7 @@ if "synapses" in jsonData:
         if synapseSetName == "source":
             continue
 
-        objPath = fileToImportForSynapses(source, synapseSetName, synapseSetSpec, inputJsonDir)
+        objPath = fileToImportForSynapses(source, synapseSetName, synapseSetSpec, inputJsonDir, args.skipExisting)
         if not os.path.isfile(objPath):
             print("Skipping missing file {}".format(objPath))
             missingSynapseSetObjs.append(synapseSetName)
