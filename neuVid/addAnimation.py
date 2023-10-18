@@ -706,6 +706,13 @@ def orbitCameraCmd(args):
         lastOrbitEndingAngle[axis] = endingAngle
         lastViewVectorEuler = mathutils.Euler((0, 0, 0), "XYZ")
         lastViewVectorEuler[axis] = endingRelativeAngle
+
+        if local:
+            m1 = camera.rotation_euler.to_matrix()
+            m2 = lastViewVectorEuler.to_matrix()
+            m3 = m1 @ m2 @ m1.inverted()
+            lastViewVectorEuler = m3.to_euler()
+
         lastViewVector.rotate(lastViewVectorEuler)
     endingEuler = mathutils.Euler((0, 0, 0), "XYZ")
     endingEuler[axis] = endingAngle
@@ -714,7 +721,6 @@ def orbitCameraCmd(args):
     printStartingAngle = math.degrees(startingAngle)
     printEndingAngle = math.degrees(endingAngle)
     print("{}, {}: orbitCamera, axis {}, angle {:.2f} - {:.2f}".format(startFrame, endFrame, printAxis, printStartingAngle, printEndingAngle))
-
     orbiterName = "Orbiter.{}-{}".format(startFrame, endFrame)
     orbiter = newObject(orbiterName)
     target = orbiter
