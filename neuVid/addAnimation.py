@@ -673,7 +673,7 @@ def orbitCameraCmd(args):
 
     # If arg "around" is "a.b" then orbiting will be around the location of
     # "Bounds.a.b".
-    global time, tentativeEndTime, lastCameraCenter, lastOrbitEndingAngle
+    global time, tentativeEndTime, lastCameraCenter, lastOrbitEndingAngle, lastViewVector
     camera = bpy.data.objects["Camera"]
     duration = 1
     if "duration" in args:
@@ -689,6 +689,7 @@ def orbitCameraCmd(args):
         if boundName in bpy.data.objects:
             bound = bpy.data.objects[boundName]
             center = bound.location
+            lastCameraCenter = center
 
     axis, local = orbitAxis(args)
     if axis == None:
@@ -704,16 +705,6 @@ def orbitCameraCmd(args):
         endingRelativeAngle = math.radians(args["endingRelativeAngle"])
         endingAngle = startingAngle + endingRelativeAngle
         lastOrbitEndingAngle[axis] = endingAngle
-        lastViewVectorEuler = mathutils.Euler((0, 0, 0), "XYZ")
-        lastViewVectorEuler[axis] = endingRelativeAngle
-
-        if local:
-            m1 = camera.rotation_euler.to_matrix()
-            m2 = lastViewVectorEuler.to_matrix()
-            m3 = m1 @ m2 @ m1.inverted()
-            lastViewVectorEuler = m3.to_euler()
-
-        lastViewVector.rotate(lastViewVectorEuler)
     endingEuler = mathutils.Euler((0, 0, 0), "XYZ")
     endingEuler[axis] = endingAngle
 
@@ -789,6 +780,7 @@ def orbitCameraCmd(args):
     constraint.influence = 0
     constraint.keyframe_insert("influence", frame=endFrame)
 
+    lastViewVector = (camera.location - lastCameraCenter).normalized()
     updateCameraClip(camera.name)
 
 def centerCameraCmd(args):
@@ -1064,10 +1056,7 @@ def poseCameraCmd(args):
 
         updateCameraClip(camera.name)
         lastCameraCenter = position
-
-        # Default WebGL (Neuroglancer) view pose is a camera located at the origin
-        # looking down the -Z axis with the Y axis up and the X axis to the right.
-        lastViewVector = quaternionBlenderFormat @ mathutils.Vector((0, 0, 1))
+        lastViewVector = (camera.location - lastCameraCenter).normalized()
 
     else:
         print("Error: poseCamera: missing argument 'target'")
@@ -1143,6 +1132,8 @@ lastViewVector = mathutils.Vector((0, 1, 0))
 
 camera = bpy.data.objects["Camera"]
 camera.rotation_euler = mathutils.Euler((math.radians(-90), 0, 0), "XYZ")
+dist = 2 * bpy.data.objects["Bound.neurons"]["Radius"]
+camera.location = lastCameraCenter + dist * lastViewVector
 
 cameraData = bpy.data.cameras["Camera"]
 width = bpy.context.scene.render.resolution_x
