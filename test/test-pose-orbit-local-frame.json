@@ -1,0 +1,22 @@
+{
+  "neurons": {
+    "source": "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
+    "FB8F_b_L": [205299889],
+    "FB7G_R": [266536576]
+  },
+  "rois": {
+    "source": "https://hemibrain-dvid.janelia.org/api/node/31597/roisSmoothedDecimated",
+    "FB": ["FB"]
+  },
+  "animation": [
+    ["setValue", {"meshes": "rois", "exponent": 6}],
+    ["setValue", {"meshes": "rois", "threshold": 1}],
+    ["setValue", {"meshes": "rois", "alpha": 0.1}],
+    ["poseCamera", {"target": [28164, 22027, 14357], "orientation": [0.38268, 0.0, 0.0, 0.92387], "distance": 27309}],
+    ["frameCamera", {"bound": "neurons.FB8F_b_L", "duration": 1}],
+    ["advanceTime", {"by": 1}],
+    ["orbitCamera", {"localAxis": "y", "endingRelativeAngle": 45, "duration": 2}],
+    ["advanceTime", {"by": 2}],
+    ["frameCamera", {"bound": "neurons.FB7G_R", "duration": 1}]
+  ]
+}
