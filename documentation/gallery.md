@@ -2,6 +2,21 @@
 
 Click on an image to play the video. [Return to the neuVid documentation](https://github.com/connectome-neuprint/neuVid).
 
+## MouseLight (2023)
+
+[MouseLight project page](https://www.janelia.org/project-team/mouselight)
+<p align="center">
+<a href="https://www.youtube.com/watch?v=aGYJGr-vTHI">
+    <img
+        src="https://img.youtube.com/vi/aGYJGr-vTHI/hqdefault.jpg"
+        alt="MouseLight projection neurons"
+    />
+</a>
+<br>
+1227 projection neurons from the mouse brain.
+</p>
+
+
 ## FlyEM MANC 1.0 (2023)
 
 [FlyEM MANC project page](https://www.janelia.org/project-team/flyem/manc-connectome)

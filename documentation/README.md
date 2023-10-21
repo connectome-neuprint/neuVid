@@ -484,6 +484,58 @@ Current limitations of importing Neuroglancer into `neuVid`:
 * Only one camera framing is created automatically: an initial framing, on a prominent body chosen by heuristics.  Once the translation has produced a `neuVid` input JSON file, though, it is easy to add additional `frameCamera` commands as needed.
 * Only camera orbiting around principal axes (_X_, _Y_, or _Z_) is supported.
 
+## SWC Files
+
+*Incomplete*
+
+Example input JSON fragment:
+```json
+{
+  "neurons": {
+    "source": "./directory-of-swc-files",
+    "cerebellum": ["AA0431.swc", "AA0964.swc"]
+  },
+  ...
+}
+```
+
+The `.swc` file extension can be omitted:
+```json
+{
+  "neurons": {
+    "source": "./directory-of-swc-files",
+    "cerebellum": ["AA0431", "AA0964"]
+  },
+  ...
+}
+```
+
+A [SWC file](https://neuroinformatics.nl/swcPlus/) contains a sequence of nodes, with parent relationships defining a hierarchy or skeleton.  Each segment of the skeleton is represented in `neuVid` as a truncated cone, which is a cylinder if the radii at the ends (parent node, child node) are equal.
+
+Optional aguments to `importMeshes.py` to control the generation of OBJ files from SWC files:
+* `--swcvc` [default value: 12]: the vertex count for a cross section of the cones (cylinders).  For example, a value of 12 means the cones have 12 facets.  The default values works well for large collections of neurons. A larger value (e.g, 16 or 32) might improve the visual quality for videos with close-up views of smaller collections of neurons.
+* `--swcar` [default value: 10]: a multiplicative factor for the radii of axonal segments (SWC type 2).  For example, SWC files from the [Janelia MouseLight project](https://www.janelia.org/project-team/mouselight) have all radii set to 1, and they appear too thin without being multiplied by some factor.
+* `--swcdr` [default value: 15]: a multiplicative factor for the radii of dendritic segments (SWC type 3).  A convention of the MouseLight project is to make dendrites appear slightly fatter than axons.
+
+An orientation correction is helpful with some SWC files, like those from the [Janelia MouseLight project](https://www.janelia.org/project-team/mouselight). Neurons from this project can be searched and downloaded from the [Mouse Light Neuron Browser](https://ml-neuronbrowser.janelia.org). For theses neurons, an initial `orbitCamera` command will set the default `neuVid` camera to look directly at the mouse's face, and a `lightRotationX` statement will make the lighting look more appealing:
+```json
+{
+    "rois": {
+      "source": "neuVid/test/test-roi-source",
+      "shell": ["brain-shell-997"]
+    },
+    "neurons": {
+      ...
+    },
+    "lightRotationX": 20,
+    "animation": [
+      ["orbitCamera", {"axis": "x", "endingRelativeAngle": -90, "duration": 0}],
+      ...
+    ]
+}
+```
+Note also that a properly oriented mesh for the overall brain shell is available as [`test/test-roi-source/brain-shell-997.obj` from this repo](https://github.com/connectome-neuprint/neuVid/blob/master/test/test-roi-source/brain-shell-997.obj).
+
 ## Advanced
 
 *Incomplete*

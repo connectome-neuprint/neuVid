@@ -1,0 +1,20 @@
+{
+  "neurons": {
+    "source": "./test-neuron-swc-source/ccf30",
+    "idsSource": "./test-id-files",
+    "n1": {"ids": "test-id-file-swc-1.txt"}
+  },
+  "rois": {
+    "source": "./test-roi-source",
+    "shell": ["brain-shell-997"]
+  },
+  "lightRotationX": 20,
+  "animation": [
+    ["orbitCamera", {"axis": "x", "endingRelativeAngle": -90, "duration": 0}],
+    ["setValue", {"meshes": "rois", "exponent": 6}],
+    ["setValue", {"meshes": "rois", "threshold": 1}],
+    ["setValue", {"meshes": "rois", "alpha": 0.1}],
+    ["frameCamera", {"bound": "neurons", "scale": 3}],
+    ["orbitCamera", {"axis": "y", "endingRelativeAngle": 90, "duration": 8, "scale": 0.25}]
+  ]
+}

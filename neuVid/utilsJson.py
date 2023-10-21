@@ -75,20 +75,22 @@ def parseNeuronsIds(jsonNeurons, limit=0):
             idsPath += "/"
 
     for key in jsonNeurons.keys():
+        if key == "source" or key == "idsSource":
+            continue
+        value = jsonNeurons[key]
+
         # A key for a group name has a value that is just a list of body IDs.
         # E.g., "step4" here:
         # "neurons" : { "source" : "./meshesDir", "step4" : [ 819828986, 5813050767, 1169898618 ] }
-        value = jsonNeurons[key]
-        if isinstance(value, list) and all(map(lambda x: isinstance(x, int), value)):
+        if isinstance(value, list):
             jsonList = value
             groupToNeuronIds[key] = []
             iMeshesPath = 0
             groupToMeshesSourceIndex[key] = iMeshesPath
 
             for id in jsonList:
-                if isinstance(id, int):
-                    neuronIds[iMeshesPath].add(str(id))
-                    groupToNeuronIds[key].append(str(id))
+                neuronIds[iMeshesPath].add(str(id))
+                groupToNeuronIds[key].append(str(id))
 
         # A key for a group name has a value that is a dictionary, with information
         # about how to load the body IDs from a file.
@@ -136,12 +138,6 @@ def parseNeuronsIds(jsonNeurons, limit=0):
                                         break
                         except Exception as e:
                             print("Error: cannot read neuron IDs file '{}': '{}'".format(idsFile, str(e)))
-
-    if "source" in jsonNeurons:
-        value = jsonNeurons["source"]
-        if isinstance(value, list):
-            while len(neuronIds) <= len(value):
-                neuronIds.append(set())
 
     # Sort `neuronIds` to improve the peformance when importing large numbers (Blender 3.3+):
     # https://developer.blender.org/D15506

@@ -35,6 +35,12 @@ else:
 parser = argparse.ArgumentParser()
 parser.add_argument("--inputJson", "-ij", "-i", dest="inputJsonFile", help="path to the JSON file describing the input")
 parser.add_argument("--output", "-o", dest="outputFile", help="path for the output .blend file")
+parser.set_defaults(swcCapVertexCount=12)
+parser.add_argument("--swcvc", dest="swcCapVertexCount", type=int, help="for SWC files, the vertex count in a cross-sectional slice")
+parser.set_defaults(swcAxonRadiusFactor=2*5)
+parser.add_argument("--swcar", dest="swcAxonRadiusFactor", type=float, help="for SWC files, multipliciative factor for axon radii")
+parser.set_defaults(swcDendriteRadiusFactor=3*5)
+parser.add_argument("--swcdr", dest="swcDendriteRadiusFactor", type=float, help="for SWC files, multipliciative factor for dendrite radii")
 parser.set_defaults(skipExisting=False)
 parser.add_argument("--skipExisting", "-sk", dest="skipExisting", action="store_true", help="skip downloading existing neurons/rois/synapses, already downloaded")
 # A limit of 0 means no limit.
@@ -53,6 +59,10 @@ if outputFile == None:
 if not os.path.dirname(outputFile):
     outputFile = os.path.join(".", outputFile)
 print("Using output Blender file: '{}'".format(outputFile))
+
+print("Using SWC cross-sectional vertex count: {}".format(args.swcCapVertexCount))
+print("Using SWC axon radius factor: {}".format(args.swcAxonRadiusFactor))
+print("Using SWC dendrite radius factor: {}".format(args.swcDendriteRadiusFactor))
 
 if args.skipExisting:
     print("Skipping downloading of existing neurons/rois/synapses")
@@ -203,7 +213,8 @@ for i in range(len(neuronSources)):
     j = 0
     for neuronId in neuronIds[i]:
         id = decode_id(neuronId)
-        objPath = fileToImportForNeuron(neuronSources[i], id, inputJsonDir, args.skipExisting)
+        objPath = fileToImportForNeuron(neuronSources[i], id, inputJsonDir, args.swcCapVertexCount, args.swcAxonRadiusFactor, args.swcDendriteRadiusFactor,
+                                                                    args.skipExisting)
 
         timeNow = datetime.datetime.now()
         elapsedSecs = (timeNow - timeStart).total_seconds()
@@ -604,7 +615,7 @@ print("Importing ended at {}".format(timeEnd))
 if len(missingNeuronObjs) > 0:
     print()
     print("ERROR: could not download/find mesh .obj files for the following neurons:")
-    print([int(id) for id in missingNeuronObjs])
+    print([int(x) if x.isnumeric() else x for x in missingNeuronObjs])
 if len(missingRoiObjs) > 0:
     print()
     print("ERROR: could not download/find mesh .obj files for the following rois:")
