@@ -10,6 +10,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsNg import dir_name_from_ng_source, is_ng_source
+from utilsSwc import build_swc_obj, parse_swc
 from utilsSynapses import download_synapses;
 
 def ensure_directory(parent, dir):
@@ -22,7 +23,16 @@ def ensure_directory(parent, dir):
         sys.exit()
     return path
 
-def fileToImportForNeuron(source, bodyId, parentForDownloadDir, skipExisting):
+def extensions(dir, bodyId):
+    result = []
+    for f in os.listdir(dir):
+        base, ext = os.path.splitext(f)
+        if base == str(bodyId):
+            result.append(ext)
+    return result
+
+def fileToImportForNeuron(source, bodyId, parentForDownloadDir, swcCapVertexCount=12, swcAxonRadiusFactor=2*5, swcDendriteRadiusFactor=3*5,
+                                                 skipExisting=False):
     if source.startswith("http"):
         downloadDir = ensure_directory(parentForDownloadDir, "neuVidNeuronMeshes")
         fileName = os.path.join(downloadDir, bodyId + ".obj")
@@ -57,7 +67,23 @@ def fileToImportForNeuron(source, bodyId, parentForDownloadDir, skipExisting):
         dir = source
         if dir[-1] != "/":
             dir += "/"
-        return os.path.join(dir, bodyId + ".obj")
+        base, ext = os.path.splitext(bodyId)
+        exts = extensions(dir, base)
+        if ext == ".swc" or (not ext and ".swc" in exts):
+            fileName = os.path.join(source, base + ".swc")
+            swcJson = parse_swc(fileName)
+            swcObj = build_swc_obj(swcJson, swcCapVertexCount, swcAxonRadiusFactor, swcDendriteRadiusFactor)
+            downloadDir = ensure_directory(parentForDownloadDir, "neuVidNeuronMeshes")
+            try:
+                fileName = os.path.join(downloadDir, base + ".obj")
+                with open(fileName, "w") as f:
+                    f.write(swcObj)
+                return fileName
+            except OSError as e:
+                print("Error: writing neuron '{}' converted from SWC failed: {}".format(bodyId, str(e)))
+                return None
+        else:
+            return os.path.join(dir, bodyId + ".obj")
 
 def fileToImportForRoi(source, roiName, parentForDownloadDir, skipExisting):
     if source.startswith("http"):

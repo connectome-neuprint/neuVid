@@ -124,16 +124,26 @@ Neuroglancer synapse layers from `neuPrint` are imported as described above, but
 
         python neuVid/neuVid/buildSynapses.py -i ex4.json
 
-6. Run the last four `neuVid` script as above.  Remember that `blender` is shorthand for the actual platform-specific path to the Blender executable, as described above.
+6. Run the last four `neuVid` scripts as above.  Remember that `blender` is shorthand for the actual platform-specific path to the Blender executable, as described above.
 
         blender --background --python neuVid/neuVid/importMeshes.py -- -i ex4.json
         blender --background --python neuVid/neuVid/addAnimation.py -- -i ex4.json
         blender --background --python neuVid/neuVid/render.py -- -i ex4.json
         blender --background --python neuVid/neuVid/assembleFrames.py -- -i ex4.json
 
+## Usage with SWC Files
+
+Some projects, such as the [Janelia MouseLight project](https://www.janelia.org/project-team/mouselight), represent neurons in [SWC format](https://neuroinformatics.nl/swcPlus/). The extra step of converting SWC files to [OBJ files](https://en.wikipedia.org/wiki/Wavefront_.obj_file) is handled automatically by `neuVid`.
+
+1. Create an input JSON file that mentions the SWC files, as in the examples from the [detailed documentation](documentation/README.md#swc-files).
+
+2. Run `importMeshes.py` as in the other examples. It will create OBJ files (in the `neuVidNeuronMeshes` directory, a sibling to the input JSON file) from the SWC files. See the [detailed documentation](documentation/README.md#swc-files) for some options related to the size and resolution of the generated OBJ files.
+
+3. Use `buildSynapses.py`, `addAnimation.py`, `render.py`, `compLabels.py` (described below) and `assembleFrames.py` as in the other examples.
+
 ## Usage with Labels
 
-One way to add textual labels and titles is to add them to the finished video with an interavtive editing application like [iMovie](https://www.apple.com/imovie/) or [Premiere](https://www.adobe.com/products/premiere.html).  Another way is to describe the labels in `neuVid`'s input JSON file and use the `compLabels.py` script to add the labels before assembling the final video with `assembleFrames.py`.  The latter approach makes it simpler to keep track of multiple labels, and to coordinate the timing of the labels with the timing of the animation.  This approach involves the following steps:
+One way to add textual labels and titles is to add them to the finished video with an interactive editing application like [iMovie](https://www.apple.com/imovie/) or [Premiere](https://www.adobe.com/products/premiere.html).  Another way is to describe the labels in `neuVid`'s input JSON file and use the `compLabels.py` script to add the labels before assembling the final video with `assembleFrames.py`.  The latter approach makes it simpler to keep track of multiple labels, and to coordinate the timing of the labels with the timing of the animation.  This approach involves the following steps:
 
 1. Use `importNg.py`, `fetchMeshes.py`, `importMeshes.py`, `buildSynapses.py`, `addAnimation.py` and `render.py` as in the other examples.
 2. Define the labels and their timing with `label` commands in the JSON file.
