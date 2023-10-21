@@ -17,10 +17,13 @@
     ["setValue", {"meshes": "rois.shell", "alpha": 0.2}],
     ["frameCamera", {"bound": "rois"}],
     ["frameCamera", {"bound": "neurons.n1", "duration": 2}],
+    ["fade", {"meshes": "neurons.n1", "startingAlpha": 0, "endingAlpha": 1, "stagger": "constant", "duration": 1}],
     ["advanceTime", {"by": 2}],
     ["frameCamera", {"bound": "neurons.n2", "duration": 2}],
+    ["fade", {"meshes": "neurons.n2", "startingAlpha": 0, "endingAlpha": 1, "stagger": "constant", "duration": 1}],
     ["advanceTime", {"by": 2}],
     ["frameCamera", {"bound": "neurons.n3", "duration": 2}],
+    ["fade", {"meshes": "neurons.n3", "startingAlpha": 0, "endingAlpha": 1, "stagger": "constant", "duration": 1}],
     ["advanceTime", {"by": 2}]
   ]
 }
