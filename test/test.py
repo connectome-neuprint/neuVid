@@ -119,5 +119,5 @@ if __name__ == "__main__":
     run_test("test-id-file-manc", [1, 25, 50, 75, 100, 125, 144], cmds)
     run_test("test-source-array-synapses-hemi", [1, 25, 50, 75, 100, 125, 150, 175, 200, 225, 240], cmds)
     run_test("test-pose-orbit-local-frame", [1, 25, 50, 75, 96], cmds)
-    run_test("test-id-list-swc", [1, 100, 150], args.input, output, args.render)
-    run_test("test-id-file-swc", [1, 100, 150], args.input, output, args.render)
+    run_test("test-id-list-swc", [1, 100, 150], cmds)
+    run_test("test-id-file-swc", [1, 100, 150], cmds)
