@@ -56,17 +56,33 @@ def run(cmd):
     print(cmd)
     os.system(cmd)
 
+def rename_video(src, test_name):
+    for f in os.listdir(src):
+        if os.path.splitext(f)[1] == ".avi":
+            new_name = f"{test_name}_{f}"
+            new_path = os.path.join(src, new_name)
+            os.rename(os.path.join(src, f), new_path)
+            return new_path
+
 def run_test(test_name, frames, cmds):
     test_json_path, import_output_path, anim_output_path, frames_output_path = get_test_paths(test_name, cmds["input"], cmds["output"])
     blender_cmd = cmds["blender"]
     import_cmd = cmds["import"]
     anim_cmd = cmds["anim"]
     render_cmd = cmds["render"]
+    assemble_cmd = cmds["assemble"]
+    videos = cmds["videos"]
     run(f"{blender_cmd} {import_cmd} -i {test_json_path} -o {import_output_path}")
     run(f"{blender_cmd} {anim_cmd} -i {test_json_path} -ib {import_output_path} -o {anim_output_path}")
     if render_cmd:
-        for frame in frames:
-            run(f"{blender_cmd} {render_cmd} -i {test_json_path} -ib {anim_output_path} -o {frames_output_path} -s {frame} -e {frame}")
+        if assemble_cmd:
+            run(f"{blender_cmd} {render_cmd} -i {test_json_path} -ib {anim_output_path} -o {frames_output_path}")
+            run(f"{blender_cmd} {assemble_cmd} -i {frames_output_path}")
+            video = rename_video(frames_output_path, test_name)
+            videos.append(video)
+        else:
+            for frame in frames:
+                run(f"{blender_cmd} {render_cmd} -i {test_json_path} -ib {anim_output_path} -o {frames_output_path} -s {frame} -e {frame}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -78,6 +94,8 @@ if __name__ == "__main__":
     parser.add_argument("--blender", "-b", help="path to the Blender to use")
     parser.set_defaults(render=True)
     parser.add_argument("--norender", "-nr", dest="render", action="store_false", help="do not render")
+    parser.set_defaults(render_all=False)
+    parser.add_argument("--renderall", "-ra", dest="render_all", action="store_true", help="render all frames and assemble a video")
     args = parser.parse_args()
 
     blender = args.blender
@@ -92,8 +110,11 @@ if __name__ == "__main__":
         s = clean_date(datetime.datetime.now())
         output = f"/tmp/neuVid-tests-{s}"
     print(f"Using output directory: {output}")
-    if not args.render:
-        print(f"Skipping rendering")
+    if args.render_all:
+        print("Rendering all frames and assembling a video")
+        args.render = True
+    elif not args.render:
+        print("Skipping rendering")
 
     try:
         if not os.path.exists(output):
@@ -106,14 +127,20 @@ if __name__ == "__main__":
     import_cmd = os.path.join(neuVid, "importMeshes.py --")
     anim_cmd = os.path.join(neuVid, "addAnimation.py --")
     render_cmd = os.path.join(neuVid, "render.py -- -sa 64 --resX 500 --resY 281")
+    assemble_cmd = os.path.join(neuVid, "assembleFrames.py -- --width 500 --height 281")
+    videos = []
     cmds = {
         "blender": blender_cmd,
         "import": import_cmd,
         "anim": anim_cmd,
         "render": render_cmd if args.render else None,
+        "assemble": assemble_cmd if args.render_all else None,
         "input": args.input,
-        "output": output
+        "output": output,
+        "videos": videos
     }
+
+    runtime0 = datetime.datetime.now()
 
     run_test("test-id-list-hemi", [1, 75, 100, 190], cmds)
     run_test("test-id-file-manc", [1, 25, 50, 75, 100, 125, 144], cmds)
@@ -121,3 +148,15 @@ if __name__ == "__main__":
     run_test("test-pose-orbit-local-frame", [1, 25, 50, 75, 96], cmds)
     run_test("test-id-list-swc", [1, 100, 150], cmds)
     run_test("test-id-file-swc", [1, 100, 150], cmds)
+
+    runtime1 = datetime.datetime.now()
+
+    print("\n====================\n")
+    print(f"Started at {runtime0}")
+    print(f"Ended at {runtime1}")
+    print(f"Elapsed time {(runtime1 - runtime0)}")
+
+    if args.render_all:
+        print("\nRendered videos:")
+        for video in videos:
+            print(video)

@@ -11,3 +11,4 @@ Arguments:
 * `--output` [`-o`][optional, default `/tmp/neuVid-tests-`_timestamp_]: the path to the directory where the `.blend` files and rendered frames will be created
 * `--blender` [`-b`][optional, default: the latest installed version] the path to the Blender executable to use
 * `--norender` [`-nr`][optional, default: false]: if true, rendering is skipped
+* `--renderall` [`-ra`][optional, default: false]: if true, all frames are rendered (instead of just a few important frames) and a video is assembled, with the paths to the videos displayed at the very end of the test suite
