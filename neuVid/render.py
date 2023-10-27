@@ -91,6 +91,8 @@ parser.set_defaults(useMetal=False)
 parser.add_argument(USE_METAL1, USE_METAL2, dest="useMetal", action="store_true", help="use the GPU and Apple Metal for Cycles")
 parser.set_defaults(usePersistentData=False)
 parser.add_argument(USE_PERSISTENT_DATA1, USE_PERSISTENT_DATA2, dest="usePersistentData", action="store_true", help="use the persistent data optimization")
+parser.set_defaults(threads=None)
+parser.add_argument("--threads", "-t", dest="threads", type=int, help="thread count for Cycles (default: let Cycles choose)")
 
 parser.add_argument("--samples", "-sa", type=int, dest="numSamples", help="number of samples per pixel for the Octane renderer")
 parser.set_defaults(denoise=True)
@@ -1350,6 +1352,11 @@ if args.useCycles:
         bpy.data.scenes["Scene"].render.use_persistent_data = args.usePersistentData
         print("Cycles using persistent data: {}".format(bpy.data.scenes["Scene"].render.use_persistent_data))
 
+        if args.threads != None:
+            bpy.data.scenes["Scene"].render.threads_mode = "FIXED"
+            bpy.data.scenes["Scene"].render.threads = args.threads
+            print("Cycles thread count: {}".format(args.threads))
+
     bpy.context.scene.cycles.device = "CPU"
     cyclesPrefs.compute_device_type = "NONE"    
     if platform.system == "Darwin":
@@ -1390,6 +1397,7 @@ timeEnd = datetime.datetime.now()
 print("Rendering started at {}".format(timeStart))
 print("Copied {} frames of {} total".format(numFramesCopied, numFramesTotal))
 print("Rendering ended at {}".format(timeEnd))
+print("Elapsed time: {}".format(timeEnd - timeStart))
 
 if disableStandardOutput:
     try:
