@@ -536,6 +536,22 @@ An orientation correction is helpful with some SWC files, like those from the [J
 ```
 Note also that a properly oriented mesh for the overall brain shell is available as [`test/test-roi-source/brain-shell-997.obj` from this repo](https://github.com/connectome-neuprint/neuVid/blob/master/test/test-roi-source/brain-shell-997.obj).
 
+## Cluster Rendering
+
+*Incomplete*
+
+Additional arguments to `clusterRender.py`:
+* `--cluster` [`-cl`] [optional, default value: `"gpu_rtx8000"`]: the name of the cluster to use. Note that for best performance, if the cluster uses GPUs (e.g., at Janelia, the cluster name has the `"gpu_"` prefix) then the additional arguments to the `clusterRender.py` script should tell Blender to use a GPU (e.g., `--optix` or `--cuda` on Linux, which is the typical operating system for a compute cluster).
+* `--slots` [`-n`] [optional, default value: 32]: the number of slots (cores) to be used for the job. Note that for best peformance, Blender must know this value and use it for its thread count. To this end, `clusterRender.py` automatically passes this value as the `--threads` argument to `render.py`, so do not explicitly add another `--threads` argument.
+* `--log` [`-l`] [optional, default value: a file having the same name as the input JSON file and the suffix `_log_` plus a timestamp]: the log file to contain the output of the `bsub` command.
+* `--async` [`-as`] [optional, default value: `False`]: run `clusterRender.py` asynchronously, returning immediately instead of waiting for the job to come off the "pending" queue and run to completion.
+
+For clarity, `clusterRender.py` echoes the actual `bsub` command it will use to submit the job before peforming the submission.
+
+Some details of the `bsub` command may be specific to the cluster at [Janelia](https://www.janelia.org).
+
+For now, at least, `clusterRender.py` does not automatically give parallelism _within_ one video (e.g., using two simultaneous cluster jobs for one video, with half the frames being rendered in one job and the other half in another job). Such an effect may be achieved manually, with multiple calls to `clusterRender.py` having different values for the `--frame-start` (`-s`) and `--frame-end` (`-e`) arguments.
+
 ## Advanced
 
 *Incomplete*

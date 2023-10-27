@@ -141,6 +141,25 @@ Some projects, such as the [Janelia MouseLight project](https://www.janelia.org/
 
 3. Use `buildSynapses.py`, `addAnimation.py`, `render.py`, `compLabels.py` (described below) and `assembleFrames.py` as in the other examples.
 
+## Rendering on a Compute Cluster
+
+Rendering can be performed on a compute cluster, a collection of computers shared between users to meet a facility's needs for high-performance computing (HPC). [IBM Spectrum LSF](https://www.ibm.com/docs/en/spectrum-lsf/10.1.0?topic=started-quick-start-guide) is the HPC platform that `neuVid` assumes is available. Rendering on a cluster involves the following steps:
+
+1. Run `importNg.py`, `buildSynapses.py`, `importMeshes.py` and `addAnimation.py` as in the other examples.
+2. Make sure machines on the cluster can access the `.json` and `.blend` files, the Blender executable, and the directory for the final rendered frames.
+3. Open a shell (terminal) on the cluster's host machine for submitting jobs.
+4. The `neuVid` script for rendering on a cluster is `clusterRender.py`, and its arguments are almost identical to those for the standard `render.py` script.  Say standard rendering would be invoked as follows:
+
+        blender --background --python neuVid/neuVid/render.py -- ...
+
+    Cluster rendering then would be invoked in this way:
+
+        blender --background --python neuVid/neuVid/clusterRender.py -- -P account ...
+
+    The new argument, `-P account`, specifies the account to be billed for the time on the cluster. Note that this use of the `clusterRendering.py` script is synchronous: the script does not finish until the cluster job comes off the "pending" queue and runs to completion.
+5. For additional options (e.g., to specify the cluster or the "slot" count), see the [detailed documentation](documentation/README.md#cluster-rendering).
+
+
 ## Usage with Labels
 
 One way to add textual labels and titles is to add them to the finished video with an interactive editing application like [iMovie](https://www.apple.com/imovie/) or [Premiere](https://www.adobe.com/products/premiere.html).  Another way is to describe the labels in `neuVid`'s input JSON file and use the `compLabels.py` script to add the labels before assembling the final video with `assembleFrames.py`.  The latter approach makes it simpler to keep track of multiple labels, and to coordinate the timing of the labels with the timing of the animation.  This approach involves the following steps:
