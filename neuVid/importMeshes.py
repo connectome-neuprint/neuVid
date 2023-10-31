@@ -46,6 +46,8 @@ parser.add_argument("--skipExisting", "-sk", dest="skipExisting", action="store_
 # A limit of 0 means no limit.
 parser.set_defaults(limit=0)
 parser.add_argument("--limit", "-l", type=int, dest="limit", help="limit to the number of IDs from each separate neurons file")
+parser.set_defaults(strict=False)
+parser.add_argument("--strict", dest="strict", action="store_true", help="use strict behavior (e.g., stop when a download fails)")
 
 args = parser.parse_args(argv)
 
@@ -222,7 +224,9 @@ for i in range(len(neuronSources)):
         j += 1
 
         if not objPath or not os.path.isfile(objPath):
-            print("Skipping missing file {}".format(objPath))
+            print("\nERROR: cannot find/download neuron file '{}' for ID {}\n".format(objPath, neuronId))
+            if args.strict:
+                sys.exit()
             missingNeuronObjs.append(neuronId)
             continue
 
@@ -262,7 +266,10 @@ for i in range(len(neuronSources)):
             print("Added material '{}'".format(matName))
 
         except Exception as e:
-            print("Error: cannot import '{}': '{}'".format(objPath, str(e)))
+            print("\nERROR: cannot import neuron file '{}' for ID {}:\n\n{}".format(objPath, neuronId, str(e)))
+            if args.strict:
+                sys.exit()
+            missingNeuronObjs.append(neuronId)
 
     if useSeparateNeuronFiles:
         j = outputFile.rfind(".")
@@ -358,8 +365,10 @@ if "rois" in jsonData:
         for roiName in roiNames[i]:
             objPath = fileToImportForRoi(roiSources[i], roiName, inputJsonDir, args.skipExisting)
             if not objPath or not os.path.isfile(objPath):
-                print("Skipping missing file {}".format(objPath))
-                missingRoiObjs.append(roiName)
+                print("\nERROR: cannot find/download ROI file '{}' for ID {}\n".format(objPath, roiName))
+                if args.strict:
+                    sys.exit()
+                missingRoiObjs.append(neuronId)
                 continue
 
             try:
@@ -376,7 +385,10 @@ if "rois" in jsonData:
 
                 print("Added object '{}'".format(obj.name))
             except Exception as e:
-                print("Error: cannot import '{}': '{}'".format(objPath, str(e)))
+                print("\nERROR: cannot import ROI file '{}' for ID {}:\n\n{}".format(objPath, roiName, str(e)))
+                if args.strict:
+                    sys.exit()
+                missingRoiObjs.append(neuronId)
 
 #
 
@@ -425,7 +437,9 @@ if "synapses" in jsonData:
 
         objPath = fileToImportForSynapses(source, synapseSetName, synapseSetSpec, inputJsonDir, args.skipExisting)
         if not os.path.isfile(objPath):
-            print("Skipping missing file {}".format(objPath))
+            print("\nERROR: cannot find/download synapse file '{}' for ID {}\n".format(objPath, synapseSetName))
+            if args.strict:
+                sys.exit()
             missingSynapseSetObjs.append(synapseSetName)
             continue
 
@@ -443,7 +457,10 @@ if "synapses" in jsonData:
 
             print("Added object '{}'".format(obj.name))
         except Exception as e:
-            print("Error: cannot import '{}': '{}'".format(objPath, str(e)))
+            print("\nERROR: cannot import synapse file '{}' for ID {}:\n\n{}".format(objPath, synapseSetName, str(e)))
+            if args.strict:
+                sys.exit()
+            missingSynapseSetObjs.append(synapseSetName)
 
 print("Done")
 
