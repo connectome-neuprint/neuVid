@@ -327,19 +327,14 @@ def comp_label(comp_scene, label_image, rendered_image, frame):
     links.new(image_node2.outputs["Image"], over_node.inputs[2])
 
     output_node = nodes["output_node"]
-    base_path = output_node.base_path
-    tmp = os.path.join(base_path, f"{str(frame).zfill(4)}")
-    output_node.base_path = tmp
+
+    # These two steps make the name of the rendered output file be just the frame number
+    # (filled with zeros to four digits) and the ".png" extension.
+    output_node.file_slots[0].path = ""
+    comp_scene.frame_set(frame)
 
     bpy.context.window.scene = comp_scene
     bpy.ops.render.render(write_still=True)
-
-    # Necessary to work around problems directly setting the output file name.
-    filepath = f"{tmp}.png"
-    os.rename(f"{tmp}/Image0001.png", filepath)
-    os.rmdir(tmp)
-
-    output_node.base_path = base_path
 
     # Delete the images when the compositing of this frame is finished, to avoid
     # ever-increasing memory usage, leading to a crash.
