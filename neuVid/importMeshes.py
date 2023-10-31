@@ -3,8 +3,7 @@
 # iteration on the details of the animation.
 
 # Run in Blender, e.g.:
-# blender --background --python importMeshes.py -- -ij movieScript.json -o movieWithoutAnimation.blend
-# Assumes Blender 2.79.
+# blender --background --python importMeshes.py -- -i movieScript.json -o movieWithoutAnimation.blend
 
 import argparse
 import bpy
@@ -35,6 +34,8 @@ else:
 parser = argparse.ArgumentParser()
 parser.add_argument("--inputJson", "-ij", "-i", dest="inputJsonFile", help="path to the JSON file describing the input")
 parser.add_argument("--output", "-o", dest="outputFile", help="path for the output .blend file")
+parser.set_defaults(cacheDir=None)
+parser.add_argument("--cachedir", "-cd", dest="cacheDir", help="parent directory for the mesh caches (e.g., neuVidNeuronMeshes)")
 parser.set_defaults(swcCapVertexCount=12)
 parser.add_argument("--swcvc", dest="swcCapVertexCount", type=int, help="for SWC files, the vertex count in a cross-sectional slice")
 parser.set_defaults(swcAxonRadiusFactor=2*5)
@@ -53,7 +54,7 @@ args = parser.parse_args(argv)
 
 if args.inputJsonFile == None:
     parser.print_help()
-    quit()
+    sys.exit()
 
 outputFile = args.outputFile
 if outputFile == None:
@@ -71,6 +72,11 @@ if args.skipExisting:
 
 inputJsonDir = os.path.dirname(os.path.realpath(args.inputJsonFile))
 
+parentForDownloadDir = inputJsonDir
+if args.cacheDir:
+    parentForDownloadDir = args.cacheDir
+    print("Using directory for mesh download caches: {}".format(parentForDownloadDir))
+
 try:
     jsonData = json.loads(removeComments(args.inputJsonFile))
 except json.JSONDecodeError as exc:
@@ -80,7 +86,7 @@ except json.JSONDecodeError as exc:
 
 if jsonData == None:
     print("Loading JSON file {} failed".format(args.inputJsonFile))
-    quit()
+    sys.exit()
 
 #
 
@@ -215,8 +221,8 @@ for i in range(len(neuronSources)):
     j = 0
     for neuronId in neuronIds[i]:
         id = decode_id(neuronId)
-        objPath = fileToImportForNeuron(neuronSources[i], id, inputJsonDir, args.swcCapVertexCount, args.swcAxonRadiusFactor, args.swcDendriteRadiusFactor,
-                                                                    args.skipExisting)
+        objPath = fileToImportForNeuron(neuronSources[i], id, parentForDownloadDir, args.swcCapVertexCount, args.swcAxonRadiusFactor, args.swcDendriteRadiusFactor,
+                                        args.skipExisting)
 
         timeNow = datetime.datetime.now()
         elapsedSecs = (timeNow - timeStart).total_seconds()
@@ -363,7 +369,7 @@ if "rois" in jsonData:
             print("Importing {} ROI meshes for index {}".format(len(roiNames[i]), i))
 
         for roiName in roiNames[i]:
-            objPath = fileToImportForRoi(roiSources[i], roiName, inputJsonDir, args.skipExisting)
+            objPath = fileToImportForRoi(roiSources[i], roiName, parentForDownloadDir, args.skipExisting)
             if not objPath or not os.path.isfile(objPath):
                 print("\nERROR: cannot find/download ROI file '{}' for ID {}\n".format(objPath, roiName))
                 if args.strict:
@@ -435,7 +441,7 @@ if "synapses" in jsonData:
         if synapseSetName == "source":
             continue
 
-        objPath = fileToImportForSynapses(source, synapseSetName, synapseSetSpec, inputJsonDir, args.skipExisting)
+        objPath = fileToImportForSynapses(source, synapseSetName, synapseSetSpec, parentForDownloadDir, args.skipExisting)
         if not os.path.isfile(objPath):
             print("\nERROR: cannot find/download synapse file '{}' for ID {}\n".format(objPath, synapseSetName))
             if args.strict:
