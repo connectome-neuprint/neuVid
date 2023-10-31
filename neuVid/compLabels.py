@@ -384,6 +384,8 @@ if __name__ == "__main__":
     parser.add_argument("--frame-start", "-s", type=int, dest="start", help="first frame to composite")
     parser.set_defaults(end=None)
     parser.add_argument("--frame-end", "-e", type=int, dest="end", help="last frame to composite")
+    parser.set_defaults(threads=None)
+    parser.add_argument("--threads", "-t", dest="threads", type=int, help="thread count for Cycles (default: let Cycles choose)")
     args = parser.parse_args(argv)
 
     print(f"Using JSON: {args.input_json_file}")
@@ -407,6 +409,12 @@ if __name__ == "__main__":
     labels = parse_labels(args.input_json_file, image_size)
     labels_scene = setup_labels_scene(labels)
     comp_scene = setup_comp_scene(output)
+
+    if args.threads != None:
+        for scene in [comp_scene, labels_scene]:
+            scene.render.threads_mode = "FIXED"
+            scene.render.threads = args.threads
+        print("Using thread count: {}".format(args.threads))
 
     comp_labels(labels_scene, comp_scene, input, image_size, args.start, args.end)
 
