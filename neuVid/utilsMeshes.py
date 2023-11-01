@@ -17,7 +17,7 @@ def ensure_directory(parent, dir):
     path = os.path.join(parent, dir)
     try:
         if not os.path.exists(path):
-            os.mkdir(path)
+            os.makedirs(path)
     except OSError as e:
         print("Error: cannot create directory {}".format(path))
         sys.exit()
@@ -99,7 +99,7 @@ def fileToImportForRoi(source, roiName, parentForDownloadDir, skipExisting):
         if mesh:
             try:
                 if not os.path.exists(downloadDir):
-                    os.mkdir(downloadDir)
+                    os.makedirs(downloadDir)
                 if roiName.endswith(".ngmesh"):
                     with BytesIO(mesh) as meshBinStream:
                         verticesXYZ, faces = read_ngmesh(meshBinStream)
@@ -135,7 +135,7 @@ def fileToImportForSynapses(source, synapseSetName, synapseSetSpec, parentForDow
 
         try:
             if not os.path.exists(downloadDir):
-                os.mkdir(downloadDir)
+                os.makedirs(downloadDir)
             fileName = os.path.join(downloadDir, synapseSetName + ".obj")
             if skipExisting and os.path.exists(fileName):
                 print("Skipping downloading of existing file {}".format(fileName))
