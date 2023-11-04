@@ -573,13 +573,18 @@ For now, at least, `clusterRender.py` does not automatically give parallelism _w
   - `fovHorizontal` or `fovVertical` in degrees (also used by `addAnimation.py`, for interactive preview)
 
 - Runtime arguments to `render.py`:
- - `--skipExisting` (`-sk`): do not rerender existing frames in the output directory, frames that have been rendered by earlier sessions
+  - `--skipExisting` (`-sk`): do not rerender existing frames in the output directory, frames that have been rendered by earlier sessions
 
-- If there is too much mesh data to load at once:
-  - `neurons` category `sources` can be an array, for multiple levels of detail
-  - `neurons` category `idSources` is a directory for files that list neuron identifiers
-  - `neurons` category name keys have an object value, with `sourcesIndex` choosing from the `sources` array and `ids` listing files from `idSources`
-  - Works if only one (or so) `neurons` names are visible at any time, and `render.py` has logic to detect this
+- Large segmentations:
+
+  - If there are _N_ neurons and _N_ is large, try breaking them up into _M_ groups (e.g., by cell type) and show only one (or a few) groups at a time.  There is support in `neuVid` for making this approach easier.
+  - In the JSON file's `"neurons"` category:
+    - Add `"separate": true`.
+    - Make `"source"` and array with _M_ elements (one per group).  The actual sources (array elements) do not need to differ, but there must be _M_ of them.
+    - Make each `"neuron"` category key an object with keys `"ids"` and `"sourceIndex"`, the latter referring to an item in the `"source"` array.
+  - Then `importMeshes.py` writes each of the _M_ groups in its own Blender file, with the suffix `_neurons_`_i_, where _i_ is from 0 to _M-1_.  Such a Blender file is loaded by `render.py` only when that group is visible.
+  - The `--skipExisting` (`-sk`) argument to `importMeshes.py` will reuse all existing `_neurons_`_i_ files without rebuilding them, which can save considerable time if some unrelated part of the JSON file changed (e.g., the set of ROIs).
+  - For an example, see `test/test-separate-files-hemi.json`.
   - Made the "Fly Hemibrain Overview" video possible, rendered with Octane
 
 [![Watch the video](https://img.youtube.com/vi/PeyHKdmBpqY/maxresdefault.jpg)](https://www.youtube.com/watch?v=PeyHKdmBpqY)

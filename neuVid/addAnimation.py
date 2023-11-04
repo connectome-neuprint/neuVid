@@ -112,8 +112,8 @@ def meshObjs(name):
                         if len(name.split()) == 1:
                             dest["Neuron.proxy." + group] = None
                         else:
-                            print("Error: mesh expressions with '+'/'-' already not supported for separate neuron files")
-                            return None
+                            print("Error: mesh expressions with '+'/'-' are not supported for separate neuron files")
+                            sys.exit()
                     else:
                         for neuronId in groupToNeuronIds[group]:
                             dest["Neuron." + neuronId] = None
@@ -493,10 +493,6 @@ def fadeCmd(args):
         deltaTime = []
         stagger = False
         accelerating = False
-        if len(objs) >= 6:
-            nStaggerSubgroup = min(5, round(len(objs) / 6))
-        else:
-            nStaggerSubgroup = len(objs)
 
         # Accelerating pace: `"stagger": true`
         # Constant pace: `"stagger": "constant"` or `"stagger": "const"`, etc.
@@ -510,7 +506,32 @@ def fadeCmd(args):
         # For stagger and not accelerating, each item fades on/off in this many frames.
         FADE_FRAMES_NOT_ACCEL = 3
 
+        if type == "alpha" and len(objs) == 1 and "ids" in objs[0]:
+            # Proxy for a separate Blender file.
+            proxy = objs[0]
+            proxyMatName = "Material." + proxy.name
+            proxyMat = proxy.data.materials[proxyMatName]
+            if not "alpha-fcurves" in proxyMat:
+                proxyMat["alpha-fcurves"] = {}
+            # IDs of what the proxy will be replaced by when the separate file is loaded.
+            # Their animation must be stored on the proxy, to make staggering work.
+            objs = proxy["ids"]
+
+            # And the proxy itself must still have some overall animation, so render.py does not
+            # think the proxy is always visible and should be expanded right away.
+            startingFrame = frame(startingTime)
+            endingFrame = frame(startingTime + duration)
+            setMaterialValue(proxyMat, type, startingValue)
+            insertMaterialKeyframe(proxyMat, type, startingFrame)
+            setMaterialValue(proxyMat, type, endingValue)
+            insertMaterialKeyframe(proxyMat, type, endingFrame)
+
+        nStaggerSubgroup = 0
         if stagger:
+            if len(objs) >= 6:
+                nStaggerSubgroup = min(5, round(len(objs) / 6))
+            else:
+                nStaggerSubgroup = len(objs)
             if len(objs) < 6:
                 deltaTime.append(duration / nStaggerSubgroup)
             elif accelerating:
@@ -545,37 +566,34 @@ def fadeCmd(args):
 
         i = 0
         for obj in objs:
-            matName = "Material." + obj.name
-            mat = obj.data.materials[matName]
-            if type == "alpha":
-                setMaterialValue(mat, "alpha", startingValue)
-            elif type == "location":
-                obj.location = startingValue
-
-            else:
-                setMaterialValue(mat, "diffuse_color", startingValue)
             startingFrame = frame(startingTime)
-            if type == "location":
-                obj.keyframe_insert(type, frame=startingFrame)
-            else:
-                insertMaterialKeyframe(mat, type, startingFrame)
-            if type == "alpha":
-                setMaterialValue(mat, "alpha", endingValue)
-            elif type == "location":
-                obj.location = endingValue
-
-            else:
-                setMaterialValue(mat, "diffuse_color", endingValue)
             minimum = FADE_FRAMES_NOT_ACCEL if stagger and not accelerating else 1
             endingFrame = max(frame(startingTime + deltaTime[0]), startingFrame + minimum)
-            if type == "location":
-                obj.keyframe_insert(type, frame=endingFrame)
+            if not isinstance(obj, str):
+                matName = "Material." + obj.name
+                mat = obj.data.materials[matName]
+                if type == "location":
+                    obj.location = startingValue
+                    obj.keyframe_insert("location", frame=startingFrame)
+                    obj.location = endingValue
+                    obj.keyframe_insert("location", frame=endingFrame)
+                else:
+                    setMaterialValue(mat, type, startingValue)
+                    insertMaterialKeyframe(mat, type, startingFrame)
+                    setMaterialValue(mat, type, endingValue)
+                    insertMaterialKeyframe(mat, type, endingFrame)
             else:
-                insertMaterialKeyframe(mat, type, endingFrame)
+                # For applying the staggered alphas in render.py, when the separate Blender file has been loaded.
+                if not obj in proxyMat["alpha-fcurves"]:
+                    proxyMat["alpha-fcurves"][obj] = []
+                l = proxyMat["alpha-fcurves"][obj]
+                if not isinstance(l, list):
+                    l = l.to_list()
+                l += [(startingValue, startingFrame), (endingValue, endingFrame)]
+                proxyMat["alpha-fcurves"][obj] = l
             i += 1
             if len(deltaTime) > 1 and (not accelerating or i == nStaggerSubgroup or i == 3 * nStaggerSubgroup):
                 deltaTime.pop(0)
-
             if stagger:
                 startingTime += deltaTime[0]
 
@@ -770,7 +788,7 @@ def orbitCameraCmd(args):
     camera.keyframe_insert("rotation_euler", frame=endFrame)
 
     # With the additional camera movement caused by "scale", the standard Bezier interpolation
-    # can have odd "swoopimg" at the beginning.  Fix it by changing the interpolation method.
+    # can have odd "swooping" at the beginning.  Fix it by changing the interpolation method.
     if "scale" in args:
         for fcurve in camera.animation_data.action.fcurves:
             for kf in fcurve.keyframe_points:
@@ -1083,7 +1101,7 @@ def removeUnused():
     for obj in bpy.data.objects:
         if "." in obj.name:
             category, name = obj.name.split(".", 1)
-            if category == "Neuron":
+            if category == "Neuron" and not "proxy" in name:
                 found = False
                 for group, ids in groupToNeuronIds.items():
                     if name in ids:
@@ -1224,4 +1242,3 @@ else:
     outputAbsPath = os.path.join(os.getcwd(), outputFile)
     print("Writing {}".format(outputAbsPath))
     bpy.ops.wm.save_as_mainfile(filepath=outputAbsPath)
-

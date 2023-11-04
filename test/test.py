@@ -25,8 +25,10 @@ def get_blender():
         latest = get_latest(exe_paths)
         return os.path.join(latest, "Contents", "MacOS", "Blender")
     elif platform.system() == "Linux":
-        # TODO
-        return None
+        dir = "/usr/local"
+        exe_paths = [os.path.join(dir, f) for f in os.listdir(dir) if f.startswith("blender")]
+        latest = get_latest(exe_paths)
+        return os.path.join(latest, "blender")
     elif platform.system() == "Windows":
         # TODO
         return None
@@ -66,12 +68,19 @@ def rename_video(src, test_name):
 
 def run_test(test_name, frames, cmds):
     test_json_path, import_output_path, anim_output_path, frames_output_path = get_test_paths(test_name, cmds["input"], cmds["output"])
+    extra = ""
     blender_cmd = cmds["blender"]
     import_cmd = cmds["import"]
+    if cmds["import_extra_args"]:
+        import_cmd += " " + cmds["import_extra_args"]
+        extra += cmds["import_extra_args"]
     anim_cmd = cmds["anim"]
     render_cmd = cmds["render"]
     assemble_cmd = cmds["assemble"]
     videos = cmds["videos"]
+
+    frames_output_path += extra.replace(" ", "_")
+
     run(f"{blender_cmd} {import_cmd} -i {test_json_path} -o {import_output_path}")
     run(f"{blender_cmd} {anim_cmd} -i {test_json_path} -ib {import_output_path} -o {anim_output_path}")
     if render_cmd:
@@ -132,15 +141,18 @@ if __name__ == "__main__":
     cmds = {
         "blender": blender_cmd,
         "import": import_cmd,
+        "import_extra_args": None,
         "anim": anim_cmd,
         "render": render_cmd if args.render else None,
         "assemble": assemble_cmd if args.render_all else None,
         "input": args.input,
         "output": output,
         "videos": videos
+
     }
 
     runtime0 = datetime.datetime.now()
+
 
     run_test("test-id-list-hemi", [1, 75, 100, 190], cmds)
     run_test("test-id-file-manc", [1, 25, 50, 75, 100, 125, 144], cmds)
@@ -148,6 +160,10 @@ if __name__ == "__main__":
     run_test("test-pose-orbit-local-frame", [1, 25, 50, 75, 96], cmds)
     run_test("test-id-list-swc", [1, 100, 150], cmds)
     run_test("test-id-file-swc", [1, 100, 150], cmds)
+    run_test("test-separate-files-hemi", [1, 10, 55, 60, 65, 70, 122, 145], cmds)
+    cmds2 = cmds.copy()
+    cmds2["import_extra_args"] = "--skipExisting"
+    run_test("test-separate-files-hemi", [1, 10, 55, 60, 65, 70, 122, 145], cmds2)
 
     runtime1 = datetime.datetime.now()
 

@@ -44,6 +44,8 @@ parser.set_defaults(swcDendriteRadiusFactor=3*5)
 parser.add_argument("--swcdr", dest="swcDendriteRadiusFactor", type=float, help="for SWC files, multipliciative factor for dendrite radii")
 parser.set_defaults(skipExisting=False)
 parser.add_argument("--skipExisting", "-sk", dest="skipExisting", action="store_true", help="skip downloading existing neurons/rois/synapses, already downloaded")
+parser.set_defaults(split=None)
+parser.add_argument("--split", "-sp", dest="split", nargs='*', type=int, help="'i n' means write only the separate files the ith of n source subsets")
 # A limit of 0 means no limit.
 parser.set_defaults(limit=0)
 parser.add_argument("--limit", "-l", type=int, dest="limit", help="limit to the number of IDs from each separate neurons file")
@@ -69,6 +71,10 @@ print("Using SWC dendrite radius factor: {}".format(args.swcDendriteRadiusFactor
 
 if args.skipExisting:
     print("Skipping downloading of existing neurons/rois/synapses")
+if args.split:
+    if len(args.split) != 2:
+        print("Usage: `--split i n` splits the source indices into n groups, writes the separate files for group i")
+    print("Only writing the separate files for source subgroup {} of {}".format(args.split[0], args.split[1]))
 
 inputJsonDir = os.path.dirname(os.path.realpath(args.inputJsonFile))
 
@@ -119,6 +125,67 @@ def computeBsphere(objs, center):
         for vert in verts:
             radius = max((vert - c).length, radius)
     return radius
+
+def deleteObjects():
+    for obj in bpy.data.objects:
+        if obj.name != "Camera":
+            matName = "Material." + obj.name
+            if matName in bpy.data.materials:
+                mat = bpy.data.materials[matName]
+                bpy.data.materials.remove(mat, do_unlink=True)
+            bpy.data.objects.remove(obj, do_unlink=True)
+
+def addBoundObj(name, boundData):
+    boundName = "Bound." + name
+    if not boundName in bpy.data.objects:
+        bound = newObject(boundName)
+        bound.location = boundData["center"]
+        bound["Min"] = boundData["min"]
+        bound["Max"] = boundData["max"]
+        bound["Radius"] = boundData["radius"]
+
+def retrieveBoundObj(name, file):
+    referencedObjName = "Bound." + name
+    objsDir = file + "/Object"
+    bpy.ops.wm.append(filename=referencedObjName, directory=objsDir)
+    if referencedObjName in bpy.data.objects:
+        bound = bpy.data.objects[referencedObjName]
+        center = bound.location.copy()
+        mini = mathutils.Vector((bound["Min"][0], bound["Min"][1], bound["Min"][2]))
+        maxi = mathutils.Vector((bound["Max"][0], bound["Max"][1], bound["Max"][2]))
+        return { "center": center, "min": mini, "max": maxi, "radius": bound["Radius"] }
+    print("Error: could not append object {} from separate file {}".format(referencedObjName, file))
+    sys.exit()
+
+def inSplit(current, sources, split):
+    if not split or len(split) != 2:
+        return True
+    chosenGroup = split[0]
+    groupsCount = split[1]
+    frac = current / len(sources)
+    return (chosenGroup - 1) / groupsCount <= frac and frac < chosenGroup / groupsCount
+
+def finish(timeStart, missingNeuronObjs, missingRoiObjs, missingSynapseSetObjs):
+    timeEnd = datetime.datetime.now()
+    print()
+    print("Importing started at {}".format(timeStart))
+    print("Importing ended at {}".format(timeEnd))
+    print("Elapsed time: {}".format(timeEnd - timeStart))
+
+    if len(missingNeuronObjs) > 0:
+        print()
+        print("ERROR: could not download/find mesh .obj files for the following neurons:")
+        print([int(x) if x.isnumeric() else x for x in missingNeuronObjs])
+    if len(missingRoiObjs) > 0:
+        print()
+        print("ERROR: could not download/find mesh .obj files for the following rois:")
+        print(missingRoiObjs)
+    if len(missingSynapseSetObjs) > 0:
+        print()
+        print("ERROR: could not find mesh .obj files for the following synapses:")
+        for x in missingSynapseSetObjs:
+            print(x)
+        print("NOTE: run buildSynapses.py to generate synapse mesh .obj files")
 
 groupToBBox = {}
 meshesSourceIndexToBBox = {}
@@ -209,17 +276,23 @@ for i in range(len(neuronSources)):
     else:
         print("Importing {} neuron meshes for index {} ({})".format(len(neuronIds[i]), i, neuronSources[i]))
 
-    if useSeparateNeuronFiles or i == 0:
-        for obj in bpy.data.objects:
-            if obj.name != "Camera":
-                matName = "Material." + obj.name
-                if matName in bpy.data.materials:
-                    mat = bpy.data.materials[matName]
-                    bpy.data.materials.remove(mat, do_unlink=True)
-                bpy.data.objects.remove(obj, do_unlink=True)
+    if i == 0 or useSeparateNeuronFiles:
+        deleteObjects()
+
+    if not inSplit(i, neuronSources, args.split):
+        print("Skipping source {}".format(i))
+        continue
+
+    useExistingSeparate = False
+    if useSeparateNeuronFiles:
+        outputFileSeparate = os.path.splitext(outputFile)[0] + "_neurons_" + str(i) + ".blend"
+        if args.skipExisting:
+            if os.path.exists(outputFileSeparate):
+                useExistingSeparate = True
 
     j = 0
-    for neuronId in neuronIds[i]:
+    neuronIdsToImport = neuronIds[i] if not useExistingSeparate else []
+    for neuronId in neuronIdsToImport:
         id = decode_id(neuronId)
         objPath = fileToImportForNeuron(neuronSources[i], id, parentForDownloadDir, args.swcCapVertexCount, args.swcAxonRadiusFactor, args.swcDendriteRadiusFactor,
                                         args.skipExisting)
@@ -277,12 +350,6 @@ for i in range(len(neuronSources)):
                 sys.exit()
             missingNeuronObjs.append(neuronId)
 
-    if useSeparateNeuronFiles:
-        j = outputFile.rfind(".")
-        outputFile = outputFile[:j] + "_neurons_" + str(i) + outputFile[j:]
-        separateNeuronFiles.append(outputFile)
-        bpy.ops.wm.save_mainfile(filepath=outputFile)
-
     print("Done")
 
     if len(neuronSources) == 1:
@@ -292,27 +359,38 @@ for i in range(len(neuronSources)):
 
     for groupName in groupToNeuronIds.keys():
         if groupToMeshesSourceIndex[groupName] == i:
-            groupNeuronIds = groupToNeuronIds[groupName]
-            objs = [bpy.data.objects["Neuron." + id] for id in groupNeuronIds if "Neuron." + id in bpy.data.objects]
-            bboxCenter, bboxMin, bboxMax = computeBbox(objs)
-            radius = computeBsphere(objs, bboxCenter)
-            groupToBBox[groupName] = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
+            if not useExistingSeparate:
+                groupNeuronIds = groupToNeuronIds[groupName]
+                objs = [bpy.data.objects["Neuron." + id] for id in groupNeuronIds if "Neuron." + id in bpy.data.objects]
+                bboxCenter, bboxMin, bboxMax = computeBbox(objs)
+                radius = computeBsphere(objs, bboxCenter)
+                groupToBBox[groupName] = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
+                addBoundObj("neurons." + groupName, groupToBBox[groupName])
+            else:
+                groupToBBox[groupName] = retrieveBoundObj("neurons." + groupName, outputFileSeparate)
 
-    objs = [bpy.data.objects["Neuron." + id] for id in neuronIds[i] if "Neuron." + id in bpy.data.objects]
-    bboxCenter, bboxMin, bboxMax = computeBbox(objs)
-    radius = computeBsphere(objs, bboxCenter)
-    meshesSourceIndexToBBox[i] = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
+    if not useExistingSeparate:
+        objs = [bpy.data.objects["Neuron." + id] for id in neuronIds[i] if "Neuron." + id in bpy.data.objects]
+        bboxCenter, bboxMin, bboxMax = computeBbox(objs)
+        radius = computeBsphere(objs, bboxCenter)
+        meshesSourceIndexToBBox[i] = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
+        addBoundObj("neurons", meshesSourceIndexToBBox[i])
+    else:
+        meshesSourceIndexToBBox[i] = retrieveBoundObj("neurons", outputFileSeparate)
+
+    if useSeparateNeuronFiles:
+        separateNeuronFiles.append(outputFileSeparate)
+        if not useExistingSeparate:
+            print("Writing file {}...".format(outputFileSeparate))
+            bpy.ops.wm.save_mainfile(filepath=outputFileSeparate)
 
     print("Done")
 
 if useSeparateNeuronFiles:
-    for obj in bpy.data.objects:
-        if obj.name != "Camera":
-            matName = "Material." + obj.name
-            if matName in bpy.data.materials:
-                mat = bpy.data.materials[matName]
-                bpy.data.materials.remove(mat, do_unlink=True)
-            bpy.data.objects.remove(obj, do_unlink=True)
+    deleteObjects()
+    if args.split:
+        finish(timeStart, missingNeuronObjs, missingRoiObjs, missingSynapseSetObjs)
+        sys.exit()
 
 #
 
@@ -374,7 +452,7 @@ if "rois" in jsonData:
                 print("\nERROR: cannot find/download ROI file '{}' for ID {}\n".format(objPath, roiName))
                 if args.strict:
                     sys.exit()
-                missingRoiObjs.append(neuronId)
+                missingRoiObjs.append(roiName)
                 continue
 
             try:
@@ -394,7 +472,7 @@ if "rois" in jsonData:
                 print("\nERROR: cannot import ROI file '{}' for ID {}:\n\n{}".format(objPath, roiName, str(e)))
                 if args.strict:
                     sys.exit()
-                missingRoiObjs.append(neuronId)
+                missingRoiObjs.append(roiName)
 
 #
 
@@ -497,15 +575,6 @@ print("Done")
 
 print("Adding bounds...")
 
-def addBoundObj(name, boundData):
-    boundName = "Bound." + name
-    bound = newObject(boundName)
-    bound.location = boundData["center"]
-
-    bound["Min"] = boundData["min"]
-    bound["Max"] = boundData["max"]
-    bound["Radius"] = boundData["radius"]
-
 for groupName in groupToNeuronIds.keys():
     addBoundObj("neurons." + groupName, groupToBBox[groupName])
 
@@ -551,7 +620,6 @@ def unionBounds(boundDataMap):
         offset = (data["center"] - mathutils.Vector(bboxCenter)).length
         approxRadius = offset + data["radius"]
         radius = max(radius, approxRadius)
-
     return { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
 
 if useSeparateNeuronFiles:
@@ -630,22 +698,4 @@ else:
     print("Writing {}".format(outputAbsPath))
     bpy.ops.wm.save_as_mainfile(filepath=outputAbsPath)
 
-timeEnd = datetime.datetime.now()
-print()
-print("Importing started at {}".format(timeStart))
-print("Importing ended at {}".format(timeEnd))
-
-if len(missingNeuronObjs) > 0:
-    print()
-    print("ERROR: could not download/find mesh .obj files for the following neurons:")
-    print([int(x) if x.isnumeric() else x for x in missingNeuronObjs])
-if len(missingRoiObjs) > 0:
-    print()
-    print("ERROR: could not download/find mesh .obj files for the following rois:")
-    print(missingRoiObjs)
-if len(missingSynapseSetObjs) > 0:
-    print()
-    print("ERROR: could not find mesh .obj files for the following synapses:")
-    for x in missingSynapseSetObjs:
-        print(x)
-    print("NOTE: run buildSynapses.py to generate synapse mesh .obj files")
+finish(timeStart, missingNeuronObjs, missingRoiObjs, missingSynapseSetObjs)
