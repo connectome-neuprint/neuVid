@@ -19,7 +19,7 @@ def ensure_directory(parent, dir):
         if not os.path.exists(path):
             os.makedirs(path)
     except OSError as e:
-        print("Error: cannot create directory {}".format(path))
+        print("Error: cannot create directory {}: {}".format(path, str(e)))
         sys.exit()
     return path
 

@@ -20,7 +20,7 @@ import tempfile
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsGeneral import newObject, report_version
-from utilsMaterials import getMaterialFcurve, getMaterialValue, setMaterialValue
+from utilsMaterials import insertMaterialKeyframe, getMaterialFcurve, getMaterialValue, setMaterialValue
 from utilsJson import guess_extraneous_comma, parseFov, removeComments
 
 USE_OPTIX1 = "--optix"
@@ -385,6 +385,24 @@ def addOctaneMaterial(obj, animMat=None):
 
     # Connect the glossy node's "OutMat" output to the output node's "surface" input.
     matLinks.new(glossyNode.outputs[0], outputNode.inputs[0])
+
+def copyToCyclesMaterial(obj, animMat):
+    matName = "Material." + obj.name
+    mat = bpy.data.materials[matName]
+    mat.cycles.use_transparent_shadow = True
+    alphaFcurves = []
+    if "alpha-fcurves" in animMat:
+        key = obj.name.split(".")[1]
+        if key in animMat["alpha-fcurves"]:
+            alphaFcurves = animMat["alpha-fcurves"][key]
+    else:
+        fcurves = getMaterialFcurve(animMat, "alpha")
+        keyframes = fcurves.keyframe_points
+        for i in range(len(keyframes)):
+            alphaFcurves.append((keyframes[i].co[1], keyframes[i].co[0]))
+    for v, f in alphaFcurves:
+        setMaterialValue(mat, "alpha", v)
+        insertMaterialKeyframe(mat, "alpha", f)
 
 if args.doRois:
     for obj in bpy.data.objects:
@@ -1212,7 +1230,7 @@ def addSamplesPerInterval(renderIntervals, fadingIntervals, dollyIntervals):
 
     return renderIntervals5
 
-def separateNeuronFilesHideRender(obj, hideRenderTrue, useOctane):
+def separateNeuronFilesHideRender(obj, hideRenderTrue, useOctane, useCycles):
     matName = "Material." + obj.name
     if not matName in bpy.data.materials:
         return
@@ -1223,21 +1241,28 @@ def separateNeuronFilesHideRender(obj, hideRenderTrue, useOctane):
             neuronFile = obj["neuronFile"]
             objsDir = neuronFile + "/Object"
             matsDir = neuronFile + "/Material"
+            print("Expanding {} with {} IDs".format(obj.name, len(obj["ids"])))
             for id in obj["ids"]:
                 referencedObjName = "Neuron." + str(id)
                 bpy.ops.wm.append(filename=referencedObjName, directory=objsDir)
                 referencedMatName = "Material." + referencedObjName
                 bpy.ops.wm.append(filename=referencedMatName, directory=matsDir)
 
+                if not referencedObjName in bpy.data.objects:
+                    print(f"Skipping referenced but missing {referencedObjName}")
+                    continue
+                
                 referencedObj = bpy.data.objects[referencedObjName]
                 rescaleRecenter(referencedObj, overallCenter, overallScale)
                 if useOctane:
                     addOctaneMaterial(referencedObj, mat)
+                elif useCycles:
+                    copyToCyclesMaterial(referencedObj, mat)
 
             # But do not render the proxy itself.
             obj.hide_render = True
 
-    else:
+    elif not obj.name.startswith("Roi"):
         # Remove all neurons appended previously.
         try:
             bpy.data.materials.remove(mat, do_unlink=True)
@@ -1283,16 +1308,19 @@ def render(renderIntervalsClipped, hideRenderTrueFrames, justPrint=False):
             else:
                 print("rendering from frame {} to {}".format(fStart, fEnd))
         else:
+            print("Preparing to render from frame {} to {}".format(fStart, fEnd))
             if not args.doRois:
                 for obj in bpy.data.objects:
                     if args.useCycles or obj.name.startswith("Neuron"):
                         if useSeparateNeuronFiles:
-                            separateNeuronFilesHideRender(obj, hideRenderTrue, args.useOctane)
+                            separateNeuronFilesHideRender(obj, hideRenderTrue, args.useOctane, args.useCycles)
                         else:
                             # Path-traced renderers (e.g., Octane or Cycles) produce dark artifacts for
                             # fully transparent objects (alpha == 0), so such objects must be explicitly
                             # excluded from the rendering.
                             obj.hide_render = (obj.name in hideRenderTrue)
+            print("Done")
+            print("Rendering from frame {} to {}".format(fStart, fEnd))
             bpy.context.scene.frame_start = fStart
             bpy.context.scene.frame_end = fEnd
             bpy.ops.render.render(animation=True)

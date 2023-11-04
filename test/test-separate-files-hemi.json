@@ -1,0 +1,51 @@
+{
+  "neurons": {
+    "separate": true,
+    // When the neurons are being put in separate Blender files (so rendering can
+    // handle large numbers of neurons that are not all visible at once)
+    // there will be one file per source, even if the actual sources are the same.
+    "source": [
+      "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
+      "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
+      "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes"
+    ],
+    "PC1d": {"sourceIndex": 0, "ids": [5813013342, 5813063587]},
+    "aIPg1": {"sourceIndex": 1, "ids": [707854989, 707858790, 707863263, 1138212774]},
+    // The following two groups will be in the same separate file.
+    "aIPg4": {"sourceIndex": 2, "ids": [861251038, 5813068484]},
+    "FS4C": {"sourceIndex": 2, "ids": [202916528, 296531421]}
+  },
+  "rois": {
+    "source": "https://hemibrain-dvid.janelia.org/api/node/31597/roisSmoothedDecimated",
+    "SMP": ["SMP(R)"]
+  },
+  "animation": [
+    ["frameCamera", {"bound": "rois"}],
+    ["setValue", {"meshes": "rois", "alpha": 0.1}],
+
+    ["orbitCamera", {"endingRelativeAngle": 40, "duration": 4}],
+
+    // The file test-separate-files-hemi_neurons_0.blend will be loaded for "neurons.PC1d".
+    ["fade", {"meshes": "neurons.PC1d", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+    ["advanceTime", {"by": 1}],
+    ["fade", {"meshes": "neurons.PC1d", "startingAlpha": 1, "endingAlpha": 0, "duration": 1}],
+    ["advanceTime", {"by": 1}],
+
+    // The file test-separate-files-hemi_neurons_1.blend will be loaded for "neurons.aIPg1",
+    // and the others will be unloaded.
+    ["fade", {"meshes": "neurons.aIPg1", "startingAlpha": 0, "endingAlpha": 1, "duration": 1, "stagger": "constant"}],
+    ["advanceTime", {"by": 1}],
+    ["fade", {"meshes": "neurons.aIPg1", "startingAlpha": 1, "endingAlpha": 0, "duration": 1}],
+    ["advanceTime", {"by": 1}],
+
+    // The file test-separate-files-hemi_neurons_2.blend will be loaded for "neurons.aIPg4",
+    // and the others will be unloaded.
+    ["fade", {"meshes": "neurons.aIPg4", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+    ["frameCamera", {"bound": "neurons.aIPg4", "duration": 1}],
+    ["advanceTime", {"by": 1}],
+    ["fade", {"meshes": "neurons.FS4C", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+    ["frameCamera", {"bound": "neurons.FS4C", "duration": 1}],
+    ["advanceTime", {"by": 1}]
+  ]
+}
+  
