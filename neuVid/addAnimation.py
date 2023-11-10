@@ -488,6 +488,8 @@ def fadeCmd(args):
     if "meshes" in args:
         meshes = args["meshes"]
         objs = meshObjs(meshes)
+        if objs is None: # empty list of meshes skips the fade
+            return
 
         startingTime = time
         deltaTime = []
