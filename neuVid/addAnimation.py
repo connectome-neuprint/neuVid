@@ -351,6 +351,8 @@ def setValueCmd(args):
             return
 
         objs = meshObjs(meshes)
+        if objs is None: # empty list of meshes skips the fade
+            return
 
         if "color" in args and staggerFrac:
             deltaS = (colorHSV0[1] - colorHSV[1]) / (len(objs) - 1)
@@ -488,6 +490,8 @@ def fadeCmd(args):
     if "meshes" in args:
         meshes = args["meshes"]
         objs = meshObjs(meshes)
+        if objs is None: # empty list of meshes skips the fade
+            return
 
         startingTime = time
         deltaTime = []
@@ -649,6 +653,8 @@ def pulseCmd(args):
         print("{}, {}: pulse meshes '{}' to color {}: {}".format(frame(), frame(time + duration), meshes, colorId, pulseColor))
 
         objs = meshObjs(meshes)
+        if objs is None: # empty list of meshes skips the fade
+            return
         for obj in objs:
             matName = "Material." + obj.name
             mat = obj.data.materials[matName]
