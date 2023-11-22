@@ -92,7 +92,10 @@ def setupAlphaScaledSpecular(mat):
     matLinks.new(specNode.outputs["Value"], alphaXSpecNode.inputs[1])
 
     # ...before sending that value to the BSDF node as the new specular value.
-    matLinks.new(alphaXSpecNode.outputs["Value"], bsdfNode.inputs["Specular"])
+    if bpy.app.version < (4,0,0):
+        matLinks.new(alphaXSpecNode.outputs["Value"], bsdfNode.inputs["Specular"])
+    else:
+        matLinks.new(alphaXSpecNode.outputs["Value"], bsdfNode.inputs["Specular IOR Level"])
 
 def newBasicMaterial(name, color=None):
     mat = bpy.data.materials.new(name=name)
@@ -117,8 +120,10 @@ def newBasicMaterial(name, color=None):
         alphaNode, diffuseColorNode = setupMaterialAttributeNodes(mat)        
         bsdfNode = matNodes["Principled BSDF"]
         bsdfNode.inputs["Roughness"].default_value = 0.25
-
-        bsdfNode.inputs["Specular Tint"].default_value = 0.75
+        if bpy.app.version < (4,0,0):
+            bsdfNode.inputs["Specular Tint"].default_value = 0.75
+        else:
+            bsdfNode.inputs["Specular Tint"].default_value = (1,1,1,0.75)
 
         if color:
             diffuseColorNode.outputs["Color"].default_value = color[0:4]
@@ -275,7 +280,10 @@ def newGlowingMaterial(name, color):
         bsdfNode = matNodes["Principled BSDF"]
 
         matLinks.new(diffuseColorNode.outputs["Color"], bsdfNode.inputs["Base Color"])
-        matLinks.new(diffuseColorNode.outputs["Color"], bsdfNode.inputs["Emission"])
+        if bpy.app.version < (4,0,0):
+            matLinks.new(diffuseColorNode.outputs["Color"], bsdfNode.inputs["Emission"])
+        else:
+            matLinks.new(diffuseColorNode.outputs["Color"], bsdfNode.inputs["Emission Color"])
         matLinks.new(alphaNode.outputs["Value"], bsdfNode.inputs["Alpha"])
 
         bsdfNode.inputs["Emission Strength"].default_value = 0.5
@@ -478,5 +486,8 @@ def newSilhouetteMaterial(name, exp=5, threshold=100):
             bsdfNode = matNodes["Principled BSDF"]
             matLinks.new(diffuseColorNode.outputs["Color"], bsdfNode.inputs["Base Color"])
             matLinks.new(alphaNode.outputs["Value"], bsdfNode.inputs["Alpha"])
-            bsdfNode.inputs["Specular"].default_value = 0
+            if bpy.app.version < (4,0,0):
+                bsdfNode.inputs["Specular"].default_value = 0
+            else:
+                bsdfNode.inputs["Specular IOR Level"].default_value = 0
     return mat
