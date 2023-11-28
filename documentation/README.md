@@ -520,23 +520,53 @@ Optional aguments to `importMeshes.py` to control the generation of OBJ files fr
 An orientation correction is helpful with some SWC files, like those from the [Janelia MouseLight project](https://www.janelia.org/project-team/mouselight). Neurons from this project can be searched and downloaded from the [Mouse Light Neuron Browser](https://ml-neuronbrowser.janelia.org). For theses neurons, an initial `orbitCamera` command will set the default `neuVid` camera to look directly at the mouse's face, and a `lightRotationX` statement will make the lighting look more appealing:
 ```json
 {
-    "rois": {
-      "source": "neuVid/test/test-roi-source",
-      "shell": ["brain-shell-997"]
-    },
-    "neurons": {
-      ...
-    },
-    "lightRotationX": 20,
-    "animation": [
-      ["orbitCamera", {"axis": "x", "endingRelativeAngle": -90, "duration": 0}],
-      ...
-    ]
+  "rois": {
+    "source": "neuVid/test/test-roi-source",
+    "shell": ["brain-shell-997"]
+  },
+  "neurons": {
+    ...
+  },
+  "lightRotationX": 20,
+  "animation": [
+    ["orbitCamera", {"axis": "x", "endingRelativeAngle": -90, "duration": 0}],
+    ...
+  ]
 }
 ```
 Note also that a properly oriented mesh for the overall brain shell is available as [`test/test-roi-source/brain-shell-997.obj` from this repo](https://github.com/connectome-neuprint/neuVid/blob/master/test/test-roi-source/brain-shell-997.obj).
 
-## Cluster Rendering
+
+## Axes
+
+*Incomplete*
+
+In this example, the biological axes are rotated slightly from the Cartesinan axes, by angles -10 degrees around _X_ and 20 degrees around _Z_.  The rotated _Y_ axis is labeled as the anterior-posterior axis, and the rotated _Z_ axis is labeled as the ventral-dorsal axis.  The rotated _X_ axis is unlabeled.  These biological axes start out invisibile and then fade on partway through the animation.
+```json
+{
+  "neurons" {
+    ...
+  },
+  "rois" {
+    ...
+  },
+  "axes" {
+    "main": {
+      "labels": {"+y": "A", "-y": "P", "+z": "V", "-z": "D"},
+      "rotation": [-10, 0, 20]
+    }
+  }
+  "animation" [
+    ...
+    ["fade", {"meshes": "axes.main", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+    ...
+  ]
+}
+```
+
+Axes appear in the lower-left corner.
+
+## Compute Cluster Usage
 
 *Incomplete*
 
@@ -545,12 +575,21 @@ Additional arguments to `clusterRender.py`:
 * `--slots` [`-n`] [optional, default value: 32]: the number of slots (cores) to be used for the job. Note that for best peformance, Blender must know this value and use it for its thread count. To this end, `clusterRender.py` automatically passes this value as the `--threads` argument to `render.py`, so do not explicitly add another `--threads` argument.
 * `--log` [`-l`] [optional, default value: a file having the same name as the input JSON file and the suffix `_log_` plus a timestamp]: the log file to contain the output of the `bsub` command.
 * `--async` [`-as`] [optional, default value: `False`]: run `clusterRender.py` asynchronously, returning immediately instead of waiting for the job to come off the "pending" queue and run to completion.
+* `--split` [optional, default value: no splitting]: splits the frames _within one video_ across cluster nodes, by setting the  `--frame-start` (`-s`) and `--frame-end` (`-e`) arguments of the `render.py` calls.
+  - `--split `_n_ : creates _n_ jobs dividing the video frames evenly
+  - `--split` :  uses `["fade", {"startingAlpha: 0, ...}]` (i.e., fade start) commands as boundaries for splitting the frames
 
-For clarity, `clusterRender.py` echoes the actual `bsub` command it will use to submit the job before peforming the submission.
+Parallelizing `importMeshes.py` with `clusterImportMeshes.py`:
+* Works only if `"neurons"` contains `"separate": true`, to make separate Blender files for the neurons with different sources, as [described in the next section](#advanced).
+* Submits a separate `importNeurons.py` job for each separate Blender file (i.e., each item in the `"neurons"` `"source"` array).
+* If there are _M_ separate files, then the job for file _i_ of _M_ has `--split `_i_ _M_ as and additional argument to `importNeurons.py`
+* Blender uses only one thread (CPU core) when importing, so the jobs have `-n 1`.
+* Given that many modern desktop computers have more than one core, importing can be parallelized on a single such computer (if no cluster is available) by manually using `--split `_i_ _M_ as additional arguments to `importNeurons.py`. Try a value of _M_ = 4 (regardless of the number of separate files) as a starting point, and check the resulting speedup before trying a larger _M_.
+* A final `importMeshes.py` with `--skipExisting` is needed to build the overall Blender file that references the separate files.  This run also imports the ROIs and synapses (if present).
+
+For clarity, `clusterRender.py` and `clusterImportMeshes.py` echo the actual `bsub` commands they will use to submit jobs before peforming the submission.
 
 Some details of the `bsub` command may be specific to the cluster at [Janelia](https://www.janelia.org).
-
-For now, at least, `clusterRender.py` does not automatically give parallelism _within_ one video (e.g., using two simultaneous cluster jobs for one video, with half the frames being rendered in one job and the other half in another job). Such an effect may be achieved manually, with multiple calls to `clusterRender.py` having different values for the `--frame-start` (`-s`) and `--frame-end` (`-e`) arguments.
 
 ## Advanced
 
