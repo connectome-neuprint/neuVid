@@ -157,24 +157,50 @@ Rendering can be performed on a compute cluster, a collection of computers share
         blender --background --python neuVid/neuVid/clusterRender.py -- -P account ...
 
     The new argument, `-P account`, specifies the account to be billed for the time on the cluster. Note that this use of the `clusterRendering.py` script is synchronous: the script does not finish until the cluster job comes off the "pending" queue and runs to completion.
-5. For additional options (e.g., to specify the cluster or the "slot" count), see the [detailed documentation](documentation/README.md#cluster-rendering).
+5. For additional options (e.g., to specify the cluster or the "slot" count), see the [detailed documentation](documentation/README.md#compute-cluster-usage).
 
+
+## Usage with Axes
+
+In some videos, it is helpful to include a small set of arrows in the corner indicating biological directions like anterior, posterior, dorsal, ventral.  Such axes can be added by running the `compAxes.py` script before assembling the final video with `assembleFrames.py`.  The `compAxes.py` script uses the camera from the Blender file produced by `addAnimation.py` so the axes match the camera motion.  This approach involves the following steps:
+
+1. Use `importNg.py`, `fetchMeshes.py`, `importMeshes.py`, `buildSynapses.py`, `addAnimation.py`, and `render.py` as in the other examples.
+2. Add the `axes` category as a sibling to `neurons`, `rois` and `synapses`, to specify the arrow's orientations and identifying labels (see the [detailed documentation](documentation/README.md#axes)).
+3. If the axes need to disappear during parts of the video, add `fade` commands.
+4. Composite the axes onto the rendered frames:
+
+        blender --background --python neuVid/neuVid/compAxes.py -- -i ex5.json
+
+   The resulting frames will be in the directory (folder) `ex5-frames-axes`.
+5. If the details or timing of the axes needs revision, edit the `axes` category and `fade` commands and run only `compAxes.py` again.  Doing so is much faster than running `render.py`.
+6. Assemble the final video from these frames:
+
+        blender --background --python neuVid/neuVid/assembleFrames.py -- -i ex5-frames-axes
 
 ## Usage with Labels
 
 One way to add textual labels and titles is to add them to the finished video with an interactive editing application like [iMovie](https://www.apple.com/imovie/) or [Premiere](https://www.adobe.com/products/premiere.html).  Another way is to describe the labels in `neuVid`'s input JSON file and use the `compLabels.py` script to add the labels before assembling the final video with `assembleFrames.py`.  The latter approach makes it simpler to keep track of multiple labels, and to coordinate the timing of the labels with the timing of the animation.  This approach involves the following steps:
 
-1. Use `importNg.py`, `fetchMeshes.py`, `importMeshes.py`, `buildSynapses.py`, `addAnimation.py` and `render.py` as in the other examples.
-2. Define the labels and their timing with `label` commands in the JSON file.
+1. Use `importNg.py`, `fetchMeshes.py`, `importMeshes.py`, `buildSynapses.py`, `addAnimation.py`, `render.py`, and `compAxes.py` as in the other examples.
+2. Define the labels and their timing with `label` commands in the JSON file (see the [detailed documentation](documentation/README.md#label)).
 3. Composite the labels onto the rendered frames:
 
-        blender --background --python neuVid/neuVid/compLabels.py -- -i ex5.json
+        blender --background --python neuVid/neuVid/compLabels.py -- -i ex6.json
 
-   The resulting frames will be in the directory (folder) `ex5-frames-labeled`.
+   The resulting frames will be in the directory (folder) `ex6-frames-labeled`.  If axes have been added already, add the `-if` (`--inputFrames`) argument to indicate the directory with the input frames (produced by `compAxes.py`):
+
+        blender --background --python neuVid/neuVid/compLabels.py -- -i ex6.json -if ex6-frames-axes
+
+   The resulting frames will be in the directory `ex6-frames-axes-labeled`.
 4. If the content or timing of the labels needs revision, edit the `label` commands and run only `compLabels.py` again.  Doing so is much faster than running `render.py`.
 5. Assemble the final video from these frames:
 
-        blender --background --python neuVid/neuVid/assembleFrames.py -- -i ex5-frames-labeled
+        blender --background --python neuVid/neuVid/assembleFrames.py -- -i ex6-frames-labeled
+
+    Or:
+
+        blender --background --python neuVid/neuVid/assembleFrames.py -- -i ex6-frames-axes-labeled
+
 
 ## Usage with VVDViewer
 
@@ -214,3 +240,4 @@ The first use was for the [hemibrain connectome release](https://www.janelia.org
 ## Acknowledgements
 
 [David Ackerman](https://github.com/davidackerman) contributed the first version of the code to fetch [OpenOrganelle](https://openorganelle.janelia.org/) meshes.
+[Marisa Dreher](https://dreherdesignstudio.com) and [Frank Loesche](https://github.com/floesche) helped improve the system's usability.
