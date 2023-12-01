@@ -318,7 +318,10 @@ for i in range(len(neuronSources)):
             # positive X pointed down, positive Y pointed right, positive Z pointed out,
             # implemented with a call like the following:
             # bpy.ops.import_scene.obj(filepath=objPath, axis_up="Y", axis_forward="X")
-            bpy.ops.import_scene.obj(filepath=objPath, axis_up="Z", axis_forward="Y")
+            if bpy.app.version < (4,0,0):
+                bpy.ops.import_scene.obj(filepath=objPath, axis_up="Z", axis_forward="Y")
+            else:
+                bpy.ops.wm.obj_import(filepath=objPath, up_axis="Z", forward_axis="Y")
 
             obj = bpy.context.selected_objects[0]
             obj.name = "Neuron." + neuronId
@@ -462,7 +465,10 @@ if "rois" in jsonData:
                 # positive X pointed down, positive Y pointed right, positive Z pointed out,
                 # implemented with a call like the following:
                 # bpy.ops.import_scene.obj(filepath=objPath, axis_up="Y", axis_forward="X")
-                bpy.ops.import_scene.obj(filepath=objPath, axis_up="Z", axis_forward="Y")
+                if bpy.app.version < (4,0,0):
+                    bpy.ops.import_scene.obj(filepath=objPath, axis_up="Z", axis_forward="Y")
+                else:
+                    bpy.ops.wm.obj_import(filepath=objPath, up_axis="Z", forward_axis="Y")
 
                 obj = bpy.context.selected_objects[0]
                 obj.name = "Roi." + roiName
@@ -534,7 +540,10 @@ if "synapses" in jsonData:
             # positive X pointed down, positive Y pointed right, positive Z pointed out,
             # implemented with a call like the following:
             # bpy.ops.import_scene.obj(filepath=objPath, axis_up="Y", axis_forward="X")
-            bpy.ops.import_scene.obj(filepath=objPath, axis_up="Z", axis_forward="Y")
+            if bpy.app.version < (4,0,0):
+                bpy.ops.import_scene.obj(filepath=objPath, axis_up="Z", axis_forward="Y")
+            else:
+                bpy.ops.wm.obj_import(filepath=objPath, up_axis="Z", forward_axis="Y")
 
             obj = bpy.context.selected_objects[0]
             obj.name = "Synapses." + synapseSetName
