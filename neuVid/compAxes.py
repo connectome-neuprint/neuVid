@@ -61,7 +61,7 @@ def get_frame_indices(start_frame, end_frame, images):
             base = os.path.splitext(os.path.basename(images[i]))[0]
             base_int = int(base)
             if start_frame >= base_int:
-                i0 = base_int
+                i0 = i
             else:
                 break
     if not end_frame:
@@ -71,7 +71,7 @@ def get_frame_indices(start_frame, end_frame, images):
             base = os.path.splitext(os.path.basename(images[i]))[0]
             base_int = int(base)
             if end_frame <= base_int:
-                i1 = base_int
+                i1 = i
             else:
                 break
     return i0, i1
