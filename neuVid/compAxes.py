@@ -43,7 +43,7 @@ def get_arg(cmd, args, arg, types, type_error, default=None):
     print(f"Error: {cmd}: argument '{arg}' {type_error}")
     sys.exit()
 
-def get_image_paths(dir):
+def get_image_basenames(dir):
     paths = [os.path.splitext(f)[0] for f in os.listdir(dir) if os.path.splitext(f)[1] == ".png"]
     paths.sort()
     return paths
@@ -94,7 +94,11 @@ def append_axes_camera(input_blender_file, overall_scale):
     bpy.ops.wm.append(filename=referenced_obj_name, directory=objs_dir)
     camera = bpy.data.objects[referenced_obj_name]
     camera.data.clip_start = overall_scale
+
     camera.data.type = "ORTHO"
+    # With this scale, the camera width (or height, if it is greater than the width) is one Blender unit.
+    camera.data.ortho_scale = 1
+
     bpy.context.scene.camera = camera
     bpy.context.scene.render.film_transparent = True
     return camera
@@ -264,6 +268,27 @@ def parse_labels(json_axes):
     axes_data["z-neg-label"] = get_json_axes_label("z", "-", json_labels)
     return axes_data
 
+def parse_rotation(json_axes, axes_data):
+    if not "rotation" in json_axes:
+        return
+    rot = json_axes["rotation"]
+    if not isinstance(rot, list) or len(rot) != 3:
+        print("Error: axes 'rotation' must be a list of three Euler angles.")
+        sys.exit()
+    euler = mathutils.Euler([math.radians(e) for e in rot])
+    axes_data["rotation"] = euler
+
+def parse_position_size(json_axes, axes_data):
+    if "position" in json_axes:
+        pos = json_axes["position"]
+        if not isinstance(pos, list) or len(pos) != 2:
+            print(f"Axes 'position' must be a list [x, y] in normalized screen space")
+            sys.exit()
+        axes_data["position_norm"] = pos
+    if "size" in json_axes:
+        size = json_axes["size"]
+        axes_data["size_norm"] = size
+
 def process_advance_time(cmd, time):
     if cmd[0] != "advanceTime":
         return time
@@ -295,16 +320,6 @@ def process_fade(cmd, time, fps):
         "end_alpha": alpha1
     }
 
-def parse_rotation(json_axes, axes_data):
-    if not "rotation" in json_axes:
-        return
-    rot = json_axes["rotation"]
-    if not isinstance(rot, list) or len(rot) != 3:
-        print("Error: axes 'rotation' must be a list of three Euler angles.")
-        sys.exit()
-    euler = mathutils.Euler([math.radians(e) for e in rot])
-    axes_data["rotation"] = euler
-
 def parse_axes(input_json_file, image_size):
     try:
         json_data = json.loads(removeComments(input_json_file))
@@ -334,6 +349,7 @@ def parse_axes(input_json_file, image_size):
 
     axes_data = parse_labels(json_axes)
     parse_rotation(json_axes, axes_data)
+    parse_position_size(json_axes, axes_data)
 
     if not "animation" in json_data:
         print("Error: missing 'animation'")
@@ -366,7 +382,33 @@ def setup_axes_animation(axes_data):
             setMaterialValue(mat, "alpha", segment["end_alpha"])
             insertMaterialKeyframe(mat, "alpha", segment["end_frame"])
 
-def setup_axes_scene(axes_data, input_blender_file):
+def unnormalize(location_norm, size_norm, image_size):
+    # If the final image is wider than it is tall (i.e., its aspect ratio is greater than 1)
+    # then the camera view has (-0.5, 0) at the left and (0.5, 0) at the right, for any final image width.
+    # The Y coordinates at the bottom and top depend on the final image aspect ratio.
+    # If the final image is taller than it is wide (aspect ratio less than 1)
+    # then the camera view has (0, 0.5) at the top center and (0, -0.5) at the bottom center.
+
+    if image_size[0] > image_size[1]:
+        y_range = image_size[1] / image_size[0]
+        size = size_norm * y_range
+    else:
+        size = size_norm
+
+    if image_size[0] > image_size[1]:
+        x_range = 1
+        y_range = image_size[1] / image_size[0]
+    else:
+        x_range = image_size[0] / image_size[1]
+        y_range = 1
+    x = location_norm[0]
+    y = location_norm[1]
+    z = location_norm[2]
+    location = [x * x_range - x_range / 2, y * y_range - y_range / 2, z]
+
+    return location, size
+
+def setup_axes_scene(axes_data, input_blender_file, image_size):
     scene = bpy.context.scene
     scene.name = "Scene.axes"
 
@@ -378,19 +420,22 @@ def setup_axes_scene(axes_data, input_blender_file):
     print("Using overall center: {}".format(overall_center))
 
     camera = append_axes_camera(input_blender_file, overall_scale)
-    size = 0.1 * args.rescale_factor
+    size_norm = 0.0245 * args.rescale_factor
+    if "size_norm" in axes_data:
+        size_norm = axes_data["size_norm"]
+
+    location_norm = [0.945, 0.099, -5 * size_norm]
+    if "position_norm" in axes_data:
+        location_norm[0], location_norm[1] = axes_data["position_norm"]
+
+    location, size = unnormalize(location_norm, size_norm, image_size)
 
     for obj in bpy.data.objects:
         rescale_recenter(obj, overall_center, overall_scale)
 
     axes = make_axes(axes_data, size, camera)
+    axes.location = location
     make_axes_light(axes)
-
-    # Lower-left corner for a screen with the 16:9 aspect ratio (e.g., 1080P, which is 1920 horizontal by 1080 vertical)
-    # TODO: Adopt the pattern of compLabels.py, working in normalized coordinates, with camera `ortho_scale` of 1,
-    # to support any rendering aspect ratio.
-    axes.location = (32.5 * size, -16.5 * size, -5 * size)
-
     setup_axes_animation(axes_data)
 
     tmp_dir = tempfile.TemporaryDirectory().name
@@ -473,7 +518,7 @@ def comp_frame(comp_scene, axes_image_file, rendered_image, frame):
         bpy.data.images.remove(image_node2.image)
 
 def comp_frames(axes_scene, comp_scene, input, image_size, start_frame, end_frame):
-    rendered_frames = get_image_paths(input)
+    rendered_frames = get_image_basenames(input)
     apply_image_size(axes_scene, comp_scene, image_size)
     i0, i1 = get_frame_indices(start_frame, end_frame, rendered_frames)
     for i in range(i0, i1 + 1):
@@ -543,7 +588,7 @@ if __name__ == "__main__":
     input_blender_file = os.path.splitext(args.input_json_file)[0] + "Anim.blend"
 
     axes_data = parse_axes(args.input_json_file, image_size)
-    axes_scene = setup_axes_scene(axes_data, input_blender_file)
+    axes_scene = setup_axes_scene(axes_data, input_blender_file, image_size)
     comp_scene = setup_comp_scene(output)
 
     if args.threads != None:
