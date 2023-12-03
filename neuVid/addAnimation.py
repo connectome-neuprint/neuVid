@@ -728,11 +728,12 @@ def orbitCameraCmd(args):
     if "endingRelativeAngle" in args:
         endingRelativeAngle = math.radians(args["endingRelativeAngle"])
         endingAngle = startingAngle + endingRelativeAngle
-        lastOrbitEndingAngle[axis] = endingAngle
+        if not local:
+            lastOrbitEndingAngle[axis] = endingAngle
     endingEuler = mathutils.Euler((0, 0, 0), "XYZ")
     endingEuler[axis] = endingAngle
 
-    printAxis = ["x", "y", "z"][axis]
+    printAxis = ["x", "y", "z"][axis] if not local else ["x-local", "y-local", "z-local"][axis]
     printStartingAngle = math.degrees(startingAngle)
     printEndingAngle = math.degrees(endingAngle)
     print("{}, {}: orbitCamera, axis {}, angle {:.2f} - {:.2f}".format(startFrame, endFrame, printAxis, printStartingAngle, printEndingAngle))
@@ -1172,7 +1173,10 @@ else:
     if fovy:
         cameraData.lens_unit = "FOV"
         cameraData.angle = math.radians(fovy)
-print("Using FOV horizontal {}, FOV vertical {}".format(fovx, fovy))
+if fovx:
+    print("Using FOV horizontal {}}".format(fovx))
+if fovy:
+    print("Using FOV vertical {}".format(fovy))
 
 removeUnused()
 
