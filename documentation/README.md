@@ -564,7 +564,9 @@ In this example, the biological axes are rotated slightly from the Cartesinan ax
 }
 ```
 
-Axes appear in the lower-left corner.
+Additional options for entries in `"axes"`:
+* `"position"` (default [0.945, 0.099], in the bottom-right): normalized horizontal and vertical, between 0 and 1, with [0, 0] at bottom-left
+* `"size"` (default 0.0245): normalized height, between 0 and 1
 
 ## Compute Cluster Usage
 
