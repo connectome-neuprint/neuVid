@@ -29,9 +29,9 @@ parser.add_argument("--output", "-o", dest="outputDir", help="path for the outpu
 
 # HDTV 1080P is width 1920, height 1080
 parser.set_defaults(width=1920)
-parser.add_argument("--width", "-iw", type=int, dest="width", help="width")
+parser.add_argument("--width", "-iw", "--resX", "-rx", type=int, dest="width", help="Final video frame width")
 parser.set_defaults(height=1080)
-parser.add_argument("--height", "-ih", type=int, dest="height", help="height")
+parser.add_argument("--height", "-ih", "--resY", "-ry", type=int, dest="height", help="Final video frame height")
 
 parser.set_defaults(stretch=1)
 parser.add_argument("--stretch", "-s", type=int, dest="stretch", help="stretch factor (e.g., 2 means twice as long)")
