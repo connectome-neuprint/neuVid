@@ -270,13 +270,15 @@ missingNeuronObjs = []
 missingRoiObjs = []
 missingSynapseSetObjs = []
 
+deleteObjects()
+
 for i in range(len(neuronSources)):
     if len(neuronSources) == 1:
         print("Importing {} neuron meshes".format(len(neuronIds[i])))
     else:
         print("Importing {} neuron meshes for index {} ({})".format(len(neuronIds[i]), i, neuronSources[i]))
 
-    if i == 0 or useSeparateNeuronFiles:
+    if useSeparateNeuronFiles:
         deleteObjects()
 
     if not inSplit(i, neuronSources, args.split):
