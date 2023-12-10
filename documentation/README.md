@@ -568,6 +568,43 @@ Additional options for entries in `"axes"`:
 * `"position"` (default [0.945, 0.099], in the bottom-right): normalized horizontal and vertical, between 0 and 1, with [0, 0] at bottom-left
 * `"size"` (default 0.0245): normalized height, between 0 and 1
 
+## Natural Language Input and Generative AI
+
+*Incomplete*
+
+Do not type any sensitive personal information into `generate`, because this information will be sent to the LLM model host (OpenAI).
+
+To change the OpenAI API key, use the "Settings/API key..." menu item on the main menu bar.
+
+The "conditioning" data that is included in the generative AI prompts is in the file [`documentation/training.md`](training.md).  The examples in this file are helpful for a human learning to use the system, too.
+
+The generative AI works pretty well, but it can make mistakes.  More common mistakes include:
+* omitting the `"advanceTime"` command necessary to let another command finish
+* omitting the initial light rotation and `"orbitCamera"` necessary to put the FlyEM MANC and FlyWire data sets in the proper orientation
+* not understanding multiplication (e.g., "Give the synapses the default radius * 2")
+
+Sometimes a description that generates the wrong JSON one time will generate the right JSON the next time.
+
+The `generate` application calls the `generate()` function from `gen.py`.  That function can be run from the command line, too, as in this example:
+
+```
+$ cd neuVid/neuVid
+$ export OPENAI_API_KEY=sk-a...9O2U
+$ python gen.py -o /tmp/example.json "Frame on IN00A001s 10477 and 10977 from the MANC. Orbit 30 degrees taking 3 seconds."
+
+```
+
+There is a suite of tests that can be run as follows:
+```
+$ cd neuVid/test
+$ export OPENAI_API_KEY=sk-a...9O2U
+$ python test-generate.py test-generate-input.txt
+```
+By default, the results go to a file with a path like `/tmp/test-generate-results_gpt-4_2023-12-08_10:20:30.txt`.  To check the tests, compare this file to `test-generate-expected.txt`.
+
+Note that running the tests is slow (to avoid OpenAI throttling) and costs around $7 with the current OpenAI pricing.
+
+
 ## Compute Cluster Usage
 
 *Incomplete*
