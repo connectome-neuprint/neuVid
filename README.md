@@ -4,7 +4,7 @@
 
 ## Summary
 
-These Python scripts generate simple anatomical videos in [Blender](https://www.blender.org/), following the conventions common in neuroscience research on the *Drosophila* fruit fly.  The input is a [JSON](https://en.wikipedia.org/wiki/JSON) file giving a high-level description of anatomical elements (e.g., segmented neurons, regions of interest, synapses) and how they are animated (e.g., the camera frames on some neurons, then those neurons fade out while the camera orbits around them).  Renderings of high quality can be done with a path-tracing renderer: Blender's Cycles, or the [OTOY Octane renderer](https://home.otoy.com/render/octane-render/) (which requires a commercial license).  Here is a video scripted with `neuVid` and rendered with Octane (with titles added separately in [iMovie](https://www.apple.com/imovie/)):
+These Python scripts generate simple anatomical videos in [Blender](https://www.blender.org/), following the conventions common in neuroscience research on the *Drosophila* fruit fly.  The input is a [JSON](https://en.wikipedia.org/wiki/JSON) file giving a high-level description of anatomical elements (e.g., segmented neurons, regions of interest, synapses) and how they are animated (e.g., the camera frames on some neurons, then those neurons fade out while the camera orbits around them).  An experimental application can [create the JSON from natural language using generative AI](README.md#usage-with-natural-language-input).  Renderings of high quality can be done with a path-tracing renderer: Blender's Cycles, or the [OTOY Octane renderer](https://home.otoy.com/render/octane-render/) (which requires a commercial license).  Here is a video scripted with `neuVid` and rendered with Octane (with titles added separately in [iMovie](https://www.apple.com/imovie/)):
 
 [![Fly Central Complex Circuitry](https://img.youtube.com/vi/nu0b_tjCGxQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=nu0b_tjCGxQ)
 
@@ -201,6 +201,21 @@ One way to add textual labels and titles is to add them to the finished video wi
 
         blender --background --python neuVid/neuVid/assembleFrames.py -- -i ex6-frames-axes-labeled
 
+
+## Usage with Natural Language Input
+
+An experimental component of `neuVid` takes a description of a video in natural language and translates it to JSON using 
+[generative AI](https://en.wikipedia.org/wiki/Generative_artificial_intelligence).  For now, at least, an [OpenAI API key](https://platform.openai.com/signup) is required to use this component.
+
+1. The `generate` desktop application launches the user interface for entering descriptions and generating JSON.  Install `generate` by downloading an executable from the [releases page of this repository](https://github.com/connectome-neuprint/neuVid/releases).  It will be a compressed (.zip) file, so extract it on macOS by double-clicking; or extract it on Windows by right-clicking and choosing "Extract All" or an item from the "7-Zip" menu; or extract it on Linux with the `unzip` command.  Move the executable to a standard place, like `/Applications` on macOS, or `C:\Program Files\newVid` on Windows, or `~/bin` on Linux.
+
+2. The first time `generate` is run, it prompts for the OpenAI API key.  Enter the key and it will be saved for future execution.
+
+3. Type the description of the video in the lower text area, and press the "Generate" button.
+
+4. After some processing time (which could be a minute or so for longer descriptions), the generated JSON will appear in the upper text area.  Press the "Save..." button to save it to a file for use as input to the other `neuVid` scripts.
+
+For more information, see the [detailed documentation](documentation/README.md#natural-language-input-and-generative-ai).
 
 ## Usage with VVDViewer
 

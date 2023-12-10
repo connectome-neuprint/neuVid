@@ -15,6 +15,7 @@ def report_version():
     ver_path = os.path.join(cwd, "VERSION")
     ver_paths.append(ver_path)
 
+    ver = ""
     for ver_path in ver_paths:
         if os.path.exists(ver_path):
             try:
@@ -24,6 +25,7 @@ def report_version():
                     break
             except:
                 pass
+    return ver
 
 def newObject(name, data=None):
     import bpy
