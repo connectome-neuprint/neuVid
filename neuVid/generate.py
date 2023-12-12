@@ -210,8 +210,8 @@ class MainWindow(QMainWindow):
         if not os.access(log_dir, os.W_OK):
             self.log_file = ""
         else:
-            name = f"neuVid-generate-log-{self.now()}.txt"
-            name = name.replace(" ", "_")
+            timestamp = str(self.now()).replace(":", "-").replace(" ", "_")
+            name = f"neuVid-generate-log-{timestamp}.txt"
             self.log_file = os.path.join(log_dir, name)
 
             header = f"neuVid version: {self.version}\n"
