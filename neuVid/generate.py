@@ -8,6 +8,7 @@ import datetime
 import os
 import platform
 import sys
+import tempfile
 import textwrap
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
@@ -200,32 +201,38 @@ class MainWindow(QMainWindow):
             help_menu.addAction(self.about_action)
 
     def setup_logging(self):
-        log_dir = os.getenv("NEUVID_GENERATE_LOG_DIR")
-        if not log_dir:
-            LOG_DIR = "/tmp/neuVid-generate"
-            if os.path.exists("/tmp") and os.path.isdir("/tmp"):
-                if not os.path.exists(LOG_DIR):
-                    os.mkdir(LOG_DIR)
-                log_dir = LOG_DIR
-        if not os.access(log_dir, os.W_OK):
+        self.log_file = ""
+        try:
+            log_dir = os.getenv("NEUVID_GENERATE_LOG_DIR") or ""
+            if not log_dir:
+                log_base = self.temp_dir()
+                if os.path.exists(log_base) and os.path.isdir(log_base):
+                    log_dir = os.path.join(log_base, "neuVid-generate")
+                    if not os.path.exists(log_dir):
+                        os.mkdir(log_dir)
+            if os.access(log_dir, os.W_OK):
+                timestamp = str(self.now()).replace(":", "-").replace(" ", "_")
+                name = f"neuVid-generate-log-{timestamp}.txt"
+                self.log_file = os.path.join(log_dir, name)
+
+                header = f"neuVid version: {self.version}\n"
+                header += f"Training source: {self.raw_doc_source}\n"
+                header += f"Training version: {self.raw_doc_version}\n"
+                header += f"Step 1 model: {self.models[0]}\n"
+                header += f"Step 2 model: {self.models[1]}\n"
+                header += f"Step 3 model: {self.models[2]}\n"
+                header += f"Temperature: {self.temperature}\n"
+                header += "\n"
+
+                print(f"Log file: {self.log_file}")
+                with open(self.log_file, "w") as f:
+                    f.write(header)
+            else:
+                raise Exception(f"Cannot access log directory {log_dir}")
+        except Exception as e:
+            msg = f"Logging disabled due to error: {str(e)}"
+            QMessageBox.critical(self, self.tr("Error"), self.tr(msg))
             self.log_file = ""
-        else:
-            timestamp = str(self.now()).replace(":", "-").replace(" ", "_")
-            name = f"neuVid-generate-log-{timestamp}.txt"
-            self.log_file = os.path.join(log_dir, name)
-
-            header = f"neuVid version: {self.version}\n"
-            header += f"Training source: {self.raw_doc_source}\n"
-            header += f"Training version: {self.raw_doc_version}\n"
-            header += f"Step 1 model: {self.models[0]}\n"
-            header += f"Step 2 model: {self.models[1]}\n"
-            header += f"Step 3 model: {self.models[2]}\n"
-            header += f"Temperature: {self.temperature}\n"
-            header += "\n"
-
-            print(f"Log file: {self.log_file}")
-            with open(self.log_file, "w") as f:
-                f.write(header)
 
     def setup_undo_redo(self):
         self.results = [""]
@@ -262,7 +269,11 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def show_log_file(self):
-        QMessageBox.information(self, "Log file", f"The log file is {self.log_file}")
+        if self.log_file:
+            msg = f"Log file: {self.log_file}"
+        else:
+            msg = "Logging is disabled"
+        QMessageBox.information(self, self.tr("Log file"), self.tr(msg))
 
     @Slot()
     def result_text_changed(self):
@@ -487,6 +498,12 @@ class MainWindow(QMainWindow):
     def now(self):
         t = datetime.datetime.now()
         return t.replace(microsecond=0)
+
+    def temp_dir(self):
+        if platform.system() == "Darwin":
+            return "/tmp"
+        else:
+            return tempfile.gettempdir()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
