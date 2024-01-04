@@ -699,7 +699,7 @@ def orbitCameraCmd(args):
     # "Bounds.a.b".
     global time, tentativeEndTime, lastCameraCenter, lastOrbitEndingAngle, lastViewVector
     camera = bpy.data.objects["Camera"]
-    duration = 1
+    duration = 0
     if "duration" in args:
         duration = args["duration"]
         tentativeEndTime = max(time + duration, tentativeEndTime)
