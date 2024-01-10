@@ -1,5 +1,5 @@
 ===============
-Test 1 of 18:
+Test 1 of 19:
 
 Using the hemibrain, let "A" be neurons 449438847, 478375456 and 572870540.
 First, frame on "A". 
@@ -11,12 +11,13 @@ Then orbit for 10 seconds.
   },
   "animation": [
     ["frameCamera", {"bound": "neurons.A"}],
-    ["orbitCamera", {"duration": 10}]
+    ["orbitCamera", {"duration": 10}],
+    ["advanceTime", {"by": 10}]
   ]
 }
 
 ===============
-Test 2 of 18:
+Test 2 of 19:
 
 "A" is neurons 10048, 10723 from the MANC, and "B" is neurons 10101, 10217 and 10491.
 Frame on "A".
@@ -31,7 +32,8 @@ Orbit halfway, taking 5 seconds.
   "animation": [
     ["orbitCamera", {"axis": "y", "endingRelativeAngle": 180}],
     ["frameCamera", {"bound": "neurons.A"}],
-    ["orbitCamera", {"endingRelativeAngle": 180, "duration": 5}]
+    ["orbitCamera", {"endingRelativeAngle": 180, "duration": 5}],
+    ["advanceTime", {"by": 5}]
   ]
 }
 
@@ -51,12 +53,13 @@ For 5 seconds, orbit halfway.
     ["advanceTime", {"by": 5}],
     ["fade", {"meshes": "neurons.B", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
     ["advanceTime", {"by": 1}],
-    ["orbitCamera", {"endingRelativeAngle": 180, "duration": 5}]
+    ["orbitCamera", {"endingRelativeAngle": 180, "duration": 5}],
+    ["advanceTime", {"by": 5}]
   ]
 }
 
 ===============
-Test 3 of 18:
+Test 3 of 19:
 
 FlyWire data set. 
 "A" is neurons 720575940623111679, 720575940639684515.
@@ -68,7 +71,7 @@ Orbit 40 degrees for 5 seconds.
 Then orbit -80 degrees for 10 seconds.
 {
   "neurons": {
-    "source": "precomputed://gs://flywire_v141_m630",
+    "source": "precomputed://gs://flywire_v141_m783",
     "A": [720575940623111679, 720575940639684515],
     "B": [720575940602829536, 720575940604497888, 720575940605199305],
     "C": [720575940603317216, 720575940603882720, 720575940603883232]
@@ -81,7 +84,8 @@ Then orbit -80 degrees for 10 seconds.
     ["advanceTime", {"by": 5}],
     ["fade", {"meshes": "neurons.B", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
     ["advanceTime", {"by": 1}],
-    ["orbitCamera", {"endingRelativeAngle": -80, "duration": 10}]
+    ["orbitCamera", {"endingRelativeAngle": -80, "duration": 10}],
+    ["advanceTime", {"by": 10}]
   ]
 }
 
@@ -89,7 +93,7 @@ Then orbit -80 degrees for 10 seconds.
 Then orbit 40 degrees for 5 seconds.
 {
   "neurons": {
-    "source": "precomputed://gs://flywire_v141_m630",
+    "source": "precomputed://gs://flywire_v141_m783",
     "A": [720575940623111679, 720575940639684515],
     "B": [720575940602829536, 720575940604497888, 720575940605199305],
     "C": [720575940603317216, 720575940603882720, 720575940603883232]
@@ -106,14 +110,15 @@ Then orbit 40 degrees for 5 seconds.
     ["advanceTime", {"by": 10}],
     ["fade", {"meshes": "neurons.C", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
     ["advanceTime", {"by": 1}],
-    ["orbitCamera", {"endingRelativeAngle": 40, "duration": 5}]
+    ["orbitCamera", {"endingRelativeAngle": 40, "duration": 5}],
+    ["advanceTime", {"by": 5}]
   ]
 }
 
 Zoom out to show all neurons over 2 seconds.
 {
   "neurons": {
-    "source": "precomputed://gs://flywire_v141_m630",
+    "source": "precomputed://gs://flywire_v141_m783",
     "A": [720575940623111679, 720575940639684515],
     "B": [720575940602829536, 720575940604497888, 720575940605199305],
     "C": [720575940603317216, 720575940603882720, 720575940603883232]
@@ -132,12 +137,13 @@ Zoom out to show all neurons over 2 seconds.
     ["advanceTime", {"by": 1}],
     ["orbitCamera", {"endingRelativeAngle": 40, "duration": 5}],
     ["advanceTime", {"by": 5}],
-    ["frameCamera", {"bound": "neurons.A + neurons.B + neurons.C", "duration": 2}]
+    ["frameCamera", {"bound": "neurons.A + neurons.B + neurons.C", "duration": 2}],
+    ["advanceTime", {"by": 2}]
   ]
 }
 
 ===============
-Test 4 of 18:
+Test 4 of 19:
 
 Let "R1" be ROIs "EB", "PG", "FB", and "R2" be "AOTU", "SMP" from the hemibrain.
 Frame on "R1". 
@@ -152,7 +158,8 @@ Frame on all ROIs over 3 seconds.
   "animation": [
     ["frameCamera", {"bound": "rois.R1"}],
     ["advanceTime", {"by": 2}],
-    ["frameCamera", {"bound": "rois.R1 + rois.R2", "duration": 3}]
+    ["frameCamera", {"bound": "rois.R1 + rois.R2", "duration": 3}],
+    ["advanceTime", {"by": 3}]
   ]
 }
 
@@ -176,7 +183,8 @@ Orbit 30 degrees around X for 3 seconds.
     ["advanceTime", {"by": 3}],
     ["fade", {"meshes": "neurons.N1", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
     ["advanceTime", {"by": 1}],
-    ["orbitCamera", {"axis": "x", "endingRelativeAngle": 30, "duration": 3}]
+    ["orbitCamera", {"axis": "x", "endingRelativeAngle": 30, "duration": 3}],
+    ["advanceTime", {"by": 3}]
   ]
 }
 
@@ -206,12 +214,13 @@ Orbit -30 degrees X 3 seconds.
     ["fade", {"meshes": "neurons.N1", "startingAlpha": 1, "endingAlpha": 0, "duration": 1}],
     ["fade", {"meshes": "neurons.N2", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
     ["advanceTime", {"by": 1}],
-    ["orbitCamera", {"axis": "x", "endingRelativeAngle": -30, "duration": 3}]
+    ["orbitCamera", {"axis": "x", "endingRelativeAngle": -30, "duration": 3}],
+    ["advanceTime", {"by": 3}]
   ]
 }
 
 ===============
-Test 5 of 18:
+Test 5 of 19:
 
 "A" is the neurons 1106180107, 1137219365, 1167563121 from the hemibrain.
 "B" is the neurons 1229288307, 1291435776, 1322474586 from "/c/d".
@@ -232,12 +241,13 @@ Orbit for 10 seconds.
     ["advanceTime", {"by": 1}],
     ["frameCamera", {"bound": "neurons.B", "duration": 3}],
     ["advanceTime", {"by": 3}],
-    ["orbitCamera", {"duration": 10}]
+    ["orbitCamera", {"duration": 10}],
+    ["advanceTime", {"by": 10}]
   ]
 }
 
 ===============
-Test 6 of 18:
+Test 6 of 19:
 
 "A" is the neurons 10016, 10056, 10102 from the MANC.
 "B" is the neurons 10116, 10320, 10911 from "/t/s".
@@ -260,12 +270,13 @@ Orbit for 10 seconds.
     ["advanceTime", {"by": 1}],
     ["frameCamera", {"bound": "neurons.B", "duration": 3}],
     ["advanceTime", {"by": 3}],
-    ["orbitCamera", {"duration": 10}]
+    ["orbitCamera", {"duration": 10}],
+    ["advanceTime", {"by": 10}]
   ]
 }
 
 ===============
-Test 7 of 18:
+Test 7 of 19:
 
 "A" is the neurons 720575940623728647, 720575940614742028, 720575940631117842 from FlyWire.
 "B" is the neurons 720575940644167703, 720575940617650203, 720575940644528163 from "/h/i".
@@ -275,7 +286,7 @@ Orbit for 10 seconds.
 {
   "neurons": {
     "source": [
-      "precomputed://gs://flywire_v141_m630",
+      "precomputed://gs://flywire_v141_m783",
       "/h/i"
     ],
     "A": {"ids": [720575940623728647, 720575940614742028, 720575940631117842], "sourceIndex": 0},
@@ -288,12 +299,13 @@ Orbit for 10 seconds.
     ["advanceTime", {"by": 1}],
     ["frameCamera", {"bound": "neurons.B", "duration": 3}],
     ["advanceTime", {"by": 3}],
-    ["orbitCamera", {"duration": 10}]
+    ["orbitCamera", {"duration": 10}],
+    ["advanceTime", {"by": 10}]
   ]
 }
 
 ===============
-Test 8 of 18:
+Test 8 of 19:
 
 Use three neuron mesh sources: original MANC server, low-res in "/lo", high-res in "/hi". 
 "A" is neurons 10011, 10064 using the original meshes. 
@@ -320,12 +332,13 @@ Then "C" over 1 second.
     ["advanceTime", {"by": 1}],
     ["fade", {"meshes": "neurons.B", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
     ["advanceTime", {"by": 1}],
-    ["fade", {"meshes": "neurons.C", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}]
+    ["fade", {"meshes": "neurons.C", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+    ["advanceTime", {"by": 1}]
   ]
 }
 
 ===============
-Test 9 of 18:
+Test 9 of 19:
 
 "N1" is neuron 11289, 11134, 11226 from the MANC.
 "S1i" is 11289's input synapses.
@@ -350,12 +363,13 @@ Orbit taking 10 secs.
   "lightRotationY": 180,
   "animation": [
     ["orbitCamera", {"axis": "y", "endingRelativeAngle": 180}],
-    ["orbitCamera", {"duration": 10}]
+    ["orbitCamera", {"duration": 10}],
+    ["advanceTime", {"by": 10}]
   ]
 }
 
 ===============
-Test 10 of 18:
+Test 10 of 19:
 
 "N" is neurons 1480525262, 579510789, 950880008 from the hemibrain.
 "Si" is input synapses on 579510789.
@@ -378,12 +392,13 @@ Oribit the camera taking 10 seconds.
     }
   },
   "animation": [
-    ["orbitCamera", {"duration": 10}]
+    ["orbitCamera", {"duration": 10}],
+    ["advanceTime", {"by": 10}]
   ]
 }
 
 ===============
-Test 11 of 18:
+Test 11 of 19:
 
 "M" is neurons 10082, 28108, 11055 from the MANC.
 "Si" are 28108's input synapses from 10082.
@@ -408,12 +423,13 @@ Oribit the camera taking 10 seconds.
   "lightRotationY": 180,
   "animation": [
     ["orbitCamera", {"axis": "y", "endingRelativeAngle": 180}],
-    ["orbitCamera", {"duration": 10}]
+    ["orbitCamera", {"duration": 10}],
+    ["advanceTime", {"by": 10}]
   ]
 }
 
 ===============
-Test 12 of 18:
+Test 12 of 19:
 
 "P" is neurons 985131499, 693927941, 759810119 from the hemibrain.
 "Si" are input T-bars on the second of those from the first.
@@ -436,12 +452,13 @@ Oribit taking 10 seconds.
     }
   },
   "animation": [
-    ["orbitCamera", {"duration": 10}]
+    ["orbitCamera", {"duration": 10}],
+    ["advanceTime", {"by": 10}]
   ]
 }
 
 ===============
-Test 13 of 18:
+Test 13 of 19:
 
 Q is 720575940623650823, 720575940615192588, 720575940623437838 from FlyWire.
 Frame on Q for 2 seconds.
@@ -449,7 +466,7 @@ At the same time, fade Q from 0 to 1 for 2 seconds.
 Then wait 3 seconds, and then orbit for 10 seconds.
 {
   "neurons": {
-    "source": "precomputed://gs://flywire_v141_m630",
+    "source": "precomputed://gs://flywire_v141_m783",
     "Q": [720575940623650823, 720575940615192588, 720575940623437838]
   },
   "lightRotationX": -90,
@@ -459,12 +476,13 @@ Then wait 3 seconds, and then orbit for 10 seconds.
     ["fade", {"meshes": "neurons.Q", "startingAlpha": 0, "endingAlpha": 1, "duration": 2}],
     ["advanceTime", {"by": 2}],
     ["advanceTime", {"by": 3}],
-    ["orbitCamera", {"endingRelativeAngle": 360, "duration": 10}]
+    ["orbitCamera", {"endingRelativeAngle": 360, "duration": 10}],
+    ["advanceTime", {"by": 10}]
   ]
 }
 
 ===============
-Test 14 of 18:
+Test 14 of 19:
 
 N is 53606232860, 52788943322 from the MANC.
 Frame on N for 2 seconds.
@@ -479,12 +497,13 @@ Then frame on N for 3 seconds, ending zoomed in by 2.
     ["orbitCamera", {"axis": "y", "endingRelativeAngle": 180}],
     ["frameCamera", {"bound": "neurons.N", "duration": 2}],
     ["advanceTime", {"by": 2}],
-    ["frameCamera", {"bound": "neurons.N", "scale": 0.5, "duration": 3}]
+    ["frameCamera", {"bound": "neurons.N", "scale": 0.5, "duration": 3}],
+    ["advanceTime", {"by": 3}]
   ]
 }
 
 ===============
-Test 15 of 18:
+Test 15 of 19:
 
 Frame on the ER3ds 1261086734, 1261086756, 1261423370 from the hemibrain.
 After 2 seconds, fade on the TuBu03s 1015385741, 1015700298, 1077434447.
@@ -497,18 +516,19 @@ Finally fade out the ER3ds.
     "TuBu03s": [1015385741, 1015700298, 1077434447]
   },
   "animation": [
-    ["frameCamera", {"bound": "neurons.ER3ds", "duration": 2}],
+    ["frameCamera", {"bound": "neurons.ER3ds"}],
     ["advanceTime", {"by": 2}],
     ["fade", {"meshes": "neurons.TuBu03s", "startingAlpha": 0, "endingAlpha": 1, "duration": 2}],
     ["advanceTime", {"by": 2}],
     ["orbitCamera", {"endingRelativeAngle": 90, "duration": 3}],
     ["advanceTime", {"by": 3}],
-    ["fade", {"meshes": "neurons.ER3ds", "startingAlpha": 1, "endingAlpha": 0, "duration": 2}]
+    ["fade", {"meshes": "neurons.ER3ds", "startingAlpha": 1, "endingAlpha": 0, "duration": 2}],
+    ["advanceTime", {"by": 2}]
   ]
 }
 
 ===============
-Test 16 of 18:
+Test 16 of 19:
 
 Frame on neurons 720575940630655007, 720575940605702176 from FlyWire.
 Call them A.
@@ -516,7 +536,7 @@ Fade on neurons 720575940647010356, 720575940629942343 taking 1 second.
 Then 2 seconds later, fade off A.
 {
   "neurons": {
-    "source": "precomputed://gs://flywire_v141_m630",
+    "source": "precomputed://gs://flywire_v141_m783",
     "A": [720575940630655007, 720575940605702176],
     "B": [720575940647010356, 720575940629942343]
   },
@@ -527,12 +547,13 @@ Then 2 seconds later, fade off A.
     ["fade", {"meshes": "neurons.B", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
     ["advanceTime", {"by": 1}],
     ["advanceTime", {"by": 2}],
-    ["fade", {"meshes": "neurons.A", "startingAlpha": 1, "endingAlpha": 0, "duration": 1}]
+    ["fade", {"meshes": "neurons.A", "startingAlpha": 1, "endingAlpha": 0, "duration": 1}],
+    ["advanceTime", {"by": 1}]
   ]
 }
 
 ===============
-Test 17 of 18:
+Test 17 of 19:
 
 Frame on IN00A001s 10477 and 10977 from the MANC.
 Orbit 30 degrees taking 3 seconds.
@@ -549,7 +570,8 @@ Fade on DNxn103 13548 over 1 second.
     ["frameCamera", {"bound": "neurons.IN00A001s"}],
     ["orbitCamera", {"endingRelativeAngle": 30, "duration": 3}],
     ["advanceTime", {"by": 3}],
-    ["fade", {"meshes": "neurons.DNxn103", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}]
+    ["fade", {"meshes": "neurons.DNxn103", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+    ["advanceTime", {"by": 1}]
   ]
 }
 
@@ -566,7 +588,8 @@ Change the initial framing to frame on DNxn103 instead.
     ["frameCamera", {"bound": "neurons.DNxn103"}],
     ["orbitCamera", {"endingRelativeAngle": 30, "duration": 3}],
     ["advanceTime", {"by": 3}],
-    ["fade", {"meshes": "neurons.DNxn103", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}]
+    ["fade", {"meshes": "neurons.DNxn103", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+    ["advanceTime", {"by": 1}]
   ]
 }
 
@@ -585,7 +608,8 @@ After the initial framing, insert fading off of IN00A001s taking 1 second.
     ["advanceTime", {"by": 1}],
     ["orbitCamera", {"endingRelativeAngle": 30, "duration": 3}],
     ["advanceTime", {"by": 3}],
-    ["fade", {"meshes": "neurons.DNxn103", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}]
+    ["fade", {"meshes": "neurons.DNxn103", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+    ["advanceTime", {"by": 1}]
   ]
 }
 
@@ -606,12 +630,13 @@ Finally, orbit 45 degrees taking 4 seconds.
     ["advanceTime", {"by": 3}],
     ["fade", {"meshes": "neurons.DNxn103", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
     ["advanceTime", {"by": 1}],
-    ["orbitCamera", {"endingRelativeAngle": 45, "duration": 4}]
+    ["orbitCamera", {"endingRelativeAngle": 45, "duration": 4}],
+    ["advanceTime", {"by": 4}]
   ]
 }
 
 ===============
-Test 18 of 18:
+Test 18 of 19:
 
 Frame on neuron 393766777 from the Janelia hemibrain.
 Orbit the camera 45 degrees over 6 seconds, and move in 25% while orbiting.
@@ -621,8 +646,8 @@ Synapses should be extra big.
 {
   "neurons": {
     "source": "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
-    "A": [393766777],
-    "B": [1196854070]
+    "N1": [393766777],
+    "N2": [1196854070]
   },
   "synapses": {
     "source": "https://neuprint.janelia.org/?dataset=hemibrain%3Av1.2.1",
@@ -632,12 +657,71 @@ Synapses should be extra big.
     }
   },
   "animation": [
-    ["frameCamera", {"bound": "neurons.A", "duration": 0}],
+    ["frameCamera", {"bound": "neurons.N1", "duration": 0}],
     ["orbitCamera", {"endingRelativeAngle": 45, "duration": 6, "scale": 0.75}],
     ["advanceTime", {"by": 1}],
-    ["fade", {"meshes": "neurons.B", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+    ["fade", {"meshes": "neurons.N2", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
     ["advanceTime", {"by": 1}],
     ["advanceTime", {"by": 2}],
-    ["fade", {"meshes": "synapses.393766777pre1196854070", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}]
+    ["fade", {"meshes": "synapses.393766777pre1196854070", "startingAlpha": 0, "endingAlpha": 1, "duration": 1}],
+    ["advanceTime", {"by": 1}]
+  ]
+}
+
+===============
+Test 19 of 19:
+
+Frame on the overall ROI from FlyWire.
+Fade that ROI on at alpha 0.03 and simultaneously frame on neuron 720575940627484181 taking 1 second.
+Then make that neuron appear taking 1/2 second.
+Show neuron 720575940610505006 in 1/2 second.
+Show 720575940617337461 in 1/2 second.
+Frame 720575940626741379 over 1 second, and 1/2 second in fade it on over 1/2 second.
+Then fade on 720575940623781127 in 1/2 second.
+Show 720575940604653484 in 1/2 second.
+Then frame on all neurons in 1 second, and then hide them in 1/2 second.
+Hide the ROI in 1/2 second.
+{
+  "neurons": {
+    "source": "precomputed://gs://flywire_v141_m783",
+    "N1": [720575940627484181],
+    "N2": [720575940610505006],
+    "N3": [720575940617337461],
+    "N4": [720575940626741379],
+    "N5": [720575940623781127],
+    "N6": [720575940604653484]
+  },
+  "rois": {
+    "source": "precomputed://gs://flywire_neuropil_meshes/whole_neuropil/brain_mesh_v3",
+    "all": ["1"]
+  },
+  "lightRotationX": -90,
+  "animation": [
+    ["orbitCamera", {"axis": "x", "endingRelativeAngle": -90}],
+    ["setValue", {"meshes": "rois", "threshold": 1}],
+    ["frameCamera", {"bound": "rois.all", "duration": 1}],
+    ["fade", {"meshes": "rois.all", "startingAlpha": 0, "endingAlpha": 0.03, "duration": 1}],
+    ["frameCamera", {"bound": "neurons.N1", "duration": 1}],
+    ["advanceTime", {"by": 1}],
+    ["fade", {"meshes": "neurons.N1", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N2", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N3", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["frameCamera", {"bound": "neurons.N4", "duration": 1}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N4", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N5", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N6", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["frameCamera", {"bound": "neurons.N1 + neurons.N2 + neurons.N3 + neurons.N4 + neurons.N5 + neurons.N6", "duration": 1}],
+    ["advanceTime", {"by": 1}],
+    ["fade", {"meshes": "neurons.N1 + neurons.N2 + neurons.N3 + neurons.N4 + neurons.N5 + neurons.N6", "startingAlpha": 1, "endingAlpha": 0, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "rois.all", "startingAlpha": 0.03, "endingAlpha": 0, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}]
   ]
 }
