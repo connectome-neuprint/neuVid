@@ -133,3 +133,15 @@ Orbit the camera 45 degrees over 6 seconds, and move in 25% while orbiting.
 1 second into the orbit, fade on neuron 1196854070 over 1 second.
 Then 2 seconds later, fade on the output synapses of 393766777 connecting to 1196854070 taking 1 second.
 Synapses should be extra big.
+
+===
+Frame on the overall ROI from FlyWire.
+Fade that ROI on at alpha 0.03 and simultaneously frame on neuron 720575940627484181 taking 1 second.
+Then make that neuron appear taking 1/2 second.
+Show neuron 720575940610505006 in 1/2 second.
+Show 720575940617337461 in 1/2 second.
+Frame 720575940626741379 over 1 second, and 1/2 second in fade it on over 1/2 second.
+Then fade on 720575940623781127 in 1/2 second.
+Show 720575940604653484 in 1/2 second.
+Then frame on all neurons in 1 second, and then hide them in 1/2 second.
+Hide the ROI in 1/2 second.
