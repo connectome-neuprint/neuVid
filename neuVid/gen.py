@@ -6,6 +6,26 @@ import time
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from utilsGeneral import report_version
 
+def model_vendor(model):
+    if model.startswith("gpt"):
+        return "OpenAI"
+    elif model.startswith("claude"):
+        return "Anthropic"
+    else:
+        return None
+    
+def vendor_token_keys(vendor):
+    if vendor == "OpenAI":
+        input_tokens_key = "prompt_tokens"
+        output_tokens_key = "completion_tokens"
+    elif vendor == "Anthropic":
+        input_tokens_key = "input_tokens"
+        output_tokens_key = "output_tokens"
+    else:
+        input_tokens_key = None
+        output_tokens_key = None
+    return (input_tokens_key, output_tokens_key)
+
 def get_version(raw_doc):
     START = "<!-- VERSION: "
     END = " -->\n"
@@ -69,18 +89,13 @@ def filter_doc(raw_doc, step):
             chunks.append(chunk)
     return "".join(chunks)
 
-def get_prompt(doc, previous_result, user_request, step):
+def get_prompt(doc, previous_result, user_request, step, vendor):
     # The content of this "system" message seems to have little impact on the output.
     # Others have had mixed results using "system" messages in various ways:
     # https://community.openai.com/t/the-system-role-how-it-influences-the-chat-behavior
-    system_content = """
-        You generate the input JSON for neuVid. Respond with only that JSON.
-    """
+    system_content = "You generate the input JSON for neuVid. Respond with only that JSON."
 
-    user_content = f"""
-        If you don't know, respond with {{}}.
-        Generate JSON according to the following request using the following context.
-    """
+    user_content = "If you don't know, respond with {}. Generate JSON according to the following request using the following context."
 
     if step.startswith("1"):
         # Step 1 involves context documentation for only the declarations `"neurons"`, `"rois"`, etc.
@@ -116,17 +131,28 @@ def get_prompt(doc, previous_result, user_request, step):
         {request} 
     """
 
-    prompt = [
-        {
-            "role": "system",
-            "content": system_content  
-        },
-        {
-            "role": "user",
-            "content": user_content
-        }
-    ]
+    if vendor == "OpenAI":
+        prompt = [
+            {
+                "role": "system",
+                "content": system_content  
+            },
+            {
+                "role": "user",
+                "content": user_content
+            }
+        ]
+    elif vendor == "Anthropic":
+        system_content += "Include no explanatory comments like 'Here is the JSON for that request'."
+        user_content = f"{system_content} {user_content}"
+        prompt = [
+            {
+                "role": "user",
+                "content": user_content
+            }
+        ]
 
+    
     return prompt
 
 def fix_formatting(s):
@@ -209,17 +235,33 @@ def submit_prompt(prompt, api_key, model, temperature, step):
 
     # https://platform.openai.com/docs/api-reference/chat/create
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}"
-    }
-    body = {
-        "model": model,
-        "temperature": temperature,
-        "seed": 1,
-        "messages": prompt
-    }
-    url = "https://api.openai.com/v1/chat/completions"
+    vendor = model_vendor(model)
+    if vendor == "OpenAI":
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        body = {
+            "model": model,
+            "temperature": temperature,
+            "seed": 1,
+            "messages": prompt
+        }
+        url = "https://api.openai.com/v1/chat/completions"
+    elif vendor == "Anthropic":
+        headers = {
+            "Content-Type": "application/json",
+            "x-api-key": f"{api_key}",
+            "anthropic-version": "2023-06-01"
+        }
+        body = {
+            "model": model,
+            "temperature": temperature,
+            # Omitting "max_tokens" gives an 400 Client Error: Bad Request.
+            "max_tokens": 2048,
+            "messages": prompt
+        }
+        url = "https://api.anthropic.com/v1/messages"
 
     t0 = time.time()
     try:
@@ -251,15 +293,24 @@ def submit_prompt(prompt, api_key, model, temperature, step):
     if "usage" in response_json:
         usage = response_json["usage"]
     
-    generated_json = {}
-    if "choices" in response_json:
-        choices = response_json["choices"]
-        if type(choices) == list and len(choices) > 0:
-            choice = choices[0]
-            if "message" in choice:
-                message = choice["message"]
-                if "content" in message:
-                    generated_json = message["content"]
+    if vendor == "OpenAI":
+        generated_json = {}
+        if "choices" in response_json:
+            choices = response_json["choices"]
+            if type(choices) == list and len(choices) > 0:
+                choice = choices[0]
+                if "message" in choice:
+                    message = choice["message"]
+                    if "content" in message:
+                        generated_json = message["content"]
+    elif vendor == "Anthropic":
+        generated_json = {}
+        if "content" in response_json:
+            content = response_json["content"]
+            if type(content) == list:
+                content = content[0]
+            if "text" in content:
+                generated_json = content["text"]
 
     generated_json = fix_formatting(generated_json)
 
@@ -271,45 +322,60 @@ def submit_prompt(prompt, api_key, model, temperature, step):
     }
 
 def compute_cost(usage, model):
-    if not "prompt_tokens" in usage or not "completion_tokens" in usage:
+    vendor = model_vendor(model)
+    input_tokens_key, output_tokens_key = vendor_token_keys(vendor)
+    if not input_tokens_key in usage or not output_tokens_key in usage:
         return 0
 
-    prompt_tokens = usage["prompt_tokens"]
-    completion_tokens = usage["completion_tokens"]
+    input_tokens = usage[input_tokens_key]
+    output_tokens = usage[output_tokens_key]
 
-    cost_per_1k_prompt_tokens = 0
-    cost_per_1k_completion_tokens = 0
+    cost_per_1k_input_tokens = 0
+    cost_per_1k_output_tokens = 0
 
-    # https://openai.com/pricing#language-models
-    if model.startswith("gpt-4"):
-        if "32k" in model:
-            cost_per_1k_prompt_tokens = 0.06
-            cost_per_1k_completion_tokens = 0.12
-        else:
-            cost_per_1k_prompt_tokens = 0.03
-            cost_per_1k_completion_tokens = 0.06
-    elif model.startswith("gpt-3.5-turbo"):
-        if "16k" in model:
-            cost_per_1k_prompt_tokens = 0.001
-            cost_per_1k_completion_tokens = 0.002
-        else:
-            cost_per_1k_prompt_tokens = 0.0015
-            cost_per_1k_completion_tokens = 0.002
+    if vendor == "OpenAI":
+        # https://openai.com/pricing#language-models
+        if model.startswith("gpt-4"):
+            if "turbo" in model:
+                cost_per_1000k_input_tokens = 10.0
+                cost_per_1000k_output_tokens = 30.0
+            else:
+                cost_per_1000k_input_tokens = 30.0
+                cost_per_1000k_output_tokens = 60.0
+        elif model.startswith("gpt-3.5"):
+            cost_per_1000k_input_tokens = 0.5
+            cost_per_1000k_output_tokens = 1.5
+        cost_per_1k_input_tokens = cost_per_1000k_input_tokens / 1000
+        cost_per_1k_output_tokens = cost_per_1000k_output_tokens / 1000
+    elif vendor == "Anthropic":
+        # https://www.anthropic.com/api#pricing
+        if "haiku" in model:
+            cost_per_1000k_input_tokens = 0.25
+            cost_per_1000k_output_tokens = 1.25
+        elif "sonnet" in model:
+            cost_per_1000k_input_tokens = 3.0
+            cost_per_1000k_output_tokens = 15.0
+        elif "opus" in model:
+            cost_per_1000k_input_tokens = 15.0
+            cost_per_1000k_output_tokens = 75.0
+        cost_per_1k_input_tokens = cost_per_1000k_input_tokens / 1000
+        cost_per_1k_output_tokens = cost_per_1000k_output_tokens / 1000
 
-    cost = prompt_tokens / 1000 * cost_per_1k_prompt_tokens + completion_tokens / 1000 * cost_per_1k_completion_tokens
+    cost = input_tokens / 1000 * cost_per_1k_input_tokens + output_tokens / 1000 * cost_per_1k_output_tokens
     return cost
 
-def print_usage(result):
+def print_usage(result, vendor):
     if not "usage" in result:
         return
     usage = result["usage"]
-    if not "prompt_tokens" in usage or not "completion_tokens" in usage or not "total_tokens" in usage:
+    input_tokens_key, output_tokens_key = vendor_token_keys(vendor)
+    if not input_tokens_key in usage or not output_tokens_key in usage:
         return
 
-    prompt_tokens = usage["prompt_tokens"]
-    completion_tokens = usage["completion_tokens"]
-    total_tokens = usage["total_tokens"]
-    print(f"tokens used: {prompt_tokens} prompt, {completion_tokens} completion, {total_tokens} total")
+    input_tokens = usage[input_tokens_key]
+    output_tokens = usage[output_tokens_key]
+    total_tokens = usage["total_tokens"] if "total_tokens" in usage else input_tokens + output_tokens
+    print(f"tokens used: {input_tokens} input (prompt), {output_tokens} output (completion), {total_tokens} total")
 
     if not "cost_USD" in result:
         return
@@ -342,8 +408,6 @@ def combine_results(result1, model1, result2, model2, result3, model3):
         "cost_USD": cost1 + cost2 + cost3
     }
     return result
-
-#
 
 def get_raw_training_doc():
     try:
@@ -396,7 +460,7 @@ def generate(raw_doc, previous_result, user_request, api_key, models, temperatur
     # paste it over the bad animation from step 1, below.
     lines_copied = copy_animation(previous_result)
 
-    prompt1 = get_prompt(doc1, previous_result, user_request, "1")
+    prompt1 = get_prompt(doc1, previous_result, user_request, "1", model_vendor(model1))
     result1 = submit_prompt(prompt1, api_key, model1, temperature, "1")
     if not result1["ok1"]:
         return { "ok": False, "error": result1["error"] }
@@ -410,7 +474,7 @@ def generate(raw_doc, previous_result, user_request, api_key, models, temperatur
     previous_result2 = paste_animation(previous_result2, lines_copied)
     result1["generated_json1"] = previous_result2
 
-    prompt2 = get_prompt(doc2, previous_result2, user_request, "2")
+    prompt2 = get_prompt(doc2, previous_result2, user_request, "2", model_vendor(model1))
     result2 = submit_prompt(prompt2, api_key, model2, temperature, "2")
     if not result2["ok2"]:
         return { "ok": False, "error": result2["error"] }
@@ -421,7 +485,7 @@ def generate(raw_doc, previous_result, user_request, api_key, models, temperatur
 
     # The user request is not needed for pass 3, which just applies fixes
     # like orientation correction.
-    prompt3 = get_prompt(doc3, previous_result3, "", "3")
+    prompt3 = get_prompt(doc3, previous_result3, "", "3", model_vendor(model1))
     result3 = submit_prompt(prompt3, api_key, model3, temperature, "3")
     if not result3["ok3"]:
         return { "ok": False, "error": result3["error"] }
@@ -435,7 +499,7 @@ def generate_single_step(raw_doc, previous_result, user_request, api_key, models
     model = models[0]
     doc = filter_doc(raw_doc, "SINGLE")
 
-    prompt = get_prompt(doc, previous_result, user_request, "1")
+    prompt = get_prompt(doc, previous_result, user_request, "1", model_vendor(model))
     result = submit_prompt(prompt, api_key, model, temperature, "")
     if not result["ok"]:
         return { "ok": False, "error": result["error"] }
@@ -478,9 +542,13 @@ if __name__ == "__main__":
     parser.add_argument("--quiet", "-q", action="store_true", help="run quietly, without printing usage statistics")
     args = parser.parse_args(argv)
 
+    vendor = model_vendor(args.model)
     api_key = args.api_key 
     if not api_key:
-        api_key = os.getenv("OPENAI_API_KEY")
+        if vendor == "OpenAI":
+            api_key = os.getenv("OPENAI_API_KEY")
+        elif vendor == "Anthropic":
+            api_key = os.getenv("ANTHROPIC_API_KEY")
 
     raw_doc_data = get_raw_training_doc()
     if not raw_doc_data["ok"]:
@@ -489,11 +557,13 @@ if __name__ == "__main__":
     if raw_doc_data["version"]:
         print(f"Training documentation version {raw_doc_data['version']}")
 
+    print(f"Model: {args.model}")
+
     models = [args.model, args.model, args.model]
     if args.single_step:
-        result = generate(raw_doc_data["text"], args.input, args.request, api_key, models, args.temperature)
-    else:
         result = generate_single_step(raw_doc_data["text"], args.input, args.request, api_key, models, args.temperature)
+    else:
+        result = generate(raw_doc_data["text"], args.input, args.request, api_key, models, args.temperature)
 
     if not result["ok"]:
         print(result["error"])
@@ -502,7 +572,9 @@ if __name__ == "__main__":
     if not args.quiet:
         elapsed_sec = result["elapsed_sec"]
         print(f"elapsed time: {elapsed_sec} seconds")
-        print_usage(result)
+        cost_USD = result["cost_USD"]
+        print(f"estimated cost (USD): ${cost_USD:.2f}")
+        print_usage(result, vendor)
     
     if args.output == "":
         print(result["generated_json"])

@@ -47,11 +47,23 @@ class MainWindow(QMainWindow):
             self.settings = QSettings(QSettings.UserScope, "janelia.org", "neuVid")
         else:
             self.settings = QSettings(QSettings.UserScope, "Janelia", "neuVid")
+
+        '''
+        # For debugging, to force empty settings:
+        self.settings.clear()
+        self.settings.sync()
+        '''
+
+        model = self.get_model_setting()
+        self.models = [model, model, model]
+        self.temperature = 0
+
         self.setup_window()
         self.setup_menus()
         self.setup_results()
         self.setup_status()
         self.setup_input()
+        self.set_model()
         self.set_api_key()
 
         raw_doc_data = get_raw_training_doc()
@@ -62,11 +74,6 @@ class MainWindow(QMainWindow):
         self.raw_doc = raw_doc_data["text"]
         self.raw_doc_version = raw_doc_data["version"]
         self.raw_doc_source = raw_doc_data["source"]
-        # GPT-3.5 is cheaper but is not reliable enough.
-        self.models = ["gpt-4", "gpt-4", "gpt-4"]
-        # The default temperature is 0.7.  A lower temperature of 0.2 had worked well for while.
-        # Now, temperature of 0 seems to be most reliable.
-        self.temperature = 0
 
         self.cumulative_cost = 0
 
@@ -175,6 +182,10 @@ class MainWindow(QMainWindow):
         settings_menu = QMenu(self.tr("&Settings"), self)
         menu_bar.addMenu(settings_menu)
 
+        self.set_model_action = QAction(self.tr("Model..."), self)
+        self.set_model_action.triggered.connect(self.force_model)
+        settings_menu.addAction(self.set_model_action)
+
         self.set_api_key_action = QAction(self.tr("API key..."), self)
         self.set_api_key_action.triggered.connect(self.force_api_key)
         settings_menu.addAction(self.set_api_key_action)
@@ -218,9 +229,9 @@ class MainWindow(QMainWindow):
                 header = f"neuVid version: {self.version}\n"
                 header += f"Training source: {self.raw_doc_source}\n"
                 header += f"Training version: {self.raw_doc_version}\n"
-                header += f"Step 1 model: {self.models[0]}\n"
-                header += f"Step 2 model: {self.models[1]}\n"
-                header += f"Step 3 model: {self.models[2]}\n"
+                header += f"Step 1 model (initial): {self.models[0]}\n"
+                header += f"Step 2 model (initial): {self.models[1]}\n"
+                header += f"Step 3 model (initial): {self.models[2]}\n"
                 header += f"Temperature: {self.temperature}\n"
                 header += "\n"
 
@@ -250,22 +261,73 @@ class MainWindow(QMainWindow):
             text += f"Training documentation version: {self.raw_doc_version}"
         QMessageBox.about(self, "About neuVid Generate", text)   
 
+    def get_vendor(self):
+        model = self.models[0]
+        if model.startswith("gpt"):
+            return "OpenAI"
+        elif model.startswith("claude"):
+            return "Anthropic"
+        else:
+            return None
+        
+    def get_vendor_token_keys(self):
+        vendor = self.get_vendor()
+        if vendor == "OpenAI":
+            input_tokens_key = "prompt_tokens"
+            output_tokens_key = "completion_tokens"
+        elif vendor == "Anthropic":
+            input_tokens_key = "input_tokens"
+            output_tokens_key = "output_tokens"
+        else:
+            input_tokens_key = None
+            output_tokens_key = None
+        return (input_tokens_key, output_tokens_key)
+        
+    def get_model_setting(self):
+        KEY = "MODEL"
+        result = "gpt-4"
+        if self.settings.contains(KEY):
+            result = self.settings.value(KEY)
+        return result
+
+    @Slot()
+    def force_model(self):
+        self.set_model(force=True)
+
+    def set_model(self, force=False):
+        KEY = "MODEL"
+        model = self.settings.value(KEY)
+
+        if model and not force:
+            self.models = [model, model, model]
+        else:
+            if not model:
+                model = "claude-3-opus-20240229"
+            text, ok = QInputDialog.getText(self, "Model", "Name of model to use for neuVid Generate", text=model)
+            if ok and text:
+                model = text
+                self.models = [model, model, model]
+                self.settings.setValue(KEY, model)
+                path = self.settings.fileName()
+                QMessageBox.information(self, "Model", f"The model name is stored in {path}")
+
     @Slot()
     def force_api_key(self):
         self.set_api_key(force=True)
 
     def set_api_key(self, force=False):
-        KEY ="OPENAI_API_KEY"
+        vendor = self.get_vendor()
+        KEY = "OPENAI_API_KEY" if vendor == "OpenAI" else "ANTHROPIC_API_KEY"
         self.api_key = self.settings.value(KEY)
         if not self.api_key or force:
-            self.api_key = os.getenv("OPENAI_API_KEY")
+            self.api_key = os.getenv(KEY)
             if not self.api_key or force:
-                text, ok = QInputDialog.getText(self, "OpenAI API Key", "OpenAI API key for neuVid Generate")
+                text, ok = QInputDialog.getText(self, f"{vendor} API Key", f"{vendor} API key for neuVid Generate")
                 if ok and text:
                     self.api_key = text
                     self.settings.setValue(KEY, self.api_key)
                     path = self.settings.fileName()
-                    QMessageBox.information(self, "OpenAI API Key", f"The OpenAI API key is stored in {path}")
+                    QMessageBox.information(self, f"{vendor} API Key", f"The {vendor} API key is stored in {path}")
 
     @Slot()
     def show_log_file(self):
@@ -450,40 +512,45 @@ class MainWindow(QMainWindow):
         log += f"Context:\n{context}\n"
         log += f"Request:\n{user_request}\n"
 
+        input_tokens_key, output_tokens_key = self.get_vendor_token_keys()
+
         elapsed1 = result["elapsed_sec1"]
         cost1 = result["cost_USD1"]
         usage1 = result["usage1"]
-        prompt_tokens1 = usage1["prompt_tokens"]
-        completion_tokens1 = usage1["completion_tokens"]
-        total_tokens1 = usage1["total_tokens"]
+        input_tokens1 = usage1[input_tokens_key]
+        output_tokens1 = usage1[output_tokens_key]
+        total_tokens1 = usage1["total_tokens"] if "total_tokens" in usage1 else input_tokens1 + output_tokens1
         generated_json1 = result["generated_json1"]
 
+        log += f"Step 1 model {self.models[0]}\n"
         log += f"Step 1 generation time {elapsed1} sec, cost ${cost1:.2f}\n"
-        log += f"Step 1 generation tokens: prompt {prompt_tokens1}, completion {completion_tokens1}, total {total_tokens1}\n"
+        log += f"Step 1 generation tokens: input {input_tokens1}, output {output_tokens1}, total {total_tokens1}\n"
         log += f"Step 1 generated JSON:\n{generated_json1}"
 
         elapsed2 = result["elapsed_sec2"]
         cost2 = result["cost_USD2"]
         usage2 = result["usage2"]
-        prompt_tokens2 = usage2["prompt_tokens"]
-        completion_tokens2 = usage2["completion_tokens"]
-        total_tokens2 = usage2["total_tokens"]
+        input_tokens2 = usage2[input_tokens_key]
+        output_tokens2 = usage2[output_tokens_key]
+        total_tokens2 = usage2["total_tokens"] if "total_tokens" in usage2 else input_tokens2 + output_tokens2
         generated_json2 = result["generated_json2"]
 
+        log += f"Step 2 model {self.models[1]}\n"
         log += f"Step 2 generation time {elapsed2} sec, cost ${cost2:.2f}\n"
-        log += f"Step 2 generation tokens: prompt {prompt_tokens2}, completion {completion_tokens2}, total {total_tokens2}\n"
+        log += f"Step 2 generation tokens: input {input_tokens2}, output {output_tokens2}, total {total_tokens2}\n"
         log += f"Step 2 generated JSON:\n{generated_json2}"
 
         elapsed3 = result["elapsed_sec3"]
         cost3 = result["cost_USD3"]
         usage3 = result["usage3"]
-        prompt_tokens3 = usage3["prompt_tokens"]
-        completion_tokens3 = usage3["completion_tokens"]
-        total_tokens3 = usage3["total_tokens"]
+        input_tokens3 = usage3[input_tokens_key]
+        output_tokens3 = usage3[output_tokens_key]
+        total_tokens3 = usage3["total_tokens"] if "total_tokens" in usage3 else input_tokens3 + output_tokens3
         generated_json = result["generated_json"]
 
+        log += f"Step 3 model {self.models[2]}\n"
         log += f"Step 3 generation time {elapsed3} sec, cost ${cost3:.2f}\n"
-        log += f"Step 3 generation tokens: prompt {prompt_tokens3}, completion {completion_tokens3}, total {total_tokens3}\n"
+        log += f"Step 3 generation tokens: input {input_tokens3}, output {output_tokens3}, total {total_tokens3}\n"
 
         elapsed = result["elapsed_sec"]
         cost = result["cost_USD"]

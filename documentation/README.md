@@ -574,11 +574,11 @@ Additional options for entries in `"axes"`:
 
 Do not type any sensitive personal information into `generate`, because this information will be sent to the LLM model host (OpenAI).
 
-To change the OpenAI API key, use the "Settings/API key..." menu item on the main menu bar.
+To change the OpenAI or Anthropic API key, use the "Settings/API key..." menu item on the main menu bar.
 
 The "conditioning" data that is included in the generative AI prompts is in the file [`documentation/training.md`](training.md).  The examples in this file are helpful for a human learning to use the system, too.
 
-The generative AI works pretty well, but it can make mistakes.  More common mistakes include:
+The generative AI works pretty well with the most powerful models: `gpt-4-turbo-preview` from OpenAI, or `claude-3-opus-20240229` from Anthropic. The less expensive models (e.g., `gpt-3.5-turbo` or `claude-3-sonnet-20240229`) may generate acceptable results for simpler descriptions but do not work as well in general. Even the powerful models can make mistakes.  More common mistakes include:
 * omitting the `"advanceTime"` command necessary to let another command finish
 * omitting the initial light rotation and `"orbitCamera"` necessary to put the FlyEM MANC and FlyWire data sets in the proper orientation
 * not understanding multiplication (e.g., "Give the synapses the default radius * 2")
@@ -600,6 +600,7 @@ $ cd neuVid/test
 $ export OPENAI_API_KEY=sk-a...9O2U
 $ python test-generate.py test-generate-input.txt
 ```
+The environment variable for the Anthropic API key is `ANTHROPIC_API_KEY`.
 By default, the results go to a file with a path like `/tmp/test-generate-results_gpt-4_2023-12-08_10:20:30.txt`.  To check the tests, compare this file to `test-generate-expected.txt`.
 
 Note that running the tests is slow (to avoid OpenAI throttling) and costs around $7 with the current OpenAI pricing.
