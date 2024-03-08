@@ -205,15 +205,17 @@ One way to add textual labels and titles is to add them to the finished video wi
 ## Usage with Natural Language Input
 
 An experimental component of `neuVid` takes a description of a video in natural language and translates it to JSON using 
-[generative AI](https://en.wikipedia.org/wiki/Generative_artificial_intelligence).  For now, at least, an [OpenAI API key](https://platform.openai.com/signup) is required to use this component.
+[generative AI](https://en.wikipedia.org/wiki/Generative_artificial_intelligence).  For now, at least, an [OpenAI API key](https://platform.openai.com/signup) or [Anthropic API key](https://console.anthropic.com/login) is required to use this component. Use the following steps:
 
 1. The `generate` desktop application launches the user interface for entering descriptions and generating JSON.  Install `generate` by downloading an executable from the [releases page of this repository](https://github.com/connectome-neuprint/neuVid/releases). *Chrome on macOS or Windows raises a dialog that incorrectly calls the compressed (.zip) file with the executable "suspicious" or "uncommon". To unblock and complete the donwload, press the right arrow on the dialog, then press the download button that appears. On Windows a "protected your PC" dialog may then appear; press "More info" and then "Run anyway".*  Safari on macOS and Chrome on Linux do not have these problems. After downloading, extract the executable from the .zip file: double-click on macOS, or right-click on Windows and choose "Extract All" or an item from the "7-Zip" menu, or use the `unzip` command on Linux. Move the executable to a standard place, like `/Applications` on macOS, or `C:\Program Files\newVid` on Windows, or `~/bin` on Linux.
 
-2. The first time `generate` is run, it prompts for the OpenAI API key.  Enter the key and it will be saved for future execution.
+2. The first time `generate` is run, it prompts for the name of the large-language model (LLM) to use.  Enter an [OpenAI model](https://platform.openai.com/docs/models/gpt-4-and-gpt-4-turbo) (e.g., `gpt-4-turbo-preview`) or an [Anthropic model](https://docs.anthropic.com/claude/docs/models-overview#claude-3-a-new-generation-of-ai) (e.g., `claude-3-opus-20240229`). The model name is saved for use in futures sessions, and it can be changed using the "Settings/Model..." menu item.
 
-3. Type the description of the video in the lower text area, and press the "Generate" button.
+3. Then `generate` prompts for an API key, from either OpenAI or Anthropic based on the model just chosen. The entered key is saved for future sessions, and can be changed using the "Settings/API Key..." menu item.
 
-4. After some processing time (which could be a minute or so for longer descriptions), the generated JSON will appear in the upper text area.  Press the "Save..." button to save it to a file for use as input to the other `neuVid` scripts.
+4. Type the description of the video in the lower text area, and press the "Generate" button.
+
+5. After some processing time (which could be a minute or so for longer descriptions), the generated JSON will appear in the upper text area.  Press the "Save..." button to save it to a file for use as input to the other `neuVid` scripts.
 
 For more information, see the [detailed documentation](documentation/README.md#natural-language-input-and-generative-ai).
 
