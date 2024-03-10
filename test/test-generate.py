@@ -8,12 +8,14 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(_
 from utilsGeneral import report_version
 from gen import generate, generate_single_step, get_raw_training_doc
 
-def get_log_filename(argv, model, output_dir):
+def get_log_filename(argv, model, single_step, output_dir):
     script = os.path.splitext(os.path.basename(sys.argv[0]))[0]
     t = datetime.datetime.now()
     t = t.replace(microsecond=0)
-    name = f"{script}-results_{model}_{t}.txt"
+    steps = "single" if single_step else "multi"
+    name = f"{script}-results_{model}_{steps}_{t}.txt"
     name = name.replace(" ", "_")
+    name = name.replace(":", "-")
     path = os.path.join(output_dir, name)
     return path
 
@@ -21,6 +23,26 @@ def log(s, path):
     print(s)
     with open(path, "a") as f:
         f.write(s + "\n")
+
+def model_vendor(model):
+    if model.startswith("gpt"):
+        return "OpenAI"
+    elif model.startswith("claude"):
+        return "Anthropic"
+    else:
+        return None
+
+def vendor_token_keys(vendor):
+    if vendor == "OpenAI":
+        input_tokens_key = "prompt_tokens"
+        output_tokens_key = "completion_tokens"
+    elif vendor == "Anthropic":
+        input_tokens_key = "input_tokens"
+        output_tokens_key = "output_tokens"
+    else:
+        input_tokens_key = None
+        output_tokens_key = None
+    return (input_tokens_key, output_tokens_key)
 
 def remove_comments(s):
     lines = s.split("\n")
@@ -65,31 +87,34 @@ def run_test(test, raw_doc, api_key, models, temperature, pause, log_file, time_
 
             previous_result = generated_json
 
+            vendor = model_vendor(models[0])
+            input_tokens_key, output_tokens_key = vendor_token_keys(vendor)
+
             if single_step:
                 usage = result["usage"]
-                prompt_tokens = usage["prompt_tokens"]
-                completion_tokens = usage["completion_tokens"]
-                total_tokens = usage["total_tokens"]
-                log(f"Tokens: prompt {prompt_tokens}, completion {completion_tokens}, total {total_tokens}", log_file)
+                input_tokens = usage[input_tokens_key]
+                output_tokens = usage[output_tokens_key]
+                total_tokens = usage["total_tokens"] if "total_tokens" in usage else input_tokens + output_tokens
+                log(f"Tokens: prompt {input_tokens}, completion {output_tokens}, total {total_tokens}", log_file)
 
             else:
                 usage1 = result["usage1"]
-                prompt_tokens1 = usage1["prompt_tokens"]
-                completion_tokens1 = usage1["completion_tokens"]
-                total_tokens1 = usage1["total_tokens"]
-                log(f"Step 1 tokens: prompt {prompt_tokens1}, completion {completion_tokens1}, total {total_tokens1}", log_file)
+                input_tokens1 = usage1[input_tokens_key]
+                output_tokens1 = usage1[output_tokens_key]
+                total_tokens1 = usage1["total_tokens"] if "total_tokens" in usage1 else input_tokens1 + output_tokens1
+                log(f"Step 1 tokens: prompt {input_tokens1}, completion {output_tokens1}, total {total_tokens1}", log_file)
 
                 usage2 = result["usage2"]
-                prompt_tokens2 = usage2["prompt_tokens"]
-                completion_tokens2 = usage2["completion_tokens"]
-                total_tokens2 = usage2["total_tokens"]
-                log(f"Step 2 tokens: prompt {prompt_tokens2}, completion {completion_tokens2}, total {total_tokens2}", log_file)
+                input_tokens2 = usage2[input_tokens_key]
+                output_tokens2 = usage2[output_tokens_key]
+                total_tokens2 = usage2["total_tokens"] if "total_tokens" in usage2 else input_tokens2 + output_tokens2
+                log(f"Step 2 tokens: prompt {input_tokens2}, completion {output_tokens2}, total {total_tokens2}", log_file)
 
                 usage3 = result["usage3"]
-                prompt_tokens3 = usage3["prompt_tokens"]
-                completion_tokens3 = usage3["completion_tokens"]
-                total_tokens3 = usage3["total_tokens"]
-                log(f"Step 3 tokens: prompt {prompt_tokens3}, completion {completion_tokens3}, total {total_tokens3}", log_file)
+                input_tokens3 = usage3[input_tokens_key]
+                output_tokens3 = usage3[output_tokens_key]
+                total_tokens3 = usage3["total_tokens"] if "total_tokens" in usage3 else input_tokens3 + output_tokens3
+                log(f"Step 3 tokens: prompt {input_tokens3}, completion {output_tokens3}, total {total_tokens3}", log_file)
 
                 total_tokens = total_tokens1  + total_tokens2 + total_tokens3
                 log(f"Total tokens for all steps: {total_tokens}", log_file)
@@ -116,11 +141,11 @@ if __name__ == "__main__":
     parser.set_defaults(output="/tmp")
     parser.add_argument("--output", "-o", help="path to the output directory for the output log file")
     parser.set_defaults(api_key="")
-    parser.add_argument("--apikey", "-a", help="OpenAI API key")
+    parser.add_argument("--apikey", "-a", help="API key")
     parser.set_defaults(model="gpt-4")
-    parser.add_argument("--model", "-m", help="OpenAI model name")
+    parser.add_argument("--model", "-m", help="model name")
     parser.set_defaults(temperature=0)
-    parser.add_argument("--temperature", "-t", type=float, help="OpenAI model temperature")
+    parser.add_argument("--temperature", "-t", type=float, help="model temperature")
     parser.set_defaults(pause=30)
     parser.add_argument("--pause", "-p", type=int, help="pause between OpenAI API calls")
     parser.set_defaults(single_step=False)
@@ -129,7 +154,7 @@ if __name__ == "__main__":
 
     time_start = datetime.datetime.now()
 
-    log_file = get_log_filename(sys.argv, args.model, args.output)
+    log_file = get_log_filename(sys.argv, args.model, args.single_step, args.output)
     print(f"Log file: {log_file}")
 
     log(f"neuVid version: {neuVid_version}", log_file)
@@ -147,11 +172,16 @@ if __name__ == "__main__":
     raw_doc = raw_doc_data["text"]
 
     models = [args.model, args.model, args.model]
-    log(f"Models: {models}\n", log_file)
+    log(f"Models: {models}", log_file)
+    log(f"Single step: {args.single_step}\n", log_file)
 
+    vendor = model_vendor(args.model)
     api_key = args.api_key 
     if not api_key:
-        api_key = os.getenv("OPENAI_API_KEY")
+        if vendor == "OpenAI":
+            api_key = os.getenv("OPENAI_API_KEY")
+        elif vendor == "Anthropic":
+            api_key = os.getenv("ANTHROPIC_API_KEY")
 
     with open(args.input, "r") as f:
         s = f.read()
