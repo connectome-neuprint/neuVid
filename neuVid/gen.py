@@ -97,7 +97,7 @@ def get_prompt(doc, previous_result, user_request, step, vendor):
 
     user_content = "If you don't know, respond with {}. Generate JSON according to the following request using the following context."
 
-    if step.startswith("1"):
+    if step == "1" or step == "":
         # Step 1 involves context documentation for only the declarations `"neurons"`, `"rois"`, etc.
         if not previous_result:
             request = f"""
@@ -114,14 +114,17 @@ def get_prompt(doc, previous_result, user_request, step, vendor):
             request = f"""
             Make no changes to `"neurons"`, `"rois"`, `"synapses"`.
             {user_request}
-            If there is `"rois": [],` or `"rois": {{}},` in the generated JSON then remove it.
             """
         else:
             request = f"""
             Start with this JSON and make no changes to `"neurons"`, `"rois"`, `"synapses"`: {previous_result} 
             {user_request}
-            If there is `"rois": [],` or `"rois": {{}},` or `"synapses": []` or `"synapses": {{}}` in the generated JSON then remove it.
             """
+
+    if step != "1":
+        request += f"""
+        If there is `"rois": [],` or `"rois": {{}},` or `"synapses": []` or `"synapses": {{}}` in the generated JSON then remove it.
+        """
 
     user_content += f"""
         CONTEXT: 
@@ -143,7 +146,7 @@ def get_prompt(doc, previous_result, user_request, step, vendor):
             }
         ]
     elif vendor == "Anthropic":
-        system_content += "Include no explanatory comments like 'Here is the JSON for that request'."
+        system_content += "Do not output any comments in addition to the JSON (e.g., don't start with 'Here is')."
         user_content = f"{system_content} {user_content}"
         prompt = [
             {
@@ -499,7 +502,7 @@ def generate_single_step(raw_doc, previous_result, user_request, api_key, models
     model = models[0]
     doc = filter_doc(raw_doc, "SINGLE")
 
-    prompt = get_prompt(doc, previous_result, user_request, "1", model_vendor(model))
+    prompt = get_prompt(doc, previous_result, user_request, "", model_vendor(model))
     result = submit_prompt(prompt, api_key, model, temperature, "")
     if not result["ok"]:
         return { "ok": False, "error": result["error"] }
