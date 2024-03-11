@@ -1,9 +1,10 @@
 ===============
-Test 1 of 19:
+Test 1 of 20:
 
 Using the hemibrain, let "A" be neurons 449438847, 478375456 and 572870540.
 First, frame on "A". 
 Then orbit for 10 seconds.
+
 {
   "neurons": {
     "source": "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
@@ -17,11 +18,12 @@ Then orbit for 10 seconds.
 }
 
 ===============
-Test 2 of 19:
+Test 2 of 20:
 
 "A" is neurons 10048, 10723 from the MANC, and "B" is neurons 10101, 10217 and 10491.
 Frame on "A".
 Orbit halfway, taking 5 seconds.
+
 {
   "neurons": {
     "source": "https://manc-dvid.janelia.org/api/node/v1.0/segmentation_meshes",
@@ -39,6 +41,7 @@ Orbit halfway, taking 5 seconds.
 
 Then fade "B" from invisible to visible taking 1 second.
 For 5 seconds, orbit halfway.
+
 {
   "neurons": {
     "source": "https://manc-dvid.janelia.org/api/node/v1.0/segmentation_meshes",
@@ -59,7 +62,7 @@ For 5 seconds, orbit halfway.
 }
 
 ===============
-Test 3 of 19:
+Test 3 of 20:
 
 FlyWire data set. 
 "A" is neurons 720575940623111679, 720575940639684515.
@@ -69,6 +72,7 @@ Camera shows "A" only.
 Orbit 40 degrees for 5 seconds.
 "B" appears over 1 second.
 Then orbit -80 degrees for 10 seconds.
+
 {
   "neurons": {
     "source": "precomputed://gs://flywire_v141_m783",
@@ -91,6 +95,7 @@ Then orbit -80 degrees for 10 seconds.
 
 "C" appears over 1 second.
 Then orbit 40 degrees for 5 seconds.
+
 {
   "neurons": {
     "source": "precomputed://gs://flywire_v141_m783",
@@ -116,6 +121,7 @@ Then orbit 40 degrees for 5 seconds.
 }
 
 Zoom out to show all neurons over 2 seconds.
+
 {
   "neurons": {
     "source": "precomputed://gs://flywire_v141_m783",
@@ -143,12 +149,13 @@ Zoom out to show all neurons over 2 seconds.
 }
 
 ===============
-Test 4 of 19:
+Test 4 of 20:
 
 Let "R1" be ROIs "EB", "PG", "FB", and "R2" be "AOTU", "SMP" from the hemibrain.
 Frame on "R1". 
 Wait 2 seconds.
 Frame on all ROIs over 3 seconds.
+
 {
   "rois": {
     "source": "https://hemibrain-dvid.janelia.org/api/node/31597/roisSmoothedDecimated",
@@ -166,6 +173,7 @@ Frame on all ROIs over 3 seconds.
 Let "N1" be neurons in the file "N1.txt".
 Fade "N1" on, 1 second.
 Orbit 30 degrees around X for 3 seconds.
+
 {
   "neurons": {
     "source": "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
@@ -191,6 +199,7 @@ Orbit 30 degrees around X for 3 seconds.
 Let "N2" be neurons in "N2.txt".
 Fade off "N1" and fade on "N2" over 1 second.
 Orbit -30 degrees X 3 seconds.
+
 {
   "neurons": {
     "source": "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
@@ -220,13 +229,14 @@ Orbit -30 degrees X 3 seconds.
 }
 
 ===============
-Test 5 of 19:
+Test 5 of 20:
 
 "A" is the neurons 1106180107, 1137219365, 1167563121 from the hemibrain.
 "B" is the neurons 1229288307, 1291435776, 1322474586 from "/c/d".
 Fade "A" and "B" on for 1 second.
 Frame on "B" for 3 seconds.
 Orbit for 10 seconds.
+
 {
   "neurons": {
     "source": [
@@ -247,13 +257,14 @@ Orbit for 10 seconds.
 }
 
 ===============
-Test 6 of 19:
+Test 6 of 20:
 
 "A" is the neurons 10016, 10056, 10102 from the MANC.
 "B" is the neurons 10116, 10320, 10911 from "/t/s".
 Fade "A" and "B" on for 1 second.
 Frame on "B" for 3 seconds.
 Orbit for 10 seconds.
+
 {
   "neurons": {
     "source": [
@@ -276,13 +287,14 @@ Orbit for 10 seconds.
 }
 
 ===============
-Test 7 of 19:
+Test 7 of 20:
 
 "A" is the neurons 720575940623728647, 720575940614742028, 720575940631117842 from FlyWire.
 "B" is the neurons 720575940644167703, 720575940617650203, 720575940644528163 from "/h/i".
 Fade "A" and "B" on for 1 second.
 Frame on "B" for 3 seconds.
 Orbit for 10 seconds.
+
 {
   "neurons": {
     "source": [
@@ -305,7 +317,7 @@ Orbit for 10 seconds.
 }
 
 ===============
-Test 8 of 19:
+Test 8 of 20:
 
 Use three neuron mesh sources: original MANC server, low-res in "/lo", high-res in "/hi". 
 "A" is neurons 10011, 10064 using the original meshes. 
@@ -314,6 +326,7 @@ Use three neuron mesh sources: original MANC server, low-res in "/lo", high-res 
 Fade "A" on over 1 second.
 Then fade on "B" over 1 second.
 Then "C" over 1 second.
+
 {
   "neurons": {
     "source": [
@@ -338,12 +351,13 @@ Then "C" over 1 second.
 }
 
 ===============
-Test 9 of 19:
+Test 9 of 20:
 
 "N1" is neuron 11289, 11134, 11226 from the MANC.
 "S1i" is 11289's input synapses.
 "S1o" is 11289's output synapses.
 Orbit taking 10 secs.
+
 {
   "neurons": {
     "source": "https://manc-dvid.janelia.org/api/node/v1.0/segmentation_meshes",
@@ -369,12 +383,13 @@ Orbit taking 10 secs.
 }
 
 ===============
-Test 10 of 19:
+Test 10 of 20:
 
 "N" is neurons 1480525262, 579510789, 950880008 from the hemibrain.
 "Si" is input synapses on 579510789.
 "So" is output synapses on 579510789.
 Oribit the camera taking 10 seconds.
+
 {
   "neurons": {
     "source": "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
@@ -398,12 +413,13 @@ Oribit the camera taking 10 seconds.
 }
 
 ===============
-Test 11 of 19:
+Test 11 of 20:
 
 "M" is neurons 10082, 28108, 11055 from the MANC.
 "Si" are 28108's input synapses from 10082.
 "So" is 28108's PSDs to 11055.
 Oribit the camera taking 10 seconds.
+
 {
   "neurons": {
     "source": "https://manc-dvid.janelia.org/api/node/v1.0/segmentation_meshes",
@@ -429,12 +445,13 @@ Oribit the camera taking 10 seconds.
 }
 
 ===============
-Test 12 of 19:
+Test 12 of 20:
 
 "P" is neurons 985131499, 693927941, 759810119 from the hemibrain.
 "Si" are input T-bars on the second of those from the first.
 "So" is output synapses on second connecting to the third.
 Oribit taking 10 seconds.
+
 {
   "neurons": {
     "source": "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
@@ -458,12 +475,13 @@ Oribit taking 10 seconds.
 }
 
 ===============
-Test 13 of 19:
+Test 13 of 20:
 
 Q is 720575940623650823, 720575940615192588, 720575940623437838 from FlyWire.
 Frame on Q for 2 seconds.
 At the same time, fade Q from 0 to 1 for 2 seconds.
 Then wait 3 seconds, and then orbit for 10 seconds.
+
 {
   "neurons": {
     "source": "precomputed://gs://flywire_v141_m783",
@@ -482,11 +500,12 @@ Then wait 3 seconds, and then orbit for 10 seconds.
 }
 
 ===============
-Test 14 of 19:
+Test 14 of 20:
 
 N is 53606232860, 52788943322 from the MANC.
 Frame on N for 2 seconds.
 Then frame on N for 3 seconds, ending zoomed in by 2.
+
 {
   "neurons": {
     "source": "https://manc-dvid.janelia.org/api/node/v1.0/segmentation_meshes",
@@ -503,12 +522,13 @@ Then frame on N for 3 seconds, ending zoomed in by 2.
 }
 
 ===============
-Test 15 of 19:
+Test 15 of 20:
 
 Frame on the ER3ds 1261086734, 1261086756, 1261423370 from the hemibrain.
 After 2 seconds, fade on the TuBu03s 1015385741, 1015700298, 1077434447.
 Then orbit 90 degrees for 3 seconds.
 Finally fade out the ER3ds.
+
 {
   "neurons": {
     "source": "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
@@ -528,12 +548,13 @@ Finally fade out the ER3ds.
 }
 
 ===============
-Test 16 of 19:
+Test 16 of 20:
 
 Frame on neurons 720575940630655007, 720575940605702176 from FlyWire.
 Call them A.
 Fade on neurons 720575940647010356, 720575940629942343 taking 1 second.
 Then 2 seconds later, fade off A.
+
 {
   "neurons": {
     "source": "precomputed://gs://flywire_v141_m783",
@@ -553,11 +574,12 @@ Then 2 seconds later, fade off A.
 }
 
 ===============
-Test 17 of 19:
+Test 17 of 20:
 
 Frame on IN00A001s 10477 and 10977 from the MANC.
 Orbit 30 degrees taking 3 seconds.
 Fade on DNxn103 13548 over 1 second.
+
 {
   "neurons": {
     "source": "https://manc-dvid.janelia.org/api/node/v1.0/segmentation_meshes",
@@ -576,6 +598,7 @@ Fade on DNxn103 13548 over 1 second.
 }
 
 Change the initial framing to frame on DNxn103 instead.
+
 {
   "neurons": {
     "source": "https://manc-dvid.janelia.org/api/node/v1.0/segmentation_meshes",
@@ -594,6 +617,7 @@ Change the initial framing to frame on DNxn103 instead.
 }
 
 After the initial framing, insert fading off of IN00A001s taking 1 second.
+
 {
   "neurons": {
     "source": "https://manc-dvid.janelia.org/api/node/v1.0/segmentation_meshes",
@@ -614,6 +638,7 @@ After the initial framing, insert fading off of IN00A001s taking 1 second.
 }
 
 Finally, orbit 45 degrees taking 4 seconds.
+
 {
   "neurons": {
     "source": "https://manc-dvid.janelia.org/api/node/v1.0/segmentation_meshes",
@@ -636,13 +661,14 @@ Finally, orbit 45 degrees taking 4 seconds.
 }
 
 ===============
-Test 18 of 19:
+Test 18 of 20:
 
 Frame on neuron 393766777 from the Janelia hemibrain.
 Orbit the camera 45 degrees over 6 seconds, and move in 25% while orbiting.
 1 second into the orbit, fade on neuron 1196854070 over 1 second.
 Then 2 seconds later, fade on the output synapses of 393766777 connecting to 1196854070 taking 1 second.
 Synapses should be extra big.
+
 {
   "neurons": {
     "source": "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
@@ -669,7 +695,7 @@ Synapses should be extra big.
 }
 
 ===============
-Test 19 of 19:
+Test 19 of 20:
 
 Frame on the overall ROI from FlyWire.
 Fade that ROI on at alpha 0.03 and simultaneously frame on neuron 720575940627484181 taking 1 second.
@@ -681,6 +707,7 @@ Then fade on 720575940623781127 in 1/2 second.
 Show 720575940604653484 in 1/2 second.
 Then frame on all neurons in 1 second, and then hide them in 1/2 second.
 Hide the ROI in 1/2 second.
+
 {
   "neurons": {
     "source": "precomputed://gs://flywire_v141_m783",
@@ -699,7 +726,7 @@ Hide the ROI in 1/2 second.
   "animation": [
     ["orbitCamera", {"axis": "x", "endingRelativeAngle": -90}],
     ["setValue", {"meshes": "rois", "threshold": 1}],
-    ["frameCamera", {"bound": "rois.all", "duration": 1}],
+    ["frameCamera", {"bound": "rois.all"}],
     ["fade", {"meshes": "rois.all", "startingAlpha": 0, "endingAlpha": 0.03, "duration": 1}],
     ["frameCamera", {"bound": "neurons.N1", "duration": 1}],
     ["advanceTime", {"by": 1}],
@@ -717,11 +744,80 @@ Hide the ROI in 1/2 second.
     ["advanceTime", {"by": 0.5}],
     ["fade", {"meshes": "neurons.N6", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
     ["advanceTime", {"by": 0.5}],
-    ["frameCamera", {"bound": "neurons.N1 + neurons.N2 + neurons.N3 + neurons.N4 + neurons.N5 + neurons.N6", "duration": 1}],
+    ["frameCamera", {"bound": "neurons", "duration": 1}],
     ["advanceTime", {"by": 1}],
-    ["fade", {"meshes": "neurons.N1 + neurons.N2 + neurons.N3 + neurons.N4 + neurons.N5 + neurons.N6", "startingAlpha": 1, "endingAlpha": 0, "duration": 0.5}],
+    ["fade", {"meshes": "neurons", "startingAlpha": 1, "endingAlpha": 0, "duration": 0.5}],
     ["advanceTime", {"by": 0.5}],
     ["fade", {"meshes": "rois.all", "startingAlpha": 0.03, "endingAlpha": 0, "duration": 0.5}],
     ["advanceTime", {"by": 0.5}]
+  ]
+}
+
+===============
+Test 20 of 20:
+
+Frame on the main ROI from the FlyEM MANC.
+Fade it on over 1 sec.
+Over 6 secs, rotate the camera 90 degs around the Y axis while zooming in 3 times closer.
+During the rotation, make each of the following neurons fade on over 1/2 sec in turn:
+10268, 10320, 10116, 10227, 10229, 10265, 11783, 11384, 11949, 10911, 12189, 12218. 
+Wait 1/2 sec then fade everything off taking 1 sec.
+
+{
+  "neurons": {
+    "source": "https://manc-dvid.janelia.org/api/node/v1.0/segmentation_meshes",
+    "N1": [10268],
+    "N2": [10320],
+    "N3": [10116],
+    "N4": [10227],
+    "N5": [10229],
+    "N6": [10265],
+    "N7": [11783],
+    "N8": [11384],
+    "N9": [11949],
+    "N10": [10911],
+    "N11": [12189],
+    "N12": [12218]
+  },
+  "rois": {
+    "source": "https://manc-dvid.janelia.org/api/node/v1.0/roisSmoothedDecimated",
+    "all": ["all_VNC"]
+  },
+  "lightRotationY": 180,
+  "animation": [
+    ["orbitCamera", {"axis": "y", "endingRelativeAngle": 180}],
+    ["setValue", {"meshes": "rois", "threshold": 1}],
+    ["frameCamera", {"bound": "rois.all"}],
+    ["fade", {"meshes": "rois.all", "startingAlpha": 0, "endingAlpha": 0.2, "duration": 1}],
+    ["advanceTime", {"by": 1}],
+    ["orbitCamera", {"axis": "y", "endingRelativeAngle": 90, "scale": 0.333333, "duration": 6}],
+    ["fade", {"meshes": "neurons.N1", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N2", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N3", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N4", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N5", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N6", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N7", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N8", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N9", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N10", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N11", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons.N12", "startingAlpha": 0, "endingAlpha": 1, "duration": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["advanceTime", {"by": 0.5}],
+    ["fade", {"meshes": "neurons", "startingAlpha": 1, "endingAlpha": 0, "duration": 1}],
+    ["fade", {"meshes": "rois", "startingAlpha": 0.2, "endingAlpha": 0, "duration": 1}],
+    ["advanceTime", {"by": 1}]
   ]
 }
