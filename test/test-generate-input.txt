@@ -145,3 +145,11 @@ Then fade on 720575940623781127 in 1/2 second.
 Show 720575940604653484 in 1/2 second.
 Then frame on all neurons in 1 second, and then hide them in 1/2 second.
 Hide the ROI in 1/2 second.
+
+===
+Frame on the main ROI from the FlyEM MANC.
+Fade it on over 1 sec.
+Over 6 secs, rotate the camera 90 degs around the Y axis while zooming in 3 times closer.
+During the rotation, make each of the following neurons fade on over 1/2 sec in turn:
+10268, 10320, 10116, 10227, 10229, 10265, 11783, 11384, 11949, 10911, 12189, 12218. 
+Wait 1/2 sec then fade everything off taking 1 sec.

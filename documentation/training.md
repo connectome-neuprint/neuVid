@@ -1,4 +1,4 @@
-<!-- VERSION: 1.1.0 -->
+<!-- VERSION: 1.2.0 -->
 
 # Input for neuVid
 
@@ -443,6 +443,23 @@ Example: Make `"G"` fade from alpha 1 to alpha 0.5 in staggered form, one neuron
 ```
 <!-- CHUNK END -->
 
+<!-- CHUNK START -->
+<!-- STEP: 2 -->
+Unless otherwise requested, use alpha 0.2 for an ROI that is fully faded "on". And when fading something off, be sure that the `"startingAlpha"` value matches the `"endingAlpha"` value from when it was faded on. That means a request to "fade everything off" should generate two `"fade"` commands, one for ROIs and one for other things, each with a different `"startingAlpha"` value. Example: Fade on neurons `"D"` and ROIs `"B"` taking 3 seconds. Then fade everything off taking 4 seconds:
+```json
+{
+  "animation": [
+    ["fade", {"meshes": "neurons.D", "startingAlpha": 0, "endingAlpha": 1, "duration": 3}],
+    ["fade", {"meshes": "rois.B", "startingAlpha": 0, "endingAlpha": 0.2, "duration": 3}],
+    ["advanceTime", {"by": 3}],
+    ["fade", {"meshes": "neurons.D", "startingAlpha": 1, "endingAlpha": 0, "duration": 4}],
+    ["fade", {"meshes": "rois.B", "startingAlpha": 0.2, "endingAlpha": 0, "duration": 4}],
+    ["advanceTime", {"by": 4}]
+  ]
+}
+```
+<!-- CHUNK END -->
+
 ### The `"frameCamera"` Command
 
 <!-- CHUNK START -->
@@ -768,7 +785,7 @@ In most cases a command with `"duration"` must be followed by an `"advanceTime"`
 
 <!-- CHUNK START -->
 <!-- STEP: 2 -->
-Example: Fade on `T` for 3 second. Then fade off `H` over 1 second:
+Example: Fade on `T` for 3 seconds. Then fade off `H` over 1 second:
 ```json
 {
   "animation": [
@@ -802,6 +819,7 @@ Example: For 5 seconds, fade on `U`. Orbit by 9 degrees over 2 seconds:
 ```json
 {
   "animation": [
+    ["setValue", {"meshes": "rois", "threshold": 1}],
     ["fade", {"meshes": "rois.U", "startingAlpha": 0, "endingAlpha": 1, "duration": 5}]
     ["advanceTime", {"by": 5}],
     ["orbitCamera", {"endingRelativeAngle": 9, "duration": 2}],
@@ -834,7 +852,7 @@ Exception example: Fade on `A` taking 5 seconds. At the same time, fade `M` off 
 {
   "animation": [
     ["fade", {"meshes": "rois.A", "startingAlpha": 0, "endingAlpha": 1, "duration": 5}],
-    ["fade", {"meshes": "synapses.M", "startingAlpha": 1, "endingAlpha": 0, "duration": 3}],
+    ["fade", {"meshes": "rois.M", "startingAlpha": 1, "endingAlpha": 0, "duration": 3}],
     ["advanceTime", {"by": 5}]
   ]
 }
@@ -847,6 +865,7 @@ Exception example: For 2 seconds fade `P` and `W` on, and frame the camera on `S
 ```json
 {
   "animation": [
+    ["setValue", {"meshes": "rois", "threshold": 1}],
     ["fade", {"meshes": "neurons.P + neurons.W", "startingAlpha": 0, "endingAlpha": 1, "duration": 2}],
     ["frameCamera", {"bound": "rois.S", "duration": 8}],
     ["advanceTime", {"by": 8}]
@@ -862,7 +881,7 @@ Example: Frame on `S`. Reveal `J` in 2 seconds.
 {
   "animation": [
     ["frameCamera", {"bound": "rois.S"}],
-    ["fade", {"meshes": "neurons.J", "startingAlpha": 0, "endingAlpha": 1, "duration": 2}],
+    ["fade", {"meshes": "rois.J", "startingAlpha": 0, "endingAlpha": 1, "duration": 2}],
     ["advanceTime", {"by": 2}]
   ]
 }
@@ -891,6 +910,7 @@ Example: For 5 seconds, frame on `K`. Then 8 seconds later, frame `B` over 9 sec
 ```json
 {
   "animation": [
+    ["setValue", {"meshes": "rois", "threshold": 1}],
     ["frameCamera", {"bound": "rois.K", "duration": 5}],
     ["advanceTime", {"by": 5}],
     ["advanceTime", {"by": 8}],
@@ -986,7 +1006,7 @@ Example: Frame `E` for 3 seconds. 1 second from the frame starting, fade `R` off
 ```json
 {
   "animation": [
-    ["frameCamera", {"bound": "neurons.E", "duration": 3}],
+    ["frameCamera", {"bound": "rois.E", "duration": 3}],
     ["advanceTime", {"by": 1}],
     ["fade", {"meshes": "rois.R", "startingAlpha": 1, "endingAlpha": 0, "duration": 4}],
     ["advanceTime", {"by": 4}]
@@ -1029,6 +1049,31 @@ Example: Orbit 75 degrees for 8 seconds. 2 seconds in, fade on `X` over 3 second
 }
 ```
 <!-- CHUNK END -->
+
+<!-- CHUNK START -->
+<!-- STEP: 2 -->
+When doing something to a list of items in turn, create a separate group for each item on its own, not one group for all items. Example: Frame on everything. Then frame on each of the following hemibrain neurons in turn, taking 2 seconds each time: 2, 1, 4.
+```json
+{
+  "neurons": {
+    "source": "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
+    "N1": [2],
+    "N2": [1],
+    "N3": [4]
+  },
+  "animation": [
+    ["frameCamera", {"bound": "neurons"}],
+    ["frameCamera", {"bound": "neurons.N1", "duration": 2}],
+    ["advanceTime", {"by": 2}],
+    ["frameCamera", {"bound": "neurons.N2", "duration": 2}],
+    ["advanceTime", {"by": 2}],
+    ["frameCamera", {"bound": "neurons.N3", "duration": 2}],
+    ["advanceTime", {"by": 2}],
+  ]
+}
+```
+<!-- CHUNK END -->
+
 
 ### Extending an Animation
 
