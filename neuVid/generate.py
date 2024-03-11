@@ -12,7 +12,7 @@ import tempfile
 import textwrap
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from gen import generate, get_raw_training_doc
+from gen import generate, generate_single_step, get_raw_training_doc
 from utilsGeneral import report_version
 
 class Worker(QRunnable):
@@ -21,7 +21,7 @@ class Worker(QRunnable):
     class Signaler(QObject):
         finished = Signal(dict)
                       
-    def __init__(self, raw_doc, previous_result, user_request, api_key, models, temperature):
+    def __init__(self, raw_doc, previous_result, user_request, api_key, models, temperature, step_count):
         super().__init__()
         self.raw_doc = raw_doc
         self.previous_result = previous_result
@@ -29,11 +29,17 @@ class Worker(QRunnable):
         self.api_key = api_key
         self.models = models
         self.temperature = temperature
+        self.step_count = step_count
         self.signaler = Worker.Signaler()
 
     def run(self):
-        result = generate(self.raw_doc, self.previous_result, self.user_request, 
-                          self.api_key, self.models, self.temperature)
+        if self.step_count == 1:
+            result = generate_single_step(self.raw_doc, self.previous_result, self.user_request, 
+                                          self.api_key, self.models, self.temperature)
+        else:
+            result = generate(self.raw_doc, self.previous_result, self.user_request, 
+                              self.api_key, self.models, self.temperature)
+
         self.signaler.finished.emit(result)
 
 class MainWindow(QMainWindow):
@@ -65,6 +71,7 @@ class MainWindow(QMainWindow):
         self.setup_input()
         self.set_model()
         self.set_api_key()
+        self.set_step_count()
 
         raw_doc_data = get_raw_training_doc()
         if not raw_doc_data["ok"]:
@@ -194,6 +201,10 @@ class MainWindow(QMainWindow):
         self.show_log_file_action.triggered.connect(self.show_log_file)
         settings_menu.addAction(self.show_log_file_action)
 
+        self.step_count_action = QAction(self.tr("Single vs. multiple steps..."), self)
+        self.step_count_action.triggered.connect(self.force_step_count)
+        settings_menu.addAction(self.step_count_action)
+
         if platform.system() == "Darwin":
             # This unusual pattern, with empty strings for names and the QAction.AboutRole,
             # is necessary for putting the "About" item in the application menu
@@ -285,7 +296,7 @@ class MainWindow(QMainWindow):
         
     def get_model_setting(self):
         KEY = "MODEL"
-        result = "gpt-4"
+        result = "claude-3-opus-20240229"
         if self.settings.contains(KEY):
             result = self.settings.value(KEY)
         return result
@@ -336,6 +347,26 @@ class MainWindow(QMainWindow):
         else:
             msg = "Logging is disabled"
         QMessageBox.information(self, self.tr("Log file"), self.tr(msg))
+
+    @Slot()
+    def force_step_count(self):
+        self.set_step_count(force=True)
+
+    def set_step_count(self, force=False):
+        KEY = "STEP_COUNT"
+        self.step_count = self.settings.value(KEY)
+        if not self.step_count:
+            self.step_count = 3
+            self.settings.setValue(KEY, self.step_count)
+        elif force:
+            items = ["One step (experimental)", "Three steps"]
+            current = 0 if self.step_count == 1 else 1
+            choice, ok = QInputDialog.getItem(self, f"Step Count", "Translation step count", items, current)
+            if ok and choice:
+                self.step_count = 1 if choice.startswith("One") else 3
+                self.settings.setValue(KEY, self.step_count)
+                path = self.settings.fileName()
+                QMessageBox.information(self, f"Step Count", f"The step count is stored in {path}")
 
     @Slot()
     def result_text_changed(self):
@@ -418,7 +449,7 @@ class MainWindow(QMainWindow):
         # May have been edited manually by the user.
         self.previous_result = self.result_textedit.toPlainText()
         worker = Worker(self.raw_doc, self.previous_result, self.user_request,
-                        self.api_key, self.models, self.temperature)
+                        self.api_key, self.models, self.temperature, self.step_count)
 
         # This signal will trigger this slot back on the main UI thread when the work is done.
         worker.signaler.finished.connect(self.worker_finished)
@@ -514,44 +545,53 @@ class MainWindow(QMainWindow):
 
         input_tokens_key, output_tokens_key = self.get_vendor_token_keys()
 
-        elapsed1 = result["elapsed_sec1"]
-        cost1 = result["cost_USD1"]
-        usage1 = result["usage1"]
-        input_tokens1 = usage1[input_tokens_key]
-        output_tokens1 = usage1[output_tokens_key]
-        total_tokens1 = usage1["total_tokens"] if "total_tokens" in usage1 else input_tokens1 + output_tokens1
-        generated_json1 = result["generated_json1"]
+        if self.step_count > 1:
+            elapsed1 = result["elapsed_sec1"]
+            cost1 = result["cost_USD1"]
+            usage1 = result["usage1"]
+            input_tokens1 = usage1[input_tokens_key]
+            output_tokens1 = usage1[output_tokens_key]
+            total_tokens1 = usage1["total_tokens"] if "total_tokens" in usage1 else input_tokens1 + output_tokens1
+            generated_json1 = result["generated_json1"]
 
-        log += f"Step 1 model {self.models[0]}\n"
-        log += f"Step 1 generation time {elapsed1} sec, cost ${cost1:.2f}\n"
-        log += f"Step 1 generation tokens: input {input_tokens1}, output {output_tokens1}, total {total_tokens1}\n"
-        log += f"Step 1 generated JSON:\n{generated_json1}"
+            log += f"Step 1 model {self.models[0]}\n"
+            log += f"Step 1 generation time {elapsed1} sec, cost ${cost1:.2f}\n"
+            log += f"Step 1 generation tokens: input {input_tokens1}, output {output_tokens1}, total {total_tokens1}\n"
+            log += f"Step 1 generated JSON:\n{generated_json1}"
 
-        elapsed2 = result["elapsed_sec2"]
-        cost2 = result["cost_USD2"]
-        usage2 = result["usage2"]
-        input_tokens2 = usage2[input_tokens_key]
-        output_tokens2 = usage2[output_tokens_key]
-        total_tokens2 = usage2["total_tokens"] if "total_tokens" in usage2 else input_tokens2 + output_tokens2
-        generated_json2 = result["generated_json2"]
+            elapsed2 = result["elapsed_sec2"]
+            cost2 = result["cost_USD2"]
+            usage2 = result["usage2"]
+            input_tokens2 = usage2[input_tokens_key]
+            output_tokens2 = usage2[output_tokens_key]
+            total_tokens2 = usage2["total_tokens"] if "total_tokens" in usage2 else input_tokens2 + output_tokens2
+            generated_json2 = result["generated_json2"]
 
-        log += f"Step 2 model {self.models[1]}\n"
-        log += f"Step 2 generation time {elapsed2} sec, cost ${cost2:.2f}\n"
-        log += f"Step 2 generation tokens: input {input_tokens2}, output {output_tokens2}, total {total_tokens2}\n"
-        log += f"Step 2 generated JSON:\n{generated_json2}"
+            log += f"Step 2 model {self.models[1]}\n"
+            log += f"Step 2 generation time {elapsed2} sec, cost ${cost2:.2f}\n"
+            log += f"Step 2 generation tokens: input {input_tokens2}, output {output_tokens2}, total {total_tokens2}\n"
+            log += f"Step 2 generated JSON:\n{generated_json2}"
 
-        elapsed3 = result["elapsed_sec3"]
-        cost3 = result["cost_USD3"]
-        usage3 = result["usage3"]
-        input_tokens3 = usage3[input_tokens_key]
-        output_tokens3 = usage3[output_tokens_key]
-        total_tokens3 = usage3["total_tokens"] if "total_tokens" in usage3 else input_tokens3 + output_tokens3
+            elapsed3 = result["elapsed_sec3"]
+            cost3 = result["cost_USD3"]
+            usage3 = result["usage3"]
+            input_tokens3 = usage3[input_tokens_key]
+            output_tokens3 = usage3[output_tokens_key]
+            total_tokens3 = usage3["total_tokens"] if "total_tokens" in usage3 else input_tokens3 + output_tokens3
+
+            log += f"Step 3 model {self.models[2]}\n"
+            log += f"Step 3 generation time {elapsed3} sec, cost ${cost3:.2f}\n"
+            log += f"Step 3 generation tokens: input {input_tokens3}, output {output_tokens3}, total {total_tokens3}\n"
+        else:
+            usage = result["usage"]
+            input_tokens = usage[input_tokens_key]
+            output_tokens = usage[output_tokens_key]
+            total_tokens = usage["total_tokens"] if "total_tokens" in usage else input_tokens + output_tokens
+
+            log += f"Model {self.models[0]}\n"
+            log += f"Generation tokens: input {input_tokens}, output {output_tokens}, total {total_tokens}\n"
+
         generated_json = result["generated_json"]
-
-        log += f"Step 3 model {self.models[2]}\n"
-        log += f"Step 3 generation time {elapsed3} sec, cost ${cost3:.2f}\n"
-        log += f"Step 3 generation tokens: input {input_tokens3}, output {output_tokens3}, total {total_tokens3}\n"
-
         elapsed = result["elapsed_sec"]
         cost = result["cost_USD"]
 
