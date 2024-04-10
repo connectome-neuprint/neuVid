@@ -37,6 +37,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--inputJson", "-ij", "-i", dest="inputJsonFile", help="path to the JSON file describing the input")
 parser.add_argument("--inputBlender", "-ib", dest="inputBlenderFile", help="path to the input .blend file")
 parser.add_argument("--output", "-o", dest="outputFile", help="path for the output .blend file")
+parser.set_defaults(strict=False)
+parser.add_argument("--strict", dest="strict", action="store_true", help="use strict behavior (e.g., stop when a name cannot be found)")
 args = parser.parse_args(argv)
 
 if args.inputJsonFile == None:
@@ -81,7 +83,7 @@ if not "animation" in jsonData:
     sys.exit()
 jsonAnim = jsonData["animation"]
 
-def meshObjs(name):
+def meshObjs(name, strict):
     global groupToNeuronIds, groupToRoiNames, groupToSynapseSetNames, useSeparateNeuronFiles
 
     # Support names of the form "A - B + C - D", meaning everything in A or C
@@ -135,7 +137,13 @@ def meshObjs(name):
     result = []
     for objName in addObjNames.keys():
         if not objName in subObjNames:
-            result.append(bpy.data.objects[objName])
+            if objName not in bpy.data.objects:
+                if strict:
+                    print("ERROR: could not find '{}'".format(objName))
+                    sys.exit()
+                print("WARNING: could not find '{}'".format(objName))
+            else:
+                result.append(bpy.data.objects[objName])
     return result
 
 def bounds(name):
@@ -299,7 +307,7 @@ def validateCmdArgs(cmdName, supportedArgs, actualArgs):
 # The Python function implementing command `x` must be named `xCmd`.  The `Cmd` suffix simplifies  
 # printing all the supported commands when an erroneous command is parsed.
 
-def advanceTimeCmd(args):
+def advanceTimeCmd(args, strict):
     validateCmdArgs("advanceTime", ["by"], args)
 
     global time, tentativeEndTime
@@ -315,7 +323,7 @@ def advanceTimeCmd(args):
         print("Error: advanceTime: missing argument 'by'")
         sys.exit()
 
-def setValueCmd(args):
+def setValueCmd(args, strict):
     validateCmdArgs("setValue", ["meshes", "alpha", "color", "exponent", "threshold", "stagger"], args)
 
     # Makes an instantaneous change, so mostly useful for setting an initial value.
@@ -350,8 +358,8 @@ def setValueCmd(args):
             print("Error: setValue: unsupported arguments {}".format(args))
             return
 
-        objs = meshObjs(meshes)
-        if objs is None: # empty list of meshes skips the fade
+        objs = meshObjs(meshes, strict)
+        if objs is None:
             return
 
         if "color" in args and staggerFrac:
@@ -397,7 +405,7 @@ def bboxAxisForViewVector(v):
     # TODO: Pick the axis with maximal projection?
     return 2
 
-def frameCameraCmd(args):
+def frameCameraCmd(args, strict):
     validateCmdArgs("frameCamera", ["bound", "scale", "duration"], args)
 
     global time, tentativeEndTime, lastCameraCenter
@@ -453,7 +461,7 @@ def frameCameraCmd(args):
     else:
         print("Error: frameCamera: unknown bound object '{}'".format(args["bound"]))
 
-def fadeCmd(args):
+def fadeCmd(args, strict):
     validateCmdArgs("fade", ["meshes", "image", "source", "startingAlpha", "endingAlpha", "startingColor", "endingColor", 
                              "startingLocation", "endingLocation", "stagger", "duration"], args)
 
@@ -489,8 +497,8 @@ def fadeCmd(args):
         tentativeEndTime = max(time + duration, tentativeEndTime)
     if "meshes" in args:
         meshes = args["meshes"]
-        objs = meshObjs(meshes)
-        if objs is None: # empty list of meshes skips the fade
+        objs = meshObjs(meshes, strict)
+        if objs is None:
             return
 
         startingTime = time
@@ -632,7 +640,7 @@ def fadeCmd(args):
             setMaterialValue(mat, "alpha", endingAlpha)
             insertMaterialKeyframe(mat, "alpha", frame(time + duration))
 
-def pulseCmd(args):
+def pulseCmd(args, strict):
     validateCmdArgs("pulse", ["meshes", "toColor", "rate", "duration"], args)
 
     global time, tentativeEndTime, colors
@@ -652,8 +660,8 @@ def pulseCmd(args):
         pulseColor = getColor(colorId, colors)
         print("{}, {}: pulse meshes '{}' to color {}: {}".format(frame(), frame(time + duration), meshes, colorId, pulseColor))
 
-        objs = meshObjs(meshes)
-        if objs is None: # empty list of meshes skips the fade
+        objs = meshObjs(meshes, strict)
+        if objs is None:
             return
         for obj in objs:
             matName = "Material." + obj.name
@@ -692,7 +700,7 @@ def orbitAxis(args):
     except:
         return None
 
-def orbitCameraCmd(args):
+def orbitCameraCmd(args, strict):
     validateCmdArgs("orbitCamera", ["around", "axis", "localAxis", "endingRelativeAngle", "scale", "duration"], args)
 
     # If arg "around" is "a.b" then orbiting will be around the location of
@@ -808,7 +816,7 @@ def orbitCameraCmd(args):
     lastViewVector = (camera.location - lastCameraCenter).normalized()
     updateCameraClip(camera.name)
 
-def centerCameraCmd(args):
+def centerCameraCmd(args, strict):
     validateCmdArgs("centerCamera", ["position", "fraction", "duration"], args)
 
     global time, tentativeEndTime, lastCameraCenter
@@ -854,7 +862,7 @@ def centerCameraCmd(args):
 
             lastCameraCenter = center
 
-def showPictureInPictureCmd(args):
+def showPictureInPictureCmd(args, strict):
     validateCmdArgs("showPictureInPicture", ["image", "duration"], args)
 
     global time, tentativeEndTime
@@ -925,7 +933,7 @@ def showPictureInPictureCmd(args):
 
             print("  frame_start {}, frame_duration {}".format(tex.image_user.frame_start, tex.image_user.frame_duration))
 
-def showSliceCmd(args):
+def showSliceCmd(args, strict):
     validateCmdArgs("showSlice", ["image", "bound", "euler", "scale", "distance", "delay", "fade", "duration"], args)
 
     global time, tentativeEndTime
@@ -1017,7 +1025,7 @@ def showSliceCmd(args):
         if tex:
             tex.image_user.frame_start = frame(time + delay)
 
-def poseCameraCmd(args):
+def poseCameraCmd(args, strict):
     # The "target" is what Neuroglancer calls "position", what the camera is looking at.
     # The "orientation" is a quaternion, in Neuroglancer format (x, y, z, w).
     # The "distance" also matches Neuroglancer's camera state, the distance from the 
@@ -1087,7 +1095,7 @@ def poseCameraCmd(args):
         print("Error: poseCamera: missing argument 'target'")
         sys.exit()
 
-def labelCmd(args):
+def labelCmd(args, strict):
     validateCmdArgs("label", ["text", "size", "position", "color", "duration"], args)
 
     global time, tentativeEndTime, lastCameraCenter
@@ -1192,10 +1200,10 @@ for step in jsonAnim:
         print("Invalid animation command name: '{}'".format(toJsonQuotes(cmdName)))
         print(properCmdStructure())
         sys.exit()
-    args = step[1]
-    if not isinstance(args, dict):
+    cmdArgs = step[1]
+    if not isinstance(cmdArgs, dict):
         print(invalidLineMsg(step))
-        print("Invalid animation command arguments: '{}'".format(toJsonQuotes(args)))
+        print("Invalid animation command arguments: '{}'".format(toJsonQuotes(cmdArgs)))
         print(properCmdStructure())
         sys.exit()
     # The Python function implementing command `x` must be named `xCmd`.  The `Cmd` suffix simplifies  
@@ -1203,7 +1211,7 @@ for step in jsonAnim:
     cmdName += "Cmd"
     if cmdName in globals():
         cmd = globals()[cmdName]
-        cmd(args)
+        cmd(cmdArgs, args.strict)
     else:
         print("Invalid animation step:\n  {}".format(step))
         print("Unrecognized animation command: '{}'".format(cmdNamePublic(cmdName)))

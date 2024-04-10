@@ -606,7 +606,10 @@ if "synapses" in jsonData:
         key = "Synapses." + synapseSetName
         if not key in bpy.data.objects:
             print("Missing '{}': run fetchMeshes.py or buildSynapses.py".format(key))
-            exit()
+            if args.strict:
+                sys.exit()
+            else:
+                continue
         objs = [bpy.data.objects[key]]
         bboxCenter, bboxMin, bboxMax = computeBbox(objs)
         radius = computeBsphere(objs, bboxCenter)
