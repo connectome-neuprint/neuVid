@@ -458,6 +458,15 @@ def frameCameraCmd(args, strict):
         camera.location = eye
         camera.keyframe_insert("location", frame=frame(time + duration))
         updateCameraClip(camera.name)
+
+        # With the additional camera movement caused by "scale", the standard Bezier interpolation
+        # can eliminate the easing at the end, giving an odd "clunk".  Fix it by changing the interpolation method.
+        if "scale" in args:
+            for fcurve in camera.animation_data.action.fcurves:
+                for kf in fcurve.keyframe_points:
+                    kf.interpolation = "SINE"
+                    kf.easing = "EASE_IN_OUT"
+
     else:
         print("Error: frameCamera: unknown bound object '{}'".format(args["bound"]))
 
