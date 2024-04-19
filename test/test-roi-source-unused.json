@@ -1,0 +1,19 @@
+{
+    "rois": {
+        "source": [
+            "https://storage.googleapis.com/flyem-optic-lobe/rois/brain-shell-v2.2/mesh/", 
+            "https://storage.googleapis.com/flyem-optic-lobe/rois/vnc-shell/mesh/",
+            "https://storage.googleapis.com/flyem-optic-lobe/rois/fullbrain-major-shells/mesh/"
+        ],
+        "Shell": {"ids": ["brain-shell.ngmesh"], "sourceIndex": 0},
+        "VNC": {"ids": ["vnc-shell.ngmesh"], "sourceIndex": 1}
+        // Note that source index 2 is unused.
+    },
+    "animation": [
+        ["frameCamera", {"bound": "rois"}],
+        ["fade", {"meshes": "rois.VNC", "startingAlpha": 0, "endingAlpha": 0.2, "duration": 0.5}],
+        ["advanceTime", {"by": 0.5}],
+        ["fade", {"meshes": "rois.VNC", "startingAlpha": 0, "endingAlpha": 0.2, "duration": 0.5}],
+        ["advanceTime", {"by": 0.5}]
+    ]
+}

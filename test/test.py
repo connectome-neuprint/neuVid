@@ -153,7 +153,6 @@ if __name__ == "__main__":
 
     runtime0 = datetime.datetime.now()
 
-
     run_test("test-id-list-hemi", [1, 75, 100, 190], cmds)
     run_test("test-id-file-manc", [1, 25, 50, 75, 100, 125, 144], cmds)
     run_test("test-source-array-synapses-hemi", [1, 25, 50, 75, 100, 125, 150, 175, 200, 225, 240], cmds)
@@ -164,6 +163,7 @@ if __name__ == "__main__":
     cmds2 = cmds.copy()
     cmds2["import_extra_args"] = "--skipExisting"
     run_test("test-separate-files-hemi", [1, 10, 55, 60, 65, 70, 122, 145], cmds2)
+    run_test("test-roi-source-unused", [1, 6, 12, 18, 24], cmds)
 
     runtime1 = datetime.datetime.now()
 

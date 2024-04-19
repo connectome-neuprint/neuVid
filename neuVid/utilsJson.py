@@ -148,7 +148,13 @@ def parseNeuronsIds(jsonNeurons, limit=0):
     return neuronIdsSorted, groupToNeuronIds, groupToMeshesSourceIndex, useSeparateNeuronFiles
 
 def parseRoiNames(jsonRois):
-    roiNames = [set()]
+    n = 1
+    if "source" in jsonRois:
+        sources = jsonRois["source"]
+        if isinstance(sources, list):
+            n = len(sources)
+    roiNames = [set() for i in range(n)]
+
     groupToRoiNames = {}
     # The mapping from group name to the index in the array of directories
     # for mesh files; using an array supports mutiple mesh sources.
@@ -178,8 +184,6 @@ def parseRoiNames(jsonRois):
             iMeshesPath = 0
             if "sourceIndex" in jsonDict:
                 iMeshesPath = jsonDict["sourceIndex"]
-                while len(roiNames) <= iMeshesPath:
-                    roiNames.append(set())
             groupToMeshesSourceIndex[key] = iMeshesPath
 
             if "ids" in jsonDict:
