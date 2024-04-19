@@ -1,6 +1,8 @@
 # Utility functions related to loading meshes.
 
 from io import BytesIO
+import math
+import mathutils
 import numpy as np
 import os
 import os.path
@@ -174,6 +176,39 @@ def roiNameClean(roiName):
     # Another problem is that OS X treats filenames "aL" and "AL" as identical.
     roiClean = roiClean.replace("a", "aa")
     return roiClean
+
+# Gets a NumPy array of (x, y, z) triples for the vertices of the objects in `objs`.
+# NOTE: assumes the world matrix is the identity, which is true (at least currently) in neuVid.
+def get_vertices_np(objs):
+    if len(objs) == 0:
+        return []
+    result = []
+    vertices_by_obj = []
+    for obj in objs:
+            vertices = np.empty((len(obj.data.vertices), 3), dtype=np.float32)
+            obj.data.vertices.foreach_get("co", vertices.ravel())
+            vertices_by_obj.append(vertices)
+    result = np.concatenate(vertices_by_obj, axis=0)
+    return result
+
+# Takes as input the output from get_vertices_np().
+def get_bounding_box_np(vertices):
+    if len(vertices) == 0:
+        return mathutils.Vector((0, 0, 0)), mathutils.Vector((0, 0, 0)), mathutils.Vector((0, 0, 0))
+    mini = np.min(vertices, axis=0)
+    maxi = np.max(vertices, axis=0)
+    ctr = (mini + maxi) / 2
+    return mathutils.Vector(ctr), mathutils.Vector(mini), mathutils.Vector(maxi)
+
+# Takes as input the output from get_vertices_np() and the sphere center.
+def get_bounding_sphere_np(vertices, ctr):
+    if len(vertices) == 0:
+        return 0
+    centered = vertices - ctr
+    dotted = np.sum(centered * centered, axis=-1)
+    radius_squared = np.max(dotted)
+    radius =  math.sqrt(radius_squared)
+    return radius
 
 # The following functions are copied from https://github.com/janelia-flyem/vol2mesh
 # (with Python 3.6 "f-strings" replaced by "format" calls).

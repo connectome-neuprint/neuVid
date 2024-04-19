@@ -21,7 +21,7 @@ from utilsColors import colors, getColor, shuffledColorsForSmallDataSets
 from utilsGeneral import newObject, report_version
 from utilsJson import decode_id, guess_extraneous_comma, parseNeuronsIds, parseRoiNames, removeComments
 from utilsMaterials import newBasicMaterial, newGlowingMaterial, newSilhouetteMaterial
-from utilsMeshes import fileToImportForRoi, fileToImportForNeuron, fileToImportForSynapses
+from utilsMeshes import fileToImportForRoi, fileToImportForNeuron, fileToImportForSynapses, get_bounding_box_np, get_bounding_sphere_np, get_vertices_np
 
 report_version()
 
@@ -95,36 +95,6 @@ if jsonData == None:
     sys.exit()
 
 #
-
-def computeBbox(objs):
-    limit = sys.float_info.max
-    bboxMin = [ limit,  limit,  limit]
-    bboxMax = [-limit, -limit, -limit]
-    for obj in objs:
-        if bpy.app.version < (2, 80, 0):
-            verts = [(obj.matrix_world * vert.co).to_tuple() for vert in obj.data.vertices]
-        else:
-            verts = [(obj.matrix_world @ vert.co).to_tuple() for vert in obj.data.vertices]
-        for vert in verts:
-          for i in range(len(vert)):
-              c = float(vert[i])
-              bboxMin[i] = min(bboxMin[i], c)
-              bboxMax[i] = max(bboxMax[i], c)
-
-    bboxCenter = [(bboxMin[i] + bboxMax[i]) / 2 for i in range(3)]
-    return (mathutils.Vector(bboxCenter), mathutils.Vector(bboxMin), mathutils.Vector(bboxMax))
-
-def computeBsphere(objs, center):
-    radius = 0
-    c = mathutils.Vector(center)
-    for obj in objs:
-        if bpy.app.version < (2, 80, 0):
-            verts = [obj.matrix_world * vert.co for vert in obj.data.vertices]
-        else:
-            verts = [obj.matrix_world @ vert.co for vert in obj.data.vertices]
-        for vert in verts:
-            radius = max((vert - c).length, radius)
-    return radius
 
 def deleteObjects():
     for obj in bpy.data.objects:
@@ -367,8 +337,9 @@ for i in range(len(neuronSources)):
             if not useExistingSeparate:
                 groupNeuronIds = groupToNeuronIds[groupName]
                 objs = [bpy.data.objects["Neuron." + id] for id in groupNeuronIds if "Neuron." + id in bpy.data.objects]
-                bboxCenter, bboxMin, bboxMax = computeBbox(objs)
-                radius = computeBsphere(objs, bboxCenter)
+                vertices = get_vertices_np(objs)
+                bboxCenter, bboxMin, bboxMax = get_bounding_box_np(vertices)
+                radius = get_bounding_sphere_np(vertices, bboxCenter)
                 groupToBBox[groupName] = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
                 addBoundObj("neurons." + groupName, groupToBBox[groupName])
             else:
@@ -376,8 +347,9 @@ for i in range(len(neuronSources)):
 
     if not useExistingSeparate:
         objs = [bpy.data.objects["Neuron." + id] for id in neuronIds[i] if "Neuron." + id in bpy.data.objects]
-        bboxCenter, bboxMin, bboxMax = computeBbox(objs)
-        radius = computeBsphere(objs, bboxCenter)
+        vertices = get_vertices_np(objs)
+        bboxCenter, bboxMin, bboxMax = get_bounding_box_np(vertices)
+        radius = get_bounding_sphere_np(vertices, bboxCenter)
         meshesSourceIndexToBBox[i] = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
         addBoundObj("neurons", meshesSourceIndexToBBox[i])
     else:
@@ -593,8 +565,9 @@ if "rois" in jsonData:
     for groupName in groupToRoiNames.keys():
         roiNames = groupToRoiNames[groupName]
         objs = [bpy.data.objects["Roi." + name] for name in roiNames if "Roi." + name in bpy.data.objects]
-        bboxCenter, bboxMin, bboxMax = computeBbox(objs)
-        radius = computeBsphere(objs, bboxCenter)
+        vertices = get_vertices_np(objs)
+        bboxCenter, bboxMin, bboxMax = get_bounding_box_np(vertices)
+        radius = get_bounding_sphere_np(vertices, bboxCenter)
         data = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
         addBoundObj("rois." + groupName, data)
 
@@ -611,8 +584,9 @@ if "synapses" in jsonData:
             else:
                 continue
         objs = [bpy.data.objects[key]]
-        bboxCenter, bboxMin, bboxMax = computeBbox(objs)
-        radius = computeBsphere(objs, bboxCenter)
+        vertices = get_vertices_np(objs)
+        bboxCenter, bboxMin, bboxMax = get_bounding_box_np(vertices)
+        radius = get_bounding_sphere_np(vertices, bboxCenter)
         data = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
         addBoundObj("synapses." + synapseSetName, data)
 
@@ -640,15 +614,17 @@ if useSeparateNeuronFiles:
     allNeuronsData = unionBounds(meshesSourceIndexToBBox)
 else:
     allNeurons = [o for o in bpy.data.objects if o.name.startswith("Neuron.")]
-    bboxCenter, bboxMin, bboxMax = computeBbox(allNeurons)
-    radius = computeBsphere(allNeurons, bboxCenter)
+    vertices = get_vertices_np(allNeurons)
+    bboxCenter, bboxMin, bboxMax = get_bounding_box_np(vertices)
+    radius = get_bounding_sphere_np(vertices, bboxCenter)
     allNeuronsData = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
 addBoundObj("neurons", allNeuronsData)
 
 if "rois" in jsonData:
     allRois = [o for o in bpy.data.objects if o.name.startswith("Roi.")]
-    bboxCenter, bboxMin, bboxMax = computeBbox(allRois)
-    radius = computeBsphere(allRois, bboxCenter)
+    vertices = get_vertices_np(allRois)
+    bboxCenter, bboxMin, bboxMax = get_bounding_box_np(vertices)
+    radius = get_bounding_sphere_np(vertices, bboxCenter)
     allRoisData = { "center" : bboxCenter, "min" : bboxMin, "max" : bboxMax, "radius" : radius }
     addBoundObj("rois", allRoisData)
 
