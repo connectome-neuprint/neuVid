@@ -1,5 +1,11 @@
 # neuVid Documentation
 
+## Quick Start
+
+The following tutorial videos walk through the basics of using neuVid:
+* [Making Neuron Videos with neuPrint and neuVid](https://www.youtube.com/watch?v=bxbW0cumPPQ)
+* [Camera Motion in Neuron Videos with neuPrint and neuVid](https://www.youtube.com/watch?v=P3VbpETjCjY)
+
 ## Introduction
 
 The goal of `neuVid` is to simplify production of the rather stereotyped videos common in neuroscience research on the *Drosophila* fruit fly.  An important aspect of these videos is that they have simple camera motion: the camera usually starts looking at the fly brain face on (i.e., as if the fly were looking straight at the camera with its right on the camera's left), and translates freely but changes its viewing direction only by rotating around the  vertical axis.  The absence of free-form camera motion helps viewers stay oriented and understand what they are seeing.  It also keeps `neuVid` simple, with simpler commands to specify the animation, and a simpler implementation.
