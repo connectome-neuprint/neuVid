@@ -2,6 +2,31 @@
 
 Click on an image to play the video. [Return to the neuVid documentation](https://github.com/connectome-neuprint/neuVid).
 
+## FlyEM Optic Lobe (2024)
+
+[FlyEM optic lobe project page](https://www.janelia.org/project-team/flyem/optic-lobe)
+
+<p align="center">
+<a href="https://www.youtube.com/watch?v=-9_arTj_9lc">
+    <img
+        src="https://img.youtube.com/vi/-9_arTj_9lc/hqdefault.jpg"
+        alt="Drosophila optic lobe overview"
+    />
+</a>
+<br>
+<em>Drosophila</em> optic lobe overview.
+</p>
+
+<p align="center">
+<a href="https://www.youtube.com/watch?v=fWW0gQlut9U">
+    <img
+        src="https://img.youtube.com/vi/fWW0gQlut9U/hqdefault.jpg"
+        alt="Columnar neurons from the Drosophila optic lobe"
+    />
+</a>
+<br>
+Columnar neurons from the <em>Drosophila</em> optic lobe.
+</p>
 ## MouseLight (2023)
 
 [MouseLight project page](https://www.janelia.org/project-team/mouselight)
