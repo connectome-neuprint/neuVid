@@ -27,6 +27,7 @@ Click on an image to play the video. [Return to the neuVid documentation](https:
 <br>
 Columnar neurons from the <em>Drosophila</em> optic lobe.
 </p>
+
 ## MouseLight (2023)
 
 [MouseLight project page](https://www.janelia.org/project-team/mouselight)
