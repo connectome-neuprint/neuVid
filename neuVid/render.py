@@ -1387,7 +1387,7 @@ if args.useCycles:
 
     bpy.context.scene.cycles.device = "CPU"
     cyclesPrefs.compute_device_type = "NONE"    
-    if platform.system == "Darwin":
+    if platform.system() == "Darwin":
         # https://docs.blender.org/manual/en/latest/render/cycles/gpu_rendering.html#metal-apple-macos
         # "macOS 12.2 is required to use Metal with Apple Silicon"
         if args.useMetal:
