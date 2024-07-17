@@ -92,15 +92,19 @@ def get_clipboard():
     if platform.system() == "Darwin" or platform.system() == "Linux":
         try:
             import subprocess
+            print("Opening subprocess (Darwin)")
             if platform.system() == "Darwin":
                 p = subprocess.Popen(["pbpaste"], stdout=subprocess.PIPE)
             else:
                 p = subprocess.Popen(["xclip", "-selection", "clipboard", "-o"], stdout=subprocess.PIPE)
-            if p.wait() == 0:
-                data = p.stdout.read()
-                clip = str(data)[2:-1]
-            else:
-                print("Could not access clipboard")
+            print("Waiting on subprocess")
+            try:
+                p.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                print("Waiting timed out, proceeding anyway")
+            print("Reading stdout")
+            data = p.stdout.read()
+            clip = str(data)[2:-1]
         except:
             print("Could not access clipboard")
     elif platform.system() == "Windows":
@@ -824,6 +828,8 @@ def process_ng_state_sources(ng_state, time, time_next, split):
                     # In case the preceding function made the name more sensible.
                     name = layer_name(layer)
                     src = layer_source(layer)
+                    if not src:
+                        continue
                     if not src in sources:
                         sources.append(src)
                     if layer_is_segmentation(layer):
@@ -971,6 +977,7 @@ if __name__ == "__main__":
     if not args.input:
         print("Using clipboard input")
         clip = get_clipboard()
+        print("Clipboard length: {} bytes".format(len(clip)))
         if clip:
             input_lines = [clip]
         else:
