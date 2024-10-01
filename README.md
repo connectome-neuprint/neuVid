@@ -61,8 +61,10 @@ When importing from Neuroglancer outside `neuPrint`, some extra Python modules a
 ```
 conda create --name neuVid-NG python=3.9
 conda activate neuVid-NG
-pip install meshparty open3d
+python -m pip install meshparty==1.16.7 open3d==0.15.1 trimesh==3.15.1 'numpy<2'
 ```
+Note that as of Q4 2024, the explicit versions for `meshparty`, `open3d` and `trimesh`, and the requirement of not using `numpy` version 2, seem to be necessary to get the (arguably fragile) process of importing from FlyWire to work successfuly.
+
 Then follow these steps to use `neuVid`:
 
 1. Make sure Blender is installed, and this repository is cloned, as above.
