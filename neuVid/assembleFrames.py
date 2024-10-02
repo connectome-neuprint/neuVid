@@ -111,7 +111,13 @@ bpy.context.scene.render.resolution_percentage = 100
 bpy.context.scene.render.pixel_aspect_x = 1
 bpy.context.scene.render.pixel_aspect_y = 1
 
-bpy.context.scene.render.image_settings.file_format = "AVI_JPEG"
+if bpy.app.version < (4, 2, 0):
+    bpy.context.scene.render.image_settings.file_format = "AVI_JPEG"
+else :
+    bpy.context.scene.render.image_settings.file_format = "FFMPEG"
+    bpy.context.scene.render.ffmpeg.format = "AVI"
+    bpy.context.scene.render.ffmpeg.codec = "H264"
+
 bpy.context.scene.render.fps = 24
 
 bpy.context.scene.render.filepath = outputDir
