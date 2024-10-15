@@ -745,7 +745,43 @@ Required arguments:
 
 Optional arguments:
 - `duration` (default: 1)
-- `stagger` (default: `false`) : `true` means meshes change alpha/color one by one at an accelerating rate; `"constant"` means they change one by one at a constant rate
+- `stagger` (default: `false`) : `true` means meshes change alpha/color one by one at an accelerating rate; `"constant"` means they change one by one at a constant rate.
+
+The `stagger` argument to `fade` makes meshes appear in the order they are listed.  In the last example, here, the meshes appear in the order their IDs are listed in the file `./ids.txt`:
+```json
+{
+  "neurons": {
+    "ascending": [424789697, 5813022341, 612371421, 673509195],
+    "descending": [673509195, 612738462, 612371421, 487925037],
+    "file": { "ids": "./ids.txt" },
+    "source": "https://hemibrain-dvid.janelia.org/api/node/52a13/segmentation_meshes"
+  },
+  "animation": [
+    [ "fade", { "meshes": "neurons.ascending", "startingAlpha": 0, "endingAlpha": 1, "duration": 1, "stagger": "constant" } ],
+    [ "advanceTime", { "by": 1 } ],
+    [ "fade", { "meshes": "neurons.descending", "startingAlpha": 0, "endingAlpha": 1, "duration": 1, "stagger": "constant" } ],
+    [ "advanceTime", { "by": 1 } ],
+    [ "fade", { "meshes": "neurons.file", "startingAlpha": 0, "endingAlpha": 1, "duration": 1, "stagger": "constant" } ],
+    [ "advanceTime", { "by": 1 } ],
+    [ "fade", { "meshes": "neurons", "startingAlpha": 0, "endingAlpha": 1, "duration": 1, "stagger": "constant" } ],
+    [ "advanceTime", { "by": 1 } ]
+  ]
+}
+```
+Note that in the last `"fade"` command, which operates on all neurons by specifying a general `"meshes": "neurons"` (with no `.` and group name), the order of the neurons is undetermined.
+
+The `sortByBbox.py` script is helpful for specifying a meaningful ordering.  It takes a list of mesh IDs and a directory of mesh files, and produces a list of IDs sorted by various properties of the meshes' bounding boxes.  Its arguments are:
+* `-input` (`-i`): the path to the file with the unordered mesh IDs
+* `-inputmeshes` (`-im`): the path to the directory with the mesh files
+* `-output` (`-o`): the path to the resulting file of ordered mesh IDs
+* `--sort min|max|mid|size`: the bounding box property to sort on, where `mid` means center, and `size` means volume
+* `--axis 0|1|2`: the axis where 0 means _x_, 1 means _y_, 2 means _z_, to be used with `min`, `max`, or `mid`
+* `--descending`: sort in descending order, instead of the default of ascending order
+
+For example:
+```
+blender --background --python sortByBbox.py -- --input ids-original.txt --inputmeshes neuVidNeuronMeshes --output ids-sorted.txt --sort min --axis 2 --descending
+```
 
 ### `frameCamera`
 
