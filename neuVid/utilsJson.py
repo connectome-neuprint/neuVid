@@ -52,6 +52,13 @@ def decode_id(id):
         return id.split("_")[0]
     return id
 
+def get_ids_from_file(path):
+    with open(path, "r") as f:
+        ids0 = f.read()
+    ids1 = ids0.replace("\n", " ")
+    ids2 = ids1.replace(",", " ")
+    return ids2.split()
+
 def parseNeuronsIds(jsonNeurons, limit=0):
     # neuronIds[i] is the set of neuron IDs for source i.
     neuronIds = [set()]
@@ -125,17 +132,16 @@ def parseNeuronsIds(jsonNeurons, limit=0):
                     else:
                         idsFile = idsPath + idsItem
                         try:
-                            with open(idsFile) as f:
-                                i = 0
-                                for line in f:
-                                    id = line[0:-1]
-                                    id = encode_id(id, iMeshesPath)
-                                    neuronIds[iMeshesPath].add(id)
-                                    groupToNeuronIds[key].append(id)
+                            ids = get_ids_from_file(idsFile)
+                            i = 0
+                            for id in ids:
+                                id = encode_id(id, iMeshesPath)
+                                neuronIds[iMeshesPath].add(id)
+                                groupToNeuronIds[key].append(id)
 
-                                    i += 1
-                                    if i == limit:
-                                        break
+                                i += 1
+                                if i == limit:
+                                    break
                         except Exception as e:
                             print("Error: cannot read neuron IDs file '{}': '{}'".format(idsFile, str(e)))
 
