@@ -141,7 +141,7 @@ if __name__ == "__main__":
     parser.set_defaults(output="/tmp")
     parser.add_argument("--output", "-o", help="path to the output directory for the output log file")
     parser.set_defaults(api_key="")
-    parser.add_argument("--apikey", "-a", help="API key")
+    parser.add_argument("--apikey", "-a", dest="api_key", help="API key")
     parser.set_defaults(model="gpt-4")
     parser.add_argument("--model", "-m", help="model name")
     parser.set_defaults(temperature=0)
