@@ -1,4 +1,4 @@
-<!-- VERSION: 1.2.0 -->
+<!-- VERSION: 1.3.0 -->
 
 # Input for neuVid
 
@@ -157,6 +157,79 @@ Example: Use two local directories for meshes, `"u/q"` and `"z/p"`. Neuron group
 ```
 <!-- CHUNK END -->
 
+<!-- CHUNK START -->
+<!-- STEP: 1 -->
+When doing something to a list of items in turn, create a separate group for each item on its own, not one group for all items.
+
+Example: Frame on each of the following hemibrain neurons in turn, taking 2 seconds each time: 2, 1, 4.
+```json
+{
+  "neurons": {
+    "source": "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
+    "N1": [2],
+    "N2": [1],
+    "N3": [4]
+  },
+  "animation": [
+    ["frameCamera", {"bound": "neurons.N1", "duration": 2}],
+    ["advanceTime", {"by": 2}],
+    ["frameCamera", {"bound": "neurons.N2", "duration": 2}],
+    ["advanceTime", {"by": 2}],
+    ["frameCamera", {"bound": "neurons.N3", "duration": 2}],
+    ["advanceTime", {"by": 2}]
+  ]
+}
+```
+<!-- CHUNK END -->
+The `"frameCamera"` and `"advanceTime"` commands are described later.
+
+<!-- CHUNK START -->
+<!-- STEP: 1 -->
+Do not use array notation like `neurons.N1[0]` and `neurons.N1[1]` to operate on members of a group independently.
+
+Example: Make neurons 3 then 7 followed by 5 appear taking 3 seconds each, offset by 4 seconds.
+```json
+{
+  "neurons": {
+    "source": "https://manc-dvid.janelia.org/api/node/v1.0/segmentation_meshes",
+    "N1": [3],
+    "N2": [7],
+    "N3": [5]
+  },
+  "animation": [
+    ["fade", {"meshes": "neurons.N1", "startingAlpha": 0, "endingAlpha": 1, "duration": 3}],
+    ["advanceTime", {"by": 4}],
+    ["fade", {"meshes": "neurons.N2", "startingAlpha": 0, "endingAlpha": 1, "duration": 3}],
+    ["advanceTime", {"by": 4}],
+    ["fade", {"meshes": "neurons.N3", "startingAlpha": 0, "endingAlpha": 1, "duration": 3}],
+    ["advanceTime", {"by": 4}]
+  ]
+}
+```
+<!-- CHUNK END -->
+The `"fade"` and `"advanceTime"` commands are described later.
+
+<!-- CHUNK START -->
+<!-- STEP: 1 -->
+Never add an `"all"` key. Instead use `"neurons"` with no group to refer to all neurons.
+
+Example: Frame on all neurons taking 2 seconds.
+```json
+{
+  "neurons": {
+    "source": "https://manc-dvid.janelia.org/api/node/v1.0/segmentation_meshes",
+    "W": [8],
+    "Q": [6]
+  },
+  "animation": [
+    ["frameCamera", {"bound": "neurons", "duration": 2}],
+    ["advanceTime", {"by": 2}]
+  ]
+}
+```
+<!-- CHUNK END -->
+The `"frameCamera"` and `"advanceTime"` commands are described later.
+
 To reiterate:
 <!-- CHUNK START -->
 <!-- STEP: 1 -->
@@ -255,13 +328,13 @@ Example: Show FlyWire's main ROI (a.k.a., the full brain, the outer shell, the a
 {
   "rois": {
     "source": "precomputed://gs://flywire_neuropil_meshes/whole_neuropil/brain_mesh_v3",
-    "all": ["1"]
+    "main": ["1"]
   },
   "lightRotationX": -90,
   "animation": [
     ["orbitCamera", {"axis": "x", "endingRelativeAngle": -90}],
     ["setValue", {"meshes": "rois", "alpha": 0.05}],
-    ["frameCamera", {"bound": "rois.all"}]
+    ["frameCamera", {"bound": "rois.main"}]
   ]
 }
 ```
@@ -672,7 +745,7 @@ For an ROI, the exponent controls the silhoutte line rendering: a lower exponent
 
 <!-- CHUNK START -->
 <!-- STEP: 3 -->
-If `"rois"` has `"source"` and only one other key, then add a `"setValue"` for `"threshold"` at the start of the `"animation"` array.
+Add a `"setValue"` for `"threshold"` at the start of the `"animation"` array.
 Example:
 ```json
 {
@@ -1049,31 +1122,6 @@ Example: Orbit 75 degrees for 8 seconds. 2 seconds in, fade on `X` over 3 second
 }
 ```
 <!-- CHUNK END -->
-
-<!-- CHUNK START -->
-<!-- STEP: 2 -->
-When doing something to a list of items in turn, create a separate group for each item on its own, not one group for all items. Example: Frame on everything. Then frame on each of the following hemibrain neurons in turn, taking 2 seconds each time: 2, 1, 4.
-```json
-{
-  "neurons": {
-    "source": "https://hemibrain-dvid.janelia.org/api/node/31597/segmentation_meshes",
-    "N1": [2],
-    "N2": [1],
-    "N3": [4]
-  },
-  "animation": [
-    ["frameCamera", {"bound": "neurons"}],
-    ["frameCamera", {"bound": "neurons.N1", "duration": 2}],
-    ["advanceTime", {"by": 2}],
-    ["frameCamera", {"bound": "neurons.N2", "duration": 2}],
-    ["advanceTime", {"by": 2}],
-    ["frameCamera", {"bound": "neurons.N3", "duration": 2}],
-    ["advanceTime", {"by": 2}],
-  ]
-}
-```
-<!-- CHUNK END -->
-
 
 ### Extending an Animation
 

@@ -153,3 +153,12 @@ Over 6 secs, rotate the camera 90 degs around the Y axis while zooming in 3 time
 During the rotation, make each of the following neurons fade on over 1/2 sec in turn:
 10268, 10320, 10116, 10227, 10229, 10265, 11783, 11384, 11949, 10911, 12189, 12218. 
 Wait 1/2 sec then fade everything off taking 1 sec.
+
+===
+Frame on FlyWire's main ROI.
+Fade that ROI on at alpha 0.03 and simultaneously frame on neuron 720575940627484181 taking 1 second.
+Next make that neuron appear, followed by 720575940610505006 and then by 720575940617337461, each taking 1/2 second to appear and starting 1/2 second apart.
+Frame 720575940626741379 over 1 second.
+Then make it appear, then 720575940623781127 and then 720575940604653484, each 1/2 second apart and taking 1/2 second to appear.
+Frame on all neurons in 1 second, then hide them in 1/2 second.
+Finally, hide the ROI in 1/2 second.
