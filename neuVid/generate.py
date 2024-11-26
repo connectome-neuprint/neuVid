@@ -329,7 +329,7 @@ class MainWindow(QMainWindow):
     def set_api_key(self, force=False):
         vendor = self.get_vendor()
         KEY = "OPENAI_API_KEY" if vendor == "OpenAI" else "ANTHROPIC_API_KEY"
-        self.api_key = self.settings.value(KEY)
+        self.api_key = self.settings.value(KEY).strip()
         if not self.api_key or force:
             self.api_key = os.getenv(KEY)
             if not self.api_key or force:
