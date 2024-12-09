@@ -398,9 +398,9 @@ class Fader:
         visible = 1
         if self.starting_alpha == 0 and self.ending_alpha == 0:
             visible = 0
-        elif frame == self.frame0 and self.starting_alpha == 0:
+        elif frame < self.frame0 and self.starting_alpha == 0:
             visible = 0
-        elif frame == self.frame1 and self.ending_alpha == 0:
+        elif frame > self.frame1 and self.ending_alpha == 0:
             visible = 0
 
         result  = "[interpolator/{}/keys/{}]\n".format(id_interpolator, id_key)
