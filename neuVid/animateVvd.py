@@ -133,7 +133,7 @@ def advanceTime_cmd(state, args):
     state["max_time"] = state["current_time"]
 
 class Orbiter:
-    def __init__(self, starting_time, duration, starting_angle, ending_angle, axis, current_angle, current_quaternion, fps):
+    def __init__(self, starting_time, duration, starting_angle, ending_angle, axis, current_angle, fps):
         self.starting_time = starting_time
         self.duration = duration
         self.frame0 = frame_from_time(starting_time, fps)
@@ -147,9 +147,8 @@ class Orbiter:
         current = normalize_angle(current_angle)
         self.starting_angle -= current
         self.ending_angle -= current
-        self.starting_quaterion = current_quaternion
 
-    def keys(self, frame, id_interpolator, id_key):
+    def keys(self, frame, id_interpolator, id_key, current_keys, state):
         if self.duration > 0:
             t = interpolation_parameter(frame, self.frame0, self.frame1)
             eased = ease_in_ease_out_quadratic(t)
@@ -158,29 +157,62 @@ class Orbiter:
             angle_eased = self.ending_angle
         quaternion = quaternion_tuple(self.axis, math.radians(angle_eased))
 
-        # Note that this approach, of simply adding in the effect of the cumulative rotations
-        # up to the start of this orbit, works only if there are no orbits that overlap in time.
-        quaternion = quaternion_product(self.starting_quaterion, quaternion)
+        if len(current_keys) == 0:
+            # This frame will have one "interpolator" with keys for all orbits (rotations) currently in effect.
+            # If it does not exist yet, create it for just this orbit.
 
-        result  = "[interpolator/{}/keys/{}]\n".format(id_interpolator, id_key)
-        result += "type=2\n"
-        result += "l0=1\n"
-        result += "l0_name=Render View:1\n"
-        result += "l1=1\n"
-        result += "l1_name=Render View:1\n"
-        result += "l2=0\n"
-        result += "l2_name=rotation\n"
-        result += "val={} {} {} {}\n".format(quaternion[0], quaternion[1], quaternion[2], quaternion[3])
+            result  = "[interpolator/{}/keys/{}]\n".format(id_interpolator, id_key)
+            result += "type=2\n"
+            result += "l0=1\n"
+            result += "l0_name=Render View:1\n"
+            result += "l1=1\n"
+            result += "l1_name=Render View:1\n"
+            result += "l2=0\n"
+            result += "l2_name=rotation\n"
+            result += "val={} {} {} {}\n".format(quaternion[0], quaternion[1], quaternion[2], quaternion[3])
+            return current_keys + result
+        else:
+            # But if there is an interpolator with keys for this frame already, this orbit's effects must be
+            # merged into it. Doing so involves setting that interpolator's quaternion to be the product of
+            # its current quaternion and the quaternion being created here. To understand the product order,
+            # consider this example:
+            #   ["orbitCamera", {"axis": "z", "duration": 10}],
+            #     ["orbitCamera", {"axis": "y", "endingRelativeAngle": 90, "duration": 5}],
+            #     ["advanceTime", {"by": 5}],
+            #     ["orbitCamera", {"axis": "y", "endingRelativeAngle": -90, "duration": 5}],
+            #     ["advanceTime", {"by": 5}]
+            # It's intuitive to specify the longer-duration orbit (around "z", the spine of a VNC volume) as the
+            # outer orbit with the shorter-duration orbits (around "y") nested inside it. By applying the outer
+            # quaternion first, it takes effect continuously over its longer duration; the inner quaternions
+            # are applied after it, providing shorter-duraction modifications to the longer-duration effect.
+            # So the quaternion product has the quaternion being created here (the nested one) on the left.
 
-        return result
+            # Note that this approach has implications for a sequence of orbits, like the following:
+            #   ["orbitCamera", {"axis": "z", "duration": 10}],
+            #   ["advanceTime", {"by": 10}],
+            #   ["orbitCamera", {"axis": "y", "endingRelativeAngle": 90, "duration": 5}],
+            #   ["advanceTime", {"by": 5}],
+            #   ["orbitCamera", {"axis": "y", "endingRelativeAngle": -90, "duration": 5}],
+            #   ["advanceTime", {"by": 5}]
+            # Here, the earlier orbit (around "z") finishes before the later orbits (around "y") so those later
+            # orbits are not nested. The final rotation of the ealier orbit must conintue to affect the later
+            # orbits, and that is implemeted by the `describe_interpolators()` function (defined later in this
+            # file), which build the interpolators and their keys. It handles the sequence of orbits by preserving
+            # the final quaternion of any interpolator whose final frame is earlier than the current frame (the
+            # orbit around "z" here). That quaternion should be on the left in the quaternion product, which means
+            # the code here has to treat it like a nested orbit. To get this effect, `describe_interpolators()`
+            # temporarily reorders the animators so the the earlier ones (around "z" here) are applied later
+            # (as if they were nested). See the comments in `describe_interpolators()`.
+
+            current_keys_prefix, current_quaternion_str = current_keys.split("val=")
+            current_quaternion = [float(x) for x in current_quaternion_str.split(" ")]
+            full_quaternion = quaternion_product(quaternion, current_quaternion)
+            full_quaternion_str = " ".join([str(x) for x in full_quaternion])
+            return current_keys_prefix + "val=" + full_quaternion_str + "\n"
 
     def key_count(self, frame):
         return 1
     
-    def ending_quaternion(self):
-        quaternion = quaternion_tuple(self.axis, math.radians(self.ending_angle))
-        return quaternion_product(self.starting_quaterion, quaternion)
-
 def orbitCamera_cmd(state, args):
     validate_cmd_args("orbitCamera", ["duration", "endingRelativeAngle", "axis"], args)
     animators = state["animators"]
@@ -208,9 +240,6 @@ def orbitCamera_cmd(state, args):
         current_angle_key = str(axis)
         if current_angle_key in current_angles:
             current_angle = current_angles[current_angle_key]
-    current_quaternion = (0, 0, 0, 1)
-    if "current_quaternion" in state:
-        current_quaternion = state["current_quaternion"]
 
     starting_time = current_time
     duration = args["duration"]
@@ -219,12 +248,11 @@ def orbitCamera_cmd(state, args):
     if "endingRelativeAngle" in args:
         ending_angle = starting_angle + args["endingRelativeAngle"]
 
-    orbiter = Orbiter(starting_time, duration, starting_angle, ending_angle, axis, current_angle, current_quaternion, fps)
+    orbiter = Orbiter(starting_time, duration, starting_angle, ending_angle, axis, current_angle, fps)
     animators["camera_rotation"].append(orbiter)
 
     current_angles[current_angle_key] = ending_angle
     state["camera_current_angles"] = current_angles
-    state["current_quaternion"] = orbiter.ending_quaternion()
 
     state["max_time"] = current_time + duration
 
@@ -266,7 +294,7 @@ class Panner:
         result += "val={}\n".format(val)
         return result
 
-    def keys(self, frame, id_interpolator, id_key):
+    def keys(self, frame, id_interpolator, id_key, current_keys, state):
         if self.duration > 0:
             t = interpolation_parameter(frame, self.frame0, self.frame1)
             eased = ease_in_ease_out_quadratic(t)
@@ -281,7 +309,7 @@ class Panner:
         result += self._key(id_interpolator, id_key + 1, "y", pos_eased[1])
         result += self._key(id_interpolator, id_key + 2, "z", pos_eased[2])
 
-        return result
+        return current_keys + result
 
     def key_count(self, frame):
         return 3
@@ -322,7 +350,7 @@ class Zoomer:
 
         print("{} - {}: zoom, {} to {}".format(self.frame0, self.frame1, starting_zoom, ending_zoom))
 
-    def keys(self, frame, id_interpolator, id_key):
+    def keys(self, frame, id_interpolator, id_key, current_keys, state):
         if self.duration > 0:
             t = interpolation_parameter(frame, self.frame0, self.frame1)
             eased = ease_in_ease_out_quadratic(t)
@@ -340,7 +368,7 @@ class Zoomer:
         result += "l2_name=scale\n"
         result += "val={}\n".format(scale_eased)
 
-        return result
+        return current_keys + result
 
     def key_count(self, frame):
         return 1
@@ -394,7 +422,7 @@ class Fader:
 
         print("{} - {}: fade {}, alpha {} to {}".format(self.frame0, self.frame1, self.vol_name, self.starting_alpha, self.ending_alpha))
 
-    def keys(self, frame, id_interpolator, id_key):
+    def keys(self, frame, id_interpolator, id_key, current_keys, state):
         visible = 1
         if self.starting_alpha == 0 and self.ending_alpha == 0:
             visible = 0
@@ -433,7 +461,7 @@ class Fader:
         result += "l2_name=alpha\n"
         result += "val={}\n".format(alpha)
 
-        return result
+        return current_keys + result
 
     def key_count(self, frame):
         return 2
@@ -778,6 +806,8 @@ def describe_interpolators(state, fps):
         id_key = 0
         keys = ""
         for name, animator_list in animators.items():
+            indices = []
+            afters = []
             n = len(animator_list)
             for i in range(n):
                 animator = animator_list[i]
@@ -787,12 +817,30 @@ def describe_interpolators(state, fps):
                 within = (f0 <= frame and frame <= f1)
                 # When the frame is between two animators, use the later one.  This case is not triggered too often
                 # because the animators are sorted and looping will break earlier in other cases.
-                between = (frame < f0)
-                after_last = (i == n - 1 and f1 < frame)
-                if before_first or within or between or after_last:
-                    keys += animator.keys(frame, id_interpolator, id_key)
-                    id_key += animator.key_count(frame)
-                    break
+                between = (frame < f0) and not within
+                if before_first or within or between:
+                    indices.append(i)
+
+                # For some animators (e.g., orbits, which are rotations), the value from the animator's final frame
+                # must continue to take effect after that frame. But behavior is most intuitive if these inactive
+                # animators are applied in reverse order, after the active animators. Without that ordering, it 
+                # would not be possible to give the most intuitive behavior for nested animators (overlapping in time).
+                # See the comments in the `Orbiter.keys()` function.
+
+                after_last = (f1 < frame) and not within
+                if after_last:
+                    afters.append((i, f1))
+
+            afters = sorted(afters, reverse=True, key=lambda x: x[1])
+            for a in afters:
+                indices.append(a[0])
+
+            for i in indices:
+                animator = animator_list[i]
+                # Pass in the current keys and get back the current keys plus new keys.
+                # This approach allows changing of the current keys (e.g,, for nested orbiting).
+                keys = animator.keys(frame, id_interpolator, id_key, keys, state)
+                id_key += animator.key_count(frame)
 
         result += "[interpolator/{}]\n".format(frame)
         result += "id={}\n".format(frame)
