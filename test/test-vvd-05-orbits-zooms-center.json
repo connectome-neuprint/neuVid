@@ -1,0 +1,18 @@
+{
+    "volumes": {
+        "source": "./neuVidVolumes",
+        "R10A06": "Dorsal+VNC+2023-SS36076-SS36076-20170630_24_E1-m-20x-ventral_nerve_cord-Split_GAL4-JRC2018_VNC_Unisex_40x_DS-aligned_stack.h5j"
+    },
+    "animation": [
+        ["zoomCamera", {"to": 180, "duration": 0}],
+        ["orbitCamera", {"endingRelativeAngle": 45, "duration": 9}],
+        ["advanceTime", {"by": 9}],
+        ["orbitCamera", {"endingRelativeAngle": -90, "duration": 18}],
+        ["zoomCamera", {"to": 200, "duration": 18}],
+        ["advanceTime", {"by": 18}],
+        ["orbitCamera", {"endingRelativeAngle": 45, "duration": 9}],
+        ["zoomCamera", {"to": 325, "duration": 9}],
+        ["centerCamera", {"at": [-0.5, 0.25, 0], "duration": 9}]
+    ]
+}
+  

@@ -118,7 +118,14 @@ Optional arguments:
 - `axis` (default: `"-y"`): Can be `"x"`, `"-x"`, `"y"`, `"-y"`, `"z"`, `"-z"`, or a vector like `[1, 0, 1]`.
 - `duration` (default: 1)
 
-Currently, there is no support for multiple `orbitCamera` commands overlap in time.
+Multiple `orbitCamera` commands may overlap in time. The orbit defined earlier in the script will be applied first at each frame. This convention supports definining a long-duration orbit around one axis, which continues smoothly while other shorter-duration orbits modify it, as in this example:
+```json
+["orbitCamera", {"axis": "z", "duration": 10}],
+["orbitCamera", {"axis": "y", "endingRelativeAngle": 90, "duration": 5}],
+["advanceTime", {"by": 5}],
+["orbitCamera", {"axis": "y", "endingRelativeAngle": -90, "duration": 5}],
+["advanceTime", {"by": 5}]
+```
 
 ### `zoomCamera`
 
