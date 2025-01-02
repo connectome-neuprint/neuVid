@@ -1,7 +1,7 @@
 {
     "volumes": {
-        "source": "./neuVidVolumes",
-        "R10A06": "Dorsal+VNC+2023-SS36076-SS36076-20170630_24_E1-m-20x-ventral_nerve_cord-Split_GAL4-JRC2018_VNC_Unisex_40x_DS-aligned_stack.h5j"
+        "source": "https://s3.amazonaws.com/janelia-flylight-imagery",
+        "R10A06": {"line": "R10A06", "region": "vnc"}
     },
     "animation": [
         ["orbitCamera", {"axis": "z", "endingRelativeAngle": -45, "duration": 4}],
