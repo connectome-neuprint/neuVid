@@ -127,6 +127,7 @@ def meshObjs(name, strict):
                         dest["Synapses." + synapseSetName] = None
             else:
                 # x is "neurons", "rois" or "synapses"
+                print(f"Note: IDs for '{name}' will have an undetermined order because the name is not qualified with a '.'")
                 for o in bpy.data.objects:
                     if o.name.startswith(x[:-1].capitalize()):
                         dest[o.name] = None
@@ -1248,15 +1249,30 @@ else:
     bpy.data.scenes["Scene"].eevee.use_taa_reprojection = False
 
     for a in bpy.context.screen.areas:
-        if a.type == 'VIEW_3D':
+        if a.type == "VIEW_3D":
             # Make materials, like silhouettes, visible in the viewport.
             a.spaces[0].shading.type = "MATERIAL"
+
             # Hide some distracting editor tools.
             a.spaces[0].overlay.show_relationship_lines = False
             a.spaces[0].overlay.show_floor = False
             a.spaces[0].overlay.show_axis_x = False
             a.spaces[0].overlay.show_axis_y = False
-            a.spaces[0].overlay.show_axis_z = False    
+            a.spaces[0].overlay.show_axis_z = False
+
+            # Make the 3D View deep enough to show everything that will be rendered.
+            a.spaces[0].clip_end = cameraData.clip_end
+
+            # Set the 3D cursor to somewhere in the middle of the scene content.
+            center = lastCameraCenter
+            if "Bound.neurons" in bpy.data.objects:
+                center = bpy.data.objects["Bound.neurons"].location
+            bpy.context.scene.cursor.location = center
+
+            # Make the 3D View navigation orbit around the 3D cursor.
+            a.spaces[0].lock_cursor = True
+
+            a.spaces[0].region_3d.view_distance = (camera.location - center).length
 
 # Make sure ImagePlane is not selected, which seems to prevent it from being rendered transparently.
 for obj in bpy.data.objects:
