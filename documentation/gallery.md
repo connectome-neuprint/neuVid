@@ -2,6 +2,24 @@
 
 Click on an image to play the video. [Return to the neuVid documentation](https://github.com/connectome-neuprint/neuVid).
 
+## Benedetti et al. (2024)
+
+Lorena Benedetti et al., "Periodic ER-plasma membrane junctions support long-range Ca2+ signal integration in dendrites",
+https://doi.org/10.1016/j.cell.2024.11.029
+
+<!-- video S2 -->
+
+<p align="center">
+<a href="https://www.sciencedirect.com/science/article/pii/S009286742401345X#mmc2">
+    <img
+        src="gallery/er-striations.png"
+        alt="A section of a Drosophila MBON01 neuron, with endoplasmic reticulum, plasma membrane, mitochondria, microtubules."
+    />
+</a>
+<br>
+Video S2: Intracellular organelle segmentation of fly neurites, with endoplasmic reticulum, mitochondria, microtubules, segmented from FIB-SEM datasets of a <em>Drosophila melanogaster</em> MBON1 neuron.
+</p>
+
 ## FlyEM Optic Lobe (2024)
 
 [FlyEM optic lobe project page](https://www.janelia.org/project-team/flyem/optic-lobe)
@@ -127,7 +145,7 @@ HeLa cell.
 
 ## Hulse et al. (2021)
 
-Brad K Hulse, et al., "A connectome of the *Drosophila* central complex reveals network motifs suitable for flexible navigation and context-dependent action selection", 
+Brad K Hulse et al., "A connectome of the *Drosophila* central complex reveals network motifs suitable for flexible navigation and context-dependent action selection",
  https://doi.org/10.7554/eLife.66039
 
 
@@ -166,7 +184,7 @@ Supplemental videom 13: Morphological renderings of the fan-shaped body (FB) tan
 
 ## Li et al. (2021)
 
-Feng Li, et al., "The connectome of the adult *Drosophila* mushroom body provides insights into function",
+Feng Li et al., "The connectome of the adult *Drosophila* mushroom body provides insights into function",
 https://doi.org/10.7554/eLife.62576
 
 <!-- figure 9, video 1 -->
