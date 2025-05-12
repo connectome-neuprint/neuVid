@@ -36,6 +36,23 @@ By default, the first channel ("Channel_0") is used for all volumes.  This defau
 
 Note that channels are "zero-based", so the first channel is 0.
 
+## Meshes
+
+The `"meshes"` section of the JSON file associates mesh files with names to be used in the `"animation"` section.
+
+The `"source"` indictes where to find the mesh files, and bahaves like `"source"` for volumes (see the previous section).
+
+Each other key defines a name that can be used to animate a group of meshes, with the group specified by a list of identifiers.
+```json
+  "meshes": {
+    "source": "./Ehrhardt-etal-2025",
+    "SS44039": [10589, 10074, 162240, 18309, 10361, 169914],
+  }
+```
+
+Each mesh is loaded from a file whose name is the mesh identifier plus the mesh type extension.
+Currently the only supported mesh type is `.swc` files, skeletons in [SWC format](http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html).
+
 ## Fetching Volumes
 
 If local copies of the volume files are not yet available, the companion `fetchVvd` program can fetch them from a cloud data source, like `https://s3.amazonaws.com/janelia-flylight-imagery` where the [Janelia FlyLight Split-GAL4 driver collection](https://splitgal4.janelia.org/cgi-bin/splitgal4.cgi) and [Janelia FlyLight Generation 1 MCFO collection](https://gen1mcfo.janelia.org/cgi-bin/gen1mcfo.cgi) are stored.  The fetched volume files are stored in a directory `neuVidVolumes` located as a sibling of the input JSON file.
@@ -63,6 +80,18 @@ The input to `fetchVvd` is a JSON file with a `"volumes"` section of a particula
 The `"(central|brain)"` pattern element matches either `central` or `brain` in the volume file name on the cloud data source.
 
 By default `fetchVvd` rewrites the input JSON file with a new `"volumes"` section that refers to the local copies of the volume files.  Use the `--output` (`-o`) command-line option to specify a different file for the output (leaving the input file unmodified).
+
+## Fetching Meshes
+
+The `fetchVvd` program also fetches meshes from a cloud data source, storing the results in the `neuVidMeshes` directory.  Currently the only supported mesh type is `.swc` files, skeletons in [SWC format](http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html).
+
+```json
+  "meshes": {
+    "source": "https://s3.amazonaws.com/janelia-flylight-color-depth/JRC2018_VNC_Unisex_40x_DS/FlyEM_MANC_v1.0/SWC",
+    "SS25532": [14267, 14322, 17022, 20786, 15057, 16201, 16222, 20969],
+    "SS28361": [21129, 19664, 23839, 24141]
+  }
+```
 
 ## Commands
 
@@ -99,8 +128,9 @@ Optional arguments:
 
 ### `flash`
 
-Required arguments:
+Required arguments (choose one):
 - `volume`: don't forget the `"volumes."` prefix.
+- `meshes`: don't forget the `"meshes."` prefix.
 
 Optional arguments:
 - `ramp`: The time, in seconds, to go from alpha 0 to 1 at the start, and also the time to go from alpha 1 to 0 at the end.
@@ -109,7 +139,7 @@ Optional arguments:
 
 Note that only the `flash` and `advanceTime` commands advance the current time, to make subsequent comamnds start later.
 
-When optional arguments are unspecified, the are given the values of the previous `flash` command, making it simpler to specifiy a series of similarly-timed `flash` operations affecting different volumes.
+When optional arguments are unspecified, they are given the values of the previous `flash` command, making it simpler to specifiy a series of similarly-timed `flash` operations affecting different volumes.  This feature treats `flash` commands for volumes and meshes independently, so  different optional arguments can be specified once and reused automatically for each of the two data types.
 
 ### `orbitCamera`
 

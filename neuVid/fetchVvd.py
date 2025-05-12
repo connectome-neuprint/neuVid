@@ -95,7 +95,7 @@ def find_in_keys(pattern_elements, keys):
 #   "b": [{"line": "b"}, 2],
 #   "c": [{"line": "c", "sex": "male"}, 2]
 # }
-def fetch_volumes(json_data, output):
+def fetch_volumes(json_data, output, debug=False):
     if not "volumes" in json_data:
         return {}
     json_volumes = json_data["volumes"]
@@ -107,10 +107,17 @@ def fetch_volumes(json_data, output):
     if not "source" in json_volumes:
         return {}
     json_source = json_volumes["source"]
+
+    if debug:
+        print(f"Fetching volumes: source {json_source}")
+
     if json_source.startswith("https://s3.amazonaws.com"):
         result = {}
 
         prefixes = fetch_s3_bucket_prefixes(json_source)
+
+        if debug:
+            print(f"Fetching volumes: AWS bucket prefixes {prefixes}")
 
         dir = os.path.dirname(output)
         vols_path = os.path.join(dir, "neuVidVolumes")
@@ -124,6 +131,9 @@ def fetch_volumes(json_data, output):
             if key == "source":
                 result[key] = vols_path_output
                 continue
+
+            if debug:
+                print(f"Fetching volumes: {val}")
 
             if type(val) == list:
                 val = val[0]
@@ -144,7 +154,10 @@ def fetch_volumes(json_data, output):
                 if len(keys) > 0:
                     print("Preparing to check {} in release '{}'".format(val, release))
                     candidate_keys.append(keys)
-            
+
+            if debug:
+                print(f"Fetching volumes: candidate keys {candidate_keys}")
+
             vol_name = None
             for keys in candidate_keys:
                 vol_name = find_in_keys(val, keys)
@@ -171,45 +184,80 @@ def fetch_volumes(json_data, output):
                 result[key] = filename
             except requests.exceptions.RequestException as e:
                 print("Error fetching volume {}: {}".format(url, str(e)))
-                sys.exit()
     
         return result
     return {}
-    
-def find_all(pattern, s):
-    return [m.start() for m in re.finditer(pattern, s)]
 
-def in_comment(i, s):
-    while i > 0:
-        if s[i] == "#":
-            return True
-        if s[i] == "/" and i > 0 and s[i-1] == "/":
-            return True
-        if s[i] == "\n":
-            return False
-        i -= 1
-    return False
+def fetch_meshes(json_data, output):
+    if not "meshes" in json_data:
+        return {}
+    json_meshes = json_data["meshes"]
 
-def update_input(input, updates):
+    if not "source" in json_meshes:
+        return {}
+    json_source = json_meshes["source"]
+    if json_source.startswith("https://s3.amazonaws.com"):
+        result = {}
+
+        dir = os.path.dirname(output)
+        meshes_path = os.path.join(dir, "neuVidMeshes")
+        if not os.path.exists(meshes_path):
+            os.mkdir(meshes_path)
+        # Even on Windows, forward slashes work better as path separators for
+        # paths to be stored as JSON strings.
+        meshes_path_output = "./neuVidMeshes"
+
+        for key, val in json_meshes.items():
+            if key == "source":
+                result[key] = meshes_path_output
+                continue
+
+            if type(val) == list:
+                ids = []
+                for id in val:
+                    filename = f"{id}.swc"
+                    url = f"{json_source}/{filename}"
+                    print("Fetching {}.".format(url))
+                    try:
+                        response = requests.get(url)
+                        response.raise_for_status()
+                        vol_path = os.path.join(meshes_path, filename)
+                        print("Writing {}".format(vol_path))
+                        with open(vol_path, "wb") as f:
+                            f.write(response.content)
+                        ids.append(id)
+                    except requests.exceptions.RequestException as e:
+                        print("Error fetching mesh {}: {}".format(url, str(e)))
+                result[key] = ids
+
+        return result
+    return {}
+
+def update_input(input, volume_updates):
+    updated_lines = []
     with open(input, "r") as f:
-        s = f.read()
-        if len(updates) == 0:
-            return s
-
-        for key, val in updates.items():
-            locs = find_all(key, s)
-            for i in locs:
-                if not in_comment(i, s):
-                    delim1 = '"' if key == "source" else "{"
-                    delim2 = '"' if key == "source" else "}"
-                    i += len('"' + key + '"')
-                    j = s.find(delim1, i)
-                    k = s.find(delim2, j+1)
-                    pre = s[:j]
-                    post = s[k+1:]
-                    s = pre + '"' + val + '"' + post
-                    break
-        return s
+        lines = f.readlines()
+        in_volumes = False
+        in_meshes = False
+        for line in lines:
+            updated_line = line.rstrip()
+            if "volumes" in line:
+                in_volumes = True
+                in_meshes = False
+            elif "meshes" in line:
+                in_volumes = False
+                in_meshes = True
+            elif in_volumes:
+                for key, val in volume_updates.items():
+                    if line.strip().startswith(f"\"{key}\""):
+                        splits = line.split(":")
+                        updated_line = f"{splits[0]} : \"{val}\""
+            elif in_meshes:
+                if line.strip().startswith("\"source\""):
+                    splits = line.split(":")
+                    updated_line = f"{splits[0]} : \"./neuVidMeshes\""
+            updated_lines.append(updated_line)
+    return "\n".join(updated_lines)
 
 if __name__ == "__main__":
     report_version()
@@ -226,8 +274,9 @@ if __name__ == "__main__":
         output = args.input
 
     json_data = parse_json(args.input)
-    updates = fetch_volumes(json_data, output)
-    updated = update_input(args.input, updates)
+    volume_updates = fetch_volumes(json_data, output)
+    fetch_meshes(json_data, output)
+    updated = update_input(args.input, volume_updates)
 
     with open(output, "w") as f:
         f.write(updated)

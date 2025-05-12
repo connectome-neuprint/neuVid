@@ -398,8 +398,8 @@ def zoomCamera_cmd(state, args):
     state["max_time"] = current_time + duration
 
 class Fader:
-    def __init__(self, full_vol_name, starting_time, duration, starting_alpha, ending_alpha, fps):
-        self.vol_name = full_vol_name
+    def __init__(self, full_names, starting_time, duration, starting_alpha, ending_alpha, fps):
+        self.names = full_names
         self.starting_time = starting_time
         self.duration = duration
         self.frame0 = frame_from_time(starting_time, fps)
@@ -420,7 +420,7 @@ class Fader:
             self.starting_alpha = 1
             self.ending_alpha = 1
 
-        print("{} - {}: fade {}, alpha {} to {}".format(self.frame0, self.frame1, self.vol_name, self.starting_alpha, self.ending_alpha))
+        print("{} - {}: fade {}, alpha {} to {}".format(self.frame0, self.frame1, self.names, self.starting_alpha, self.ending_alpha))
 
     def keys(self, frame, id_interpolator, id_key, current_keys, state):
         visible = 1
@@ -431,15 +431,17 @@ class Fader:
         elif frame > self.frame1 and self.ending_alpha == 0:
             visible = 0
 
-        result  = "[interpolator/{}/keys/{}]\n".format(id_interpolator, id_key)
-        result += "type=3\n"
-        result += "l0=1\n"
-        result += "l0_name=Render View:1\n"
-        result += "l1=2\n"
-        result += "l1_name={}\n".format(self.vol_name)
-        result += "l2=0\n"
-        result += "l2_name=display\n"
-        result += "val={}\n".format(visible)
+        result = ""
+        for i in range(len(self.names)):
+            result += "[interpolator/{}/keys/{}]\n".format(id_interpolator, id_key + i)
+            result += "type=3\n"
+            result += "l0=1\n"
+            result += "l0_name=Render View:1\n"
+            result += "l1=2\n"
+            result += "l1_name={}\n".format(self.names[i])
+            result += "l2=0\n"
+            result += "l2_name=display\n"
+            result += "val={}\n".format(visible)
 
         t = interpolation_parameter(frame, self.frame0, self.frame1)
 
@@ -451,78 +453,132 @@ class Fader:
             eased = ease_out_cubic(t)
             alpha = self.starting_alpha + eased * (self.ending_alpha - self.starting_alpha)
 
-        result += "[interpolator/{}/keys/{}]\n".format(id_interpolator, id_key + 1)
-        result += "type=1\n"
-        result += "l0=1\n"
-        result += "l0_name=Render View:1\n"
-        result += "l1=2\n"
-        result += "l1_name={}\n".format(self.vol_name)
-        result += "l2=0\n"
-        result += "l2_name=alpha\n"
-        result += "val={}\n".format(alpha)
+        for i in range(len(self.names)):
+            result += "[interpolator/{}/keys/{}]\n".format(id_interpolator, id_key + len(self.names) + i)
+            result += "type=1\n"
+            result += "l0=1\n"
+            result += "l0_name=Render View:1\n"
+            result += "l1=2\n"
+            result += "l1_name={}\n".format(self.names[i])
+            result += "l2=0\n"
+            l2_name = "alpha" if self.names[i].startswith("volumes") else "transparency"
+            result += f"l2_name={l2_name}\n"
+            result += "val={}\n".format(alpha)
 
         return current_keys + result
 
     def key_count(self, frame):
-        return 2
+        return 2 * len(self.names)
 
 def flash_cmd(state, args):
-    validate_cmd_args("flash", ["advanceTime", "duration", "ramp", "volume"], args)
+    validate_cmd_args("flash", ["advanceTime", "duration", "ramp", "volume", "meshes", "offset"], args)
     animators = state["animators"]
     fps = state["fps"]
     current_time = state["current_time"]
 
-    if "volume" not in args:
-        print("The 'flash' command must have a 'volume' argument")
+    if "volume" not in args and "meshes" not in args:
+        print("The 'flash' command must have a 'volume' or 'meshes' argument")
         sys.exit()
-    full_vol_name = args["volume"]
 
     advance_time = 0
-    if "flash_current_advance_time" in state:
-        advance_time = state["flash_current_advance_time"]
-    if "advanceTime" in args:
-        advance_time = args["advanceTime"]
     duration = 2
-    if "flash_current_duration" in state:
-        duration = state["flash_current_duration"]
-    if "duration" in args:
-        duration = args["duration"]
-    ramp = 0.5
-    if "flash_current_ramp" in state:
-        ramp = state["flash_current_ramp"]
-    if "ramp" in args:
-        ramp = args["ramp"]
 
-    starting_time = current_time
-    fader1 = Fader(full_vol_name, starting_time, duration=ramp, starting_alpha=0, ending_alpha=1, fps=fps)
-    starting_time += ramp
-    mid_duration = duration - 2 * ramp
-    fader2 = Fader(full_vol_name, starting_time, duration=mid_duration, starting_alpha=1, ending_alpha=1, fps=fps)
-    starting_time += mid_duration
-    fader3 = Fader(full_vol_name, starting_time, duration=ramp, starting_alpha=1, ending_alpha=0, fps=fps)
+    if "volume" in args:
+        full_vol_name = args["volume"]
+        if "flash_volume_current_advance_time" in state:
+            advance_time = state["flash_volume_current_advance_time"]
+        if "advanceTime" in args:
+            advance_time = args["advanceTime"]
+        if "flash_volume_current_duration" in state:
+            duration = state["flash_volume_current_duration"]
+        if "duration" in args:
+            duration = args["duration"]
+        ramp = 0.5
+        if "flash_volume_current_ramp" in state:
+            ramp = state["flash_volume_current_ramp"]
+        if "ramp" in args:
+            ramp = args["ramp"]
 
-    animators[full_vol_name].append(fader1)
-    animators[full_vol_name].append(fader2)
-    animators[full_vol_name].append(fader3)
+        starting_time = current_time
+        fader1 = Fader([full_vol_name], starting_time, duration=ramp, starting_alpha=0, ending_alpha=1, fps=fps)
+        starting_time += ramp
+        mid_duration = duration - 2 * ramp
+        fader2 = Fader([full_vol_name], starting_time, duration=mid_duration, starting_alpha=1, ending_alpha=1, fps=fps)
+        starting_time += mid_duration
+        fader3 = Fader([full_vol_name], starting_time, duration=ramp, starting_alpha=1, ending_alpha=0, fps=fps)
+
+        if not full_vol_name in animators:
+            animators[full_vol_name] = []
+        animators[full_vol_name] += [fader1, fader2, fader3]
+
+        state["flash_volume_current_advance_time"] = advance_time
+        state["flash_volume_current_duration"] = duration
+        state["flash_volume_current_ramp"] = ramp
+
+    elif "meshes" in args:
+        meshes_name = args["meshes"]
+        count = len(state["meshes"][meshes_name])
+        meshes_names = [f"{meshes_name}.{i}" for i in range(count)]
+
+        if "flash_meshes_current_advance_time" in state:
+            advance_time = state["flash_meshes_current_advance_time"]
+        if "advanceTime" in args:
+            advance_time = args["advanceTime"]
+        if "flash_meshes_current_duration" in state:
+            duration = state["flash_meshes_current_duration"]
+        if "duration" in args:
+            duration = args["duration"]
+
+        # Stagger the fading of the meshes in the group, with start times differing by `offset`.
+        offset = 0
+        if count > 1:
+            offset = (duration / 2) / (count - 1) 
+        if "offset" in args:
+            offset = args["offset"]
+
+        one_frame = 1 / fps
+        one_frame *= 2
+        offset = max(offset, one_frame)
+
+        ramp = min(duration / 4, 0.25)
+        ramp = max(ramp, one_frame)
+        
+        starting_time = current_time
+        ending_time = starting_time + duration
+        starting_last_ramp = ending_time - ramp
+        for mesh_name in meshes_names:
+            fader1 = Fader([mesh_name], starting_time, duration=ramp, starting_alpha=0, ending_alpha=1, fps=fps)
+            duration2 = starting_last_ramp - (starting_time + ramp)
+            fader2 = Fader([mesh_name], starting_time + ramp, duration=duration2, starting_alpha=1, ending_alpha=1, fps=fps)
+            fader3 = Fader([mesh_name], starting_last_ramp, duration=ramp, starting_alpha=1, ending_alpha=0, fps=fps)
+            starting_time += offset
+
+            if not mesh_name in animators:
+                animators[mesh_name] = []
+            animators[mesh_name] += [fader1, fader2, fader3]
+
+        state["flash_meshes_current_advance_time"] = advance_time
+        state["flash_meshes_current_duration"] = duration
 
     state["current_time"] += advance_time
-
-    state["flash_current_advance_time"] = advance_time
-    state["flash_current_duration"] = duration
-    state["flash_current_ramp"] = ramp
-
     state["max_time"] = current_time + duration
 
 def fade_cmd(state, args):
-    validate_cmd_args("fade", ["duration", "startingAlpha", "endingAlpha", "volume"], args)
+    validate_cmd_args("fade", ["duration", "startingAlpha", "endingAlpha", "volume", "meshes"], args)
     animators = state["animators"]
     fps = state["fps"]
     current_time = state["current_time"]
 
-    if "volume" not in args:
-        print("The 'fade' command must have a 'volume' argument")
+    if "volume" not in args and "meshes" not in args:
+        print("The 'fade' command must have a 'volume' or 'meshes' argument")
         sys.exit()
-    full_vol_name = args["volume"]
+    if "volume" in args:
+        full_name = args["volume"]
+        full_names = [full_name]
+    else:
+        full_name = args["meshes"]
+        count = len(state["meshes"][full_name])
+        full_names = [f"{full_name}.{i}" for i in range(count)]
 
     duration = 1
     if "duration" in args:
@@ -539,8 +595,8 @@ def fade_cmd(state, args):
     ending_alpha = min(1, ending_alpha)
 
     starting_time = current_time
-    fader = Fader(full_vol_name, starting_time, duration, starting_alpha, ending_alpha, fps)
-    animators[full_vol_name].append(fader)
+    fader = Fader(full_names, starting_time, duration, starting_alpha, ending_alpha, fps)
+    animators[full_name].append(fader)
 
     state["max_time"] = current_time + duration
 
@@ -670,6 +726,54 @@ def add_volumes(input, state, json_data, default_channel):
 
     print("bbox overall: {}".format(bbox_overall))
 
+def add_meshes(input, state, json_data):
+    if not "meshes" in json_data:
+        return
+
+    json_anim = json_data["meshes"]
+    if not isinstance(json_anim, dict):
+        print("Invalid JSON: 'meshes' must be a dictionary of mesh names and sources")
+        sys.exit()
+
+    json_meshes = json_data["meshes"]
+
+    source_base = ""
+    if "source" in json_meshes:
+        source_base = json_meshes["source"]
+
+    meshes = {}
+    for key, value in json_meshes.items():
+        if key != "source":
+            meshes_group_name = "meshes." + key
+            if type(value) == str:
+                if "." in value:
+                    value = value.split(".")[0]
+                value = [int(value)]
+            meshes_group = []
+            for id in value:
+                if not type(id) == int:
+                    print(f"In \"meshes.{key}\" skipping \"{id}\" which is not an integer ID")
+                    continue
+
+                # TODO: Handle OBJ files in addition to SWC files.
+                mesh_file = f"{id}.swc"
+
+                mesh_path = os.path.join(source_base, mesh_file)
+                meshes_group.append(mesh_path)
+            meshes[meshes_group_name] = meshes_group
+    state["meshes"] = meshes
+
+    '''
+    # TODO: Account for the (unlikely?) possibility that a mesh extends outside the volume and affects the bounding box.
+    bbox_overall = (0, 0, 0)
+    input_dir = os.path.dirname(input)
+    for mesh_name, mesh_path in meshes.items():
+        mesh_path = os.path.join(input_dir, mesh_path)
+        bbox = get_mesh_bbox(mesh_path)
+        bbox_overall = (max(bbox[0], bbox_overall[0]), max(bbox[1], bbox_overall[1]), max(bbox[2], bbox_overall[2]))
+    state["bbox_overall"] = bbox_overall
+    '''
+
 def add_animators(state, json_data, fps):
     if not "animation" in json_data:
         print("Invalid JSON: no 'animation' section")
@@ -684,9 +788,11 @@ def add_animators(state, json_data, fps):
     animators["camera_rotation"] = []
     animators["camera_translation"] = []
     animators["camera_zoom"] = []
-    volumes = state["volumes"]
-    for full_vol_name in volumes:
-        animators[full_vol_name] = []
+    animated = list(state["volumes"].keys())
+    if "meshes" in state:
+        animated += list(state["meshes"].keys())
+    for name in animated:
+        animators[name] = []
     state["animators"] = animators
 
     for step in json_anim:
@@ -694,10 +800,13 @@ def add_animators(state, json_data, fps):
         cmd(state, args)
 
     max_time = state["max_time"]
-    for full_vol_name in volumes:
-        if len(animators[full_vol_name]) == 0:
+    '''
+    # TODO: Make certain this old code is really not needed.
+    for name in animated:
+        if len(animators[name]) == 0:
             # A volume not mentioned in any commands should be visible all the time.
-            animators[full_vol_name] = [Fader(full_vol_name, 0, max_time, 1, 1, fps)]
+            animators[name] = [Fader([name], 0, max_time, 1, 1, fps)]
+    '''
 
 def describe_header():
     result = "ver_major=2\n"
@@ -762,14 +871,73 @@ def describe_volumes(state):
 
     return result
 
+def describe_meshes(state):
+    if not "meshes" in state:
+        return ""
+
+    meshes = state["meshes"]
+    meshes_decollated = []
+    i = 0
+    for meshes_group_name, meshes_group in meshes.items():
+        for j in range(len(meshes_group)):
+            mesh_name = f"{meshes_group_name}.{j}"
+            meshes_decollated.append((mesh_name, meshes_group[j], i))
+        i += 1
+
+    num = len(meshes_decollated)
+    result = "[data/mesh]\n"
+    result += "num={}\n".format(num)
+    i = 0
+    for mesh_name, mesh_path, color_index in meshes_decollated:
+
+        # VVDViewer seems to accept only absolute paths and paths that start with "./"
+        # So even relative paths like "../elsewhere" need to be "./../elsewhere", oddly.
+        if not os.path.isabs(mesh_path):
+            if not mesh_path.startswith("./"):
+                mesh_path = os.path.join(".", mesh_path)
+
+        # On Windows, the output of os.path.join does not seem to work for paths in
+        # VVDViewer project files.  But forward slashes do work.
+        mesh_path = mesh_path.replace(os.sep, "/")
+
+        result += "[data/mesh/{}]\n".format(i)
+        result += "name={}\n".format(mesh_name)
+        result += "path={}\n".format(mesh_path)
+        result += "[data/mesh/{}/properties]\n".format(i)
+        result += "display=1\n"
+        result += "lighting=1\n"
+        color = get_color(color_index)
+        result += "diffuse={} {} {}\n".format(color[0], color[1], color[2])
+        result += "shininess=30\n"
+        result += "alpha=1\n"
+        result += "gamma=1.000000 1.000000 1.000000\n"
+        result += "brightness=1.000000 1.000000 1.000000\n"
+        result += "hdr=0.000000 0.000000 0.000000\n"
+        result += "levels=1.000000 1.000000 1.000000\n"
+        result += "sync_r=0\n"
+        result += "sync_g=0\n"
+        result += "sync_b=0\n"
+        result += "shadow=1\n"
+        result += "shadow_darkness=0.6\n"
+        result += "radius_scale=1\n"
+
+        i += 1
+
+    return result
+
 def describe_views(state):
     volumes = state["volumes"]
+    meshes = []
+    if "meshes" in state:
+        for meshes_group_name, meshes_group in state["meshes"].items():
+            for i in range(len(meshes_group)):
+                meshes.append(f"{meshes_group_name}.{i}")
     result  = "[views]\n"
     result += "num=1\n"
     result += "[views/0]\n"
 
     result += "[views/0/layers]\n"
-    result += "num={}\n".format(len(volumes))
+    result += "num={}\n".format(len(volumes) + len(meshes))
     items = list(volumes.items())
     for i in range(len(items)):
         result += "[views/0/layers/{}]\n".format(i)
@@ -780,6 +948,11 @@ def describe_views(state):
         result += "num=1\n"
         name = items[i][0]
         result += "vol_0={}\n".format(name)
+    for i in range(len(meshes)):
+        name = meshes[i]
+        result += "[views/0/layers/{}]\n".format(i + len(volumes))
+        result += "type=3\n"
+        result += "name={}\n".format(name)
 
     result += "[views/0/properties]\n"
 
@@ -787,6 +960,11 @@ def describe_views(state):
     state["camera_current_zoom"] = default_zoom
     zoom_to_scale = 1 / 100
     result += "scale={}\n".format(default_zoom * zoom_to_scale)
+
+    '''
+    # TODO: Add an option for enabling mesh/volume depth occlusion with the following:
+    result += "volmethod=2\n"
+    '''
 
     return result
 
@@ -861,6 +1039,7 @@ def describe_project(input, json_data, default_channel):
 
     state = init_state(fps)
     add_volumes(input, state, json_data, default_channel)
+    add_meshes(input, state, json_data)
     add_animators(state, json_data, fps)
 
     # For keys at N frames, there need to be N `[interpolator/<i>]` statements, 0 < i < N.
@@ -872,6 +1051,7 @@ def describe_project(input, json_data, default_channel):
 
     result = describe_header()
     result += describe_volumes(state)
+    result += describe_meshes(state)
     result += describe_views(state)
     result += describe_interpolators(state, fps)
 
