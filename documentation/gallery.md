@@ -2,6 +2,58 @@
 
 Click on an image to play the video. [Return to the neuVid documentation](https://github.com/connectome-neuprint/neuVid).
 
+## FlyEM Male Centeral Nervous System (2025)
+
+[FlyEM MCNS project page](https://www.janelia.org/project-team/flyem/male-cns-connectome)
+
+<p align="center">
+<a href="https://www.youtube.com/watch?v=NFeNxwjzueg">
+    <img
+        src="https://img.youtube.com/vi/NFeNxwjzueg/hqdefault.jpg"
+        alt="Drosophila male CNS overview"
+    />
+</a>
+<br>
+<em>Drosophila</em> MCNS overview.
+</p>
+
+<p align="center">
+<a href="https://www.youtube.com/watch?v=mNV_ypFXKwg">
+    <img
+        src="https://img.youtube.com/vi/mNV_ypFXKwg/hqdefault.jpg"
+        alt="Drosophila sexual dimorphism"
+    />
+</a>
+<br>
+<em>Drosophila</em> sexual dimorphism.
+</p>
+
+<p align="center">
+<a href="https://www.youtube.com/watch?v=TQ0T4C7noMo">
+    <img
+        src="https://img.youtube.com/vi/TQ0T4C7noMo/hqdefault.jpg"
+        alt="Drosophila visual motor pathways"
+    />
+</a>
+<br>
+<em>Drosophila</em> visual motor pathways.
+</p>
+
+## FuncEWOrm (2025)
+
+[FuncEWOrm project page](https://www.janelia.org/project-team/funceworm)
+
+<p align="center">
+<a href="https://www.youtube.com/watch?v=u2wwar-811c">
+    <img
+        src="https://img.youtube.com/vi/u2wwar-811c/hqdefault.jpg"
+        alt="Drosophila male CNS overview"
+    />
+</a>
+<br>
+FuncEWOrm project <em>C. elegans</em> embryo, with volume and surface rendering.
+</p>
+
 ## Benedetti et al. (2024)
 
 Lorena Benedetti et al., "Periodic ER-plasma membrane junctions support long-range Ca2+ signal integration in dendrites",
