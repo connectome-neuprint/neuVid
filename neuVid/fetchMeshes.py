@@ -135,7 +135,7 @@ def fetch_directly(source, mesh_info, ids, lod, decim_fraction, input_json_dir, 
     if not url_base:
         return
 
-    # Get quantization and transform, for computing voxel size.
+    # Get quantization and transform from info file.
     if not "vertex_quantization_bits" in mesh_info:
         return
     vertex_quantization_bits = mesh_info["vertex_quantization_bits"]
@@ -144,6 +144,7 @@ def fetch_directly(source, mesh_info, ids, lod, decim_fraction, input_json_dir, 
     meshes_transform = mesh_info["transform"]
     meshes_transform += [0, 0, 0, 1]
     meshes_transform = np.reshape(meshes_transform, (4, 4))
+    lod_scale_multiplier = mesh_info.get("lod_scale_multiplier", 1.0)
 
     download_dir = ensure_dir(input_json_dir, dir_name_from_ng_source(source))
     failed = []
@@ -173,12 +174,20 @@ def fetch_directly(source, mesh_info, ids, lod, decim_fraction, input_json_dir, 
                 chunk_shape, index_file_content = unpack_and_remove("f", 3, index_file_content)
                 grid_origin, index_file_content = unpack_and_remove("f", 3, index_file_content)
                 num_lods, index_file_content = unpack_and_remove("I", 1, index_file_content)
-                lod_scales, index_file_content = unpack_and_remove("f", num_lods[0], index_file_content)
-                vertex_offsets, index_file_content = unpack_and_remove("f", num_lods[0] * 3, index_file_content)
-                num_fragments_per_lod, index_file_content = unpack_and_remove("I", num_lods[0], index_file_content)
+                num_lods = int(num_lods[0])
+                lod_scales, index_file_content = unpack_and_remove("f", num_lods, index_file_content)
+                lod_scales = lod_scales * lod_scale_multiplier
+                vertex_offsets, index_file_content = unpack_and_remove("f", num_lods * 3, index_file_content)
+                vertex_offsets = vertex_offsets.reshape((num_lods, 3))
+                num_fragments_per_lod, index_file_content = unpack_and_remove("I", num_lods, index_file_content)
+
+                lod_for_id = lod
+                if lod_for_id < 0 or lod_for_id >= num_lods:
+                    print(f"Requested LOD {lod_for_id} is out of range [0, {num_lods - 1}] for ID {id}; using {num_lods - 1}")
+                    lod_for_id = num_lods - 1
 
                 previous_lod_byte_offset = 0
-                for current_lod in range(lod + 1):
+                for current_lod in range(lod_for_id + 1):
                     fragment_positions, index_file_content = unpack_and_remove("I", num_fragments_per_lod[current_lod] * 3, index_file_content)
                     fragment_positions = fragment_positions.reshape((3, -1)).T
                     fragment_offsets, index_file_content = unpack_and_remove("I", num_fragments_per_lod[current_lod], index_file_content)
@@ -189,15 +198,28 @@ def fetch_directly(source, mesh_info, ids, lod, decim_fraction, input_json_dir, 
                     previous_lod_byte_offset = lod_byte_offset[-1]
 
                 mesh_fragments = []
-                for idx,fragment_offset in enumerate(fragment_offsets):
-                    if (lod_byte_offset[idx] != lod_byte_offset[idx + 1]): 
+                chunk_span = chunk_shape * lod_scales[lod_for_id]
+                quant_max = float((2 ** vertex_quantization_bits) - 1)
+
+                for idx, fragment_offset in enumerate(fragment_offsets):
+                    if lod_byte_offset[idx] != lod_byte_offset[idx + 1]:
                         # Nonempty chunk.
-                        chunk_name = f"{id}_{fragment_positions[idx][0]}_{fragment_positions[idx][1]}_{fragment_positions[idx][2]}"
                         response = requests.get(f'{url_base}/{id}', headers={"range": f"bytes={lod_byte_offset[idx]}-{lod_byte_offset[idx+1]}"})
                         drc_mesh = DracoPy.decode(response.content)
-                        trimesh_mesh = trimesh.Trimesh(vertices=drc_mesh.points, faces=drc_mesh.faces)
-                        n = chunk_shape * (2**lod) * (fragment_positions[idx] + trimesh_mesh.vertices / (2**vertex_quantization_bits - 1))
-                        trimesh_mesh.vertices = grid_origin + vertex_offsets[lod] + n
+                        points = np.asarray(drc_mesh.points, dtype=np.float64).reshape(-1, 3)
+
+                        # DracoPy.decode() returns raw integers when the Draco
+                        # attribute is integer, or dequantized floats when the
+                        # encoder used Draco's built-in quantization.
+                        pos_attr = next(a for a in drc_mesh.data_struct['attributes']
+                                        if a['attribute_type'] == DracoPy.AttributeType.POSITION)
+
+                        if pos_attr['data_type'] <= DracoPy.DataType.DT_UINT64:
+                            points = chunk_span * (fragment_positions[idx] + points / quant_max)
+
+                        vertices = grid_origin + vertex_offsets[lod_for_id] + points
+
+                        trimesh_mesh = trimesh.Trimesh(vertices=vertices, faces=drc_mesh.faces)
                         mesh_fragments.append(trimesh_mesh)
 
                 mesh = trimesh.util.concatenate(mesh_fragments)
