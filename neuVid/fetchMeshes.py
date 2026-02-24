@@ -216,6 +216,10 @@ def fetch_directly(source, mesh_info, ids, lod, decim_fraction, input_json_dir, 
 
                         if pos_attr['data_type'] <= DracoPy.DataType.DT_UINT64:
                             points = chunk_span * (fragment_positions[idx] + points / quant_max)
+                        else:
+                            # Draco used a single scalar range = max(chunk_span),
+                            # so anisotropic axes need rescaling back to per-axis chunk_span.
+                            points = points * chunk_span / np.max(chunk_span)
 
                         vertices = grid_origin + vertex_offsets[lod_for_id] + points
 
