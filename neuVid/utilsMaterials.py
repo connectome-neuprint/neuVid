@@ -104,14 +104,17 @@ def newBasicMaterial(name, color=None):
         if color:
             mat.diffuse_color = color[0:3]
     else:
-        # The best compromise for transparency seems to be what the UI calls "Alpha Hashed" blend mode
-        # ("HASHED"). It avoids strange depth-sorting artifacts that occur with "Alpha Blend" ("BLEND").
-        # It looks a bit noisy with the relatively low number of samples necessary for good performance
-        # but that speckled noise is acceptable for the main way we use transparency, to make objects
-        # fade on and off.  Note that the situation is different for silhouettes, so they use different
-        # settings.
-        mat.blend_method = "HASHED"
-        mat.shadow_method = "HASHED"
+        if bpy.app.version < (4, 2, 0):
+            # The best compromise for transparency seems to be what the UI calls "Alpha Hashed" blend mode
+            # ("HASHED"). It avoids strange depth-sorting artifacts that occur with "Alpha Blend" ("BLEND").
+            # It looks a bit noisy with the relatively low number of samples necessary for good performance
+            # but that speckled noise is acceptable for the main way we use transparency, to make objects
+            # fade on and off.  Note that the situation is different for silhouettes, so they use different
+            # settings.
+            mat.blend_method = "HASHED"
+            mat.shadow_method = "HASHED"
+        else:
+            mat.surface_render_method = "DITHERED"
 
         mat.use_nodes = True
         matNodes = mat.node_tree.nodes
@@ -146,8 +149,12 @@ def new_shadeless_material(name, color=None):
         sys.exit()
     else:
         mat = bpy.data.materials.new(name=name)
-        mat.blend_method = "HASHED"
-        mat.shadow_method = "NONE"
+
+        if bpy.app.version < (4, 2, 0):
+            mat.blend_method = "HASHED"
+            mat.shadow_method = "NONE"
+        else:
+            mat.surface_render_method = "DITHERED"
 
         mat.use_nodes = True
         mat_nodes = mat.node_tree.nodes
@@ -212,8 +219,11 @@ def newShadelessImageMaterial(name, source):
             tex.image_user.frame_offset = 0
             tex.image_user.use_auto_refresh = True
     else:
-        mat.blend_method = "HASHED"
-        mat.shadow_method = "NONE"
+        if bpy.app.version < (4, 2, 0):
+            mat.blend_method = "HASHED"
+            mat.shadow_method = "NONE"
+        else:
+            mat.surface_render_method = "DITHERED"
 
         mat.use_nodes = True
         matNodes = mat.node_tree.nodes
@@ -275,8 +285,11 @@ def newGlowingMaterial(name, color):
         mat.specular_intensity = 0
     else:
         # The transparency settings that work well with `newBasicMaterial` work well here, too.
-        mat.blend_method = "HASHED"
-        mat.shadow_method = "HASHED"
+        if bpy.app.version < (4, 2, 0):
+            mat.blend_method = "HASHED"
+            mat.shadow_method = "HASHED"
+        else:
+            mat.surface_render_method = "DITHERED"
 
         mat.use_nodes = True
         matNodes = mat.node_tree.nodes
@@ -379,21 +392,24 @@ def newSilhouetteMaterial(name, exp=5, threshold=100):
             # A negative exponent gives simple surface shading instead of the silhouette.
             mat.specular_intensity = 0
     else:
-        # We want to see silhouette edges that come from back faces, too.  So turning on
-        # what the UI calls the "Alpha Blend" blend method ("BLEND") gives better results
-        # than the "Alpha Hashed" blend method ("HASHED").  "BLEND" does not show noise
-        # even with a relatively low number of samples, while "HASHED" looks right only
-        # with a large number of samples, which hurts peformance.  Note that with "BLEND"
-        # for silhouettes, it is important to have `use_backface_culling = False` and
-        # `show_transparent_back = True`.
-        # But note that a current limitation of Blender's Eevee renderer is that "BLEND"
-        # materials are ignored in all passes other than the basic "combined" pass.
-        # So for depth compositing, render.py will change theses materials to "HASHED".
-        mat.blend_method = "BLEND"
-        mat.use_backface_culling = False
-        mat.show_transparent_back = True
+        if bpy.app.version < (4, 2, 0):
+            # We want to see silhouette edges that come from back faces, too.  So turning on
+            # what the UI calls the "Alpha Blend" blend method ("BLEND") gives better results
+            # than the "Alpha Hashed" blend method ("HASHED").  "BLEND" does not show noise
+            # even with a relatively low number of samples, while "HASHED" looks right only
+            # with a large number of samples, which hurts peformance.  Note that with "BLEND"
+            # for silhouettes, it is important to have `use_backface_culling = False` and
+            # `show_transparent_back = True`.
+            # But note that a current limitation of Blender's Eevee renderer is that "BLEND"
+            # materials are ignored in all passes other than the basic "combined" pass.
+            # So for depth compositing, render.py will change theses materials to "HASHED".
+            mat.blend_method = "BLEND"
+            mat.use_backface_culling = False
+            mat.show_transparent_back = True
+            mat.shadow_method = "NONE"
+        else:
+            mat.surface_render_method = "DITHERED"
 
-        mat.shadow_method = "NONE"
 
         mat.use_nodes = True
         matNodes = mat.node_tree.nodes
@@ -468,6 +484,7 @@ def newSilhouetteMaterial(name, exp=5, threshold=100):
 
             mixNode = matNodes.new("ShaderNodeMixShader")
             mixNode.name = "mix"
+            # If "Fac" is 0 the output is just input[1].
             matLinks.new(alphaXPowXLightPathNode.outputs["Value"], mixNode.inputs["Fac"])
             matLinks.new(backgroundNode.outputs["BSDF"], mixNode.inputs[1])
             matLinks.new(diffuseColorNode.outputs["Color"], mixNode.inputs[2])
