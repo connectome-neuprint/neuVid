@@ -164,6 +164,7 @@ if __name__ == "__main__":
     cmds2["import_extra_args"] = "--skipExisting"
     run_test("test-separate-files-hemi", [1, 10, 55, 60, 65, 70, 122, 145], cmds2)
     run_test("test-roi-source-unused", [1, 6, 12, 18, 24], cmds)
+    run_test("test-neurons-hemi-rois-mcns", [1, 100], cmds)
 
     runtime1 = datetime.datetime.now()
 

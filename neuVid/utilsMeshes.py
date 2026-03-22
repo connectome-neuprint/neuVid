@@ -42,7 +42,10 @@ def fileToImportForNeuron(source, bodyId, parentForDownloadDir, swcCapVertexCoun
             print("Skipping downloading of existing file {}".format(fileName))
             return fileName
 
-        meshBin = downloadMesh(source, bodyId + ".ngmesh")
+        # The "%2f" cases are for
+        # https://storage.googleapis.com/storage/v1/b/flyem-male-cns/o/hemibrain2mcns_meshes
+        key = bodyId + ".ngmesh" if not source.endswith("%2F") else bodyId
+        meshBin = downloadMesh(source, key)
         if meshBin:
             with BytesIO(meshBin) as meshBinStream:
                 verticesXYZ, faces = read_ngmesh(meshBinStream)
@@ -97,12 +100,13 @@ def fileToImportForRoi(source, roiName, parentForDownloadDir, skipExisting):
             print("Skipping downloading of existing file {}".format(fileName))
             return fileName
 
-        mesh = downloadMesh(source, roiName)
+        key = roiName + ".ngmesh" if source.endswith("%2F") else roiName
+        mesh = downloadMesh(source, key)
         if mesh:
             try:
                 if not os.path.exists(downloadDir):
                     os.makedirs(downloadDir)
-                if roiName.endswith(".ngmesh"):
+                if key.endswith(".ngmesh"):
                     with BytesIO(mesh) as meshBinStream:
                         verticesXYZ, faces = read_ngmesh(meshBinStream)
                         # Per the comment in
@@ -156,12 +160,14 @@ def fileToImportForSynapses(source, synapseSetName, synapseSetSpec, parentForDow
 
 def downloadMesh(source, key):
     url = source
-    if url[-1] != "/":
+    if url[-1] != "/" and not source.endswith("%2F"):
         url += "/"
     # DVID source
     if "api/node" in url:
         url += "key/"
     url += key
+    if source.endswith("%2F"):
+        url += "?alt=media"
     try:
         print("Downloading mesh from {}".format(url))
         r = requests.get(url)

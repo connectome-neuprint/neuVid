@@ -1,0 +1,17 @@
+{
+  "rois": {
+    "source": "https://storage.googleapis.com/storage/v1/b/flyem-male-cns/o/rois%2Ffullbrain-major-shells%2Fmesh%2F",
+    "shell": ["CB", "OL(L)", "OL(R)"]
+  },
+  "neurons": {
+    "source": "https://storage.googleapis.com/storage/v1/b/flyem-male-cns/o/hemibrain2mcns_meshes%2Fv1.2%2Fmeshes%2F",
+    "mbons": [673509195, 612371421, 5813022341, 424789697]
+  },
+  "animation": [
+    ["orbitCamera", {"axis": "x", "endingRelativeAngle": -90}],
+    ["setValue", {"meshes": "rois", "alpha": 0.2}],
+    ["setValue", {"meshes": "rois", "threshold": 1}],
+    ["frameCamera", {"bound": "rois"}],
+    ["orbitCamera", {"axis": "y", "duration": 10, "scale": 0.7}]
+  ]
+}
