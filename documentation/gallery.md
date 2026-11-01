@@ -69,7 +69,7 @@ https://doi.org/10.1016/j.cell.2024.11.029
     />
 </a>
 <br>
-Video S2: Intracellular organelle segmentation of fly neurites, with endoplasmic reticulum, mitochondria, microtubules, segmented from FIB-SEM datasets of a <em>Drosophila melanogaster</em> MBON1 neuron.
+Video S2: Intracellular organelle segmentation of fly neurites, with endoplasmic reticulum, mitochondria, microtubules, segmented from FIB-SEM datasets of a <em>Drosophila melanogaster</em> MBON1 neuron. First runner up for the <a href="https://drosophila-images.org/2026-2">2026 Drosophila Image Award</a> from the <a href="https://genetics-gsa.org">Genetics Society of America</a>.
 </p>
 
 ## FlyEM Optic Lobe (2024)
